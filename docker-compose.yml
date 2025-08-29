@@ -1,0 +1,62 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14.5
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.4.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  redis:
+    image: redis:7.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - RUBY_VERSION=3.4.4
+    image: myntra-clone-dev:latest
+    depends_on:
+      - postgres
+      - elasticsearch
+      - redis
+    environment:
+      - RAILS_ENV=development
+      - BUNDLE_WITHOUT=
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/rails
+      # Keep node_modules in a volume to avoid conflicts with local machine
+      - node_modules:/rails/node_modules
+    # Overwrite the entrypoint and command for development
+    entrypoint: /bin/bash
+    command: -c "rm -f tmp/pids/server.pid && ./bin/dev"
+
+volumes:
+  node_modules:
+  postgres_data:
+  elasticsearch_data:
+  redis_data:
