@@ -9,7 +9,7 @@ class Product < ApplicationRecord
   has_many :product_variants, dependent: :destroy
   has_many :reviews, dependent: :destroy
 
-  enum :status, { pending: 'pending', active: 'active', rejected: 'rejected', archived: 'archived' }
+  enum :status, { pending: 0, active: 1, rejected: 2, archived: 3 }
 
   validates :name, presence: true
   validates :description, presence: true

@@ -98,7 +98,7 @@ supplier_profiles = [
   {
     user: supplier_users.first,
     company_name: "Fashion Forward Ltd",
-    gst_number: "GST123456789",
+    gst_number: "GST123456789001",
     description: "Premium fashion supplier specializing in contemporary clothing",
     website_url: "https://fashionforward.com",
     verified: true
@@ -106,7 +106,7 @@ supplier_profiles = [
   {
     user: supplier_users.second,
     company_name: "Style Masters Inc",
-    gst_number: "GST987654321",
+    gst_number: "GST987654321002",
     description: "Leading supplier of trendy accessories and footwear",
     website_url: "https://stylemasters.com",
     verified: false
@@ -279,7 +279,7 @@ customers.each do |customer|
       shipping_address: shipping_address,
       billing_address: billing_address,
       status: "delivered",
-      payment_status: "complete",
+      payment_status: "payment_complete",
       shipping_method: "standard",
       total_amount: rand(50..200)
     },
@@ -287,7 +287,7 @@ customers.each do |customer|
       shipping_address: shipping_address,
       billing_address: billing_address,
       status: "shipped",
-      payment_status: "complete",
+      payment_status: "payment_complete",
       shipping_method: "express",
       total_amount: rand(50..200)
     }

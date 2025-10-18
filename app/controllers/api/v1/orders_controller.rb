@@ -33,7 +33,7 @@ class Api::V1::OrdersController < ApplicationController
       # If payment is successful, we proceed with saving the order
       ActiveRecord::Base.transaction do
         transfer_cart_items_to_order(cart, @order)
-        @order.payment_status = 'complete'
+        @order.payment_status = 'payment_complete'
         @order.status = 'paid' # Or 'processing'
         @order.save!
         cart.cart_items.destroy_all

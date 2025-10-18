@@ -11,4 +11,12 @@ class ProductVariant < ApplicationRecord
   validates :sku, presence: true, uniqueness: true
   validates :price, presence: true, numericality: { greater_than: 0 }
   validates :stock_quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
+
+  def available?
+    stock_quantity > 0
+  end
+
+  def current_price
+    discounted_price || price
+  end
 end

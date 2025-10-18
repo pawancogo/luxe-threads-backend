@@ -3,36 +3,17 @@ RailsAdmin.config do |config|
 
   ### Popular gems integration
 
-  ## == Authentication ==
-  config.authenticate_with do
-    # Custom authentication for Rails Admin
-    # We'll use JWT token from session or header
-    if session[:admin_user_id]
-      @current_admin_user = User.find(session[:admin_user_id])
-    elsif request.headers['Authorization']
-      token = request.headers['Authorization'].split(' ').last
-      begin
-        decoded = JWT.decode(token, Rails.application.secret_key_base)[0]
-        @current_admin_user = User.find(decoded['user_id'])
-      rescue JWT::DecodeError, ActiveRecord::RecordNotFound
-        @current_admin_user = nil
-      end
-    end
-    
-    # Only allow admin users
-    if @current_admin_user&.admin?
-      @current_admin_user
-    else
-      redirect_to '/api/v1/login' and return
-    end
-  end
-  
-  config.current_user_method do
-    @current_admin_user
-  end
+  ## == Devise ==
+  # config.authenticate_with do
+  #   warden.authenticate! scope: :user
+  # end
+  # config.current_user_method(&:current_user)
 
-  ## == Pundit Authorization ==
-  config.authorize_with :pundit
+  ## == CancanCan ==
+  # config.authorize_with :cancancan
+
+  ## == Pundit ==
+  # config.authorize_with :pundit
 
   ## == PaperTrail ==
   # config.audit_with :paper_trail, 'User', 'PaperTrail::Version' # PaperTrail >= 3.0.0
@@ -135,34 +116,4 @@ RailsAdmin.config do |config|
     end
   end
 
-  # Add custom actions for product verification
-  config.model 'Product' do
-    member :approve_product do
-      visible? { bindings[:object].is_a?(Product) && bindings[:object].pending? }
-      link_icon 'icon-check'
-      pjax false
-      action :post do
-        bindings[:object].update(
-          status: :active, 
-          verified_by_admin_id: bindings[:view]._current_user.id, 
-          verified_at: Time.current
-        )
-        redirect_to back_or_index, notice: 'Product approved successfully.'
-      end
-    end
-
-    member :reject_product do
-      visible? { bindings[:object].is_a?(Product) && bindings[:object].pending? }
-      link_icon 'icon-remove'
-      pjax false
-      action :post do
-        bindings[:object].update(
-          status: :rejected, 
-          verified_by_admin_id: bindings[:view]._current_user.id, 
-          verified_at: Time.current
-        )
-        redirect_to back_or_index, notice: 'Product rejected successfully.'
-      end
-    end
-  end
 end

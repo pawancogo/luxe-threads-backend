@@ -32,3 +32,79 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# Ignore database files
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+/db/*.sqlite3
+/db/*.sqlite3-shm
+/db/*.sqlite3-wal
+
+# Ignore node_modules
+/node_modules
+/yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ignore Ruby version manager files
+.ruby-version
+.rvmrc
+
+# Ignore coverage reports
+/coverage/
+
+# Ignore Spring files
+/spring/*.pid
+
+# Ignore credentials and secrets
+/config/credentials.yml.enc
+/config/credentials/
+*.pem
+*.key
+
+# Ignore uploaded files
+/public/uploads/
+/public/system/
+
+# Ignore cache files
+.cache/
+.byebug_history
+
+# Ignore test files
+/test/tmp/
+/test/version_tmp/
+
+# Ignore local environment files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore backup files
+*.bak
+*.backup
+*.orig
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.temp
