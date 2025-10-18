@@ -2,115 +2,331 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-puts "🌱 Seeding database..."
+puts "🌱 Starting to seed the database..."
 
-# Create admin user
-admin = User.find_or_create_by(email: 'admin@luxethreads.com') do |user|
-  user.first_name = 'Admin'
-  user.last_name = 'User'
-  user.phone_number = '0000000000'
-  user.password = 'admin123'
-  user.password_confirmation = 'admin123'
-  user.role = 'super_admin'
-end
-
-puts "✅ Created admin user: #{admin.email}"
-
-# Create sample categories
+# Create Categories
+puts "Creating categories..."
 categories = [
-  { name: 'Clothing' },
-  { name: 'Accessories' },
-  { name: 'Shoes' },
-  { name: 'Bags' }
+  { name: "Men's Clothing" },
+  { name: "Women's Clothing" },
+  { name: "Accessories" },
+  { name: "Shoes" },
+  { name: "Bags" },
+  { name: "Jewelry" }
 ]
 
-categories.each do |cat_data|
-  Category.find_or_create_by(name: cat_data[:name])
+categories.each do |category_attrs|
+  Category.find_or_create_by!(name: category_attrs[:name])
 end
 
-puts "✅ Created categories"
-
-# Create sample brands
+# Create Brands
+puts "Creating brands..."
 brands = [
-  { name: 'Nike', logo_url: 'https://example.com/nike-logo.png' },
-  { name: 'Adidas', logo_url: 'https://example.com/adidas-logo.png' },
-  { name: 'Zara', logo_url: 'https://example.com/zara-logo.png' },
-  { name: 'H&M', logo_url: 'https://example.com/hm-logo.png' }
+  { name: "Nike", logo_url: "https://example.com/nike-logo.png" },
+  { name: "Adidas", logo_url: "https://example.com/adidas-logo.png" },
+  { name: "Zara", logo_url: "https://example.com/zara-logo.png" },
+  { name: "H&M", logo_url: "https://example.com/hm-logo.png" },
+  { name: "Gucci", logo_url: "https://example.com/gucci-logo.png" },
+  { name: "Prada", logo_url: "https://example.com/prada-logo.png" }
 ]
 
-brands.each do |brand_data|
-  Brand.find_or_create_by(name: brand_data[:name]) do |brand|
-    brand.logo_url = brand_data[:logo_url]
+brands.each do |brand_attrs|
+  Brand.find_or_create_by!(name: brand_attrs[:name]) do |brand|
+    brand.logo_url = brand_attrs[:logo_url]
   end
 end
 
-puts "✅ Created brands"
+# Create Users
+puts "Creating users..."
+users = [
+  {
+    first_name: "John",
+    last_name: "Doe",
+    email: "john.doe@example.com",
+    phone_number: "+1234567890",
+    password: "password123",
+    role: "customer"
+  },
+  {
+    first_name: "Jane",
+    last_name: "Smith",
+    email: "jane.smith@example.com",
+    phone_number: "+1234567891",
+    password: "password123",
+    role: "customer"
+  },
+  {
+    first_name: "Admin",
+    last_name: "User",
+    email: "admin@luxethreads.com",
+    phone_number: "+1234567892",
+    password: "admin123",
+    role: "super_admin"
+  },
+  {
+    first_name: "Supplier",
+    last_name: "One",
+    email: "supplier1@example.com",
+    phone_number: "+1234567893",
+    password: "password123",
+    role: "supplier"
+  },
+  {
+    first_name: "Supplier",
+    last_name: "Two",
+    email: "supplier2@example.com",
+    phone_number: "+1234567894",
+    password: "password123",
+    role: "supplier"
+  }
+]
 
-# Create sample supplier
-supplier = User.find_or_create_by(email: 'supplier@example.com') do |user|
-  user.first_name = 'Jane'
-  user.last_name = 'Supplier'
-  user.phone_number = '1111111111'
-  user.password = 'supplier123'
-  user.password_confirmation = 'supplier123'
-  user.role = 'supplier'
+users.each do |user_attrs|
+  User.find_or_create_by!(email: user_attrs[:email]) do |user|
+    user.first_name = user_attrs[:first_name]
+    user.last_name = user_attrs[:last_name]
+    user.phone_number = user_attrs[:phone_number]
+    user.password = user_attrs[:password]
+    user.role = user_attrs[:role]
+  end
 end
 
-# Create supplier profile
-if supplier.supplier_profile.blank?
-  supplier.create_supplier_profile!(
-    company_name: 'Fashion Supplies Inc.',
-    gst_number: 'GST123456789',
-    description: 'Premium fashion supplier',
-    website_url: 'https://fashionsupplies.com',
+# Create Supplier Profiles
+puts "Creating supplier profiles..."
+supplier_users = User.where(role: "supplier")
+supplier_profiles = [
+  {
+    user: supplier_users.first,
+    company_name: "Fashion Forward Ltd",
+    gst_number: "GST123456789",
+    description: "Premium fashion supplier specializing in contemporary clothing",
+    website_url: "https://fashionforward.com",
     verified: true
-  )
+  },
+  {
+    user: supplier_users.second,
+    company_name: "Style Masters Inc",
+    gst_number: "GST987654321",
+    description: "Leading supplier of trendy accessories and footwear",
+    website_url: "https://stylemasters.com",
+    verified: false
+  }
+]
+
+supplier_profiles.each do |profile_attrs|
+  SupplierProfile.find_or_create_by!(user: profile_attrs[:user]) do |profile|
+    profile.company_name = profile_attrs[:company_name]
+    profile.gst_number = profile_attrs[:gst_number]
+    profile.description = profile_attrs[:description]
+    profile.website_url = profile_attrs[:website_url]
+    profile.verified = profile_attrs[:verified]
+  end
 end
 
-puts "✅ Created supplier: #{supplier.email}"
+# Create Products
+puts "Creating products..."
+categories = Category.all
+brands = Brand.all
+supplier_profiles = SupplierProfile.all
 
-# Create sample customer
-customer = User.find_or_create_by(email: 'customer@example.com') do |user|
-  user.first_name = 'John'
-  user.last_name = 'Customer'
-  user.phone_number = '2222222222'
-  user.password = 'customer123'
-  user.password_confirmation = 'customer123'
-  user.role = 'customer'
+products = [
+  {
+    name: "Classic White T-Shirt",
+    description: "Premium cotton t-shirt with a comfortable fit. Perfect for everyday wear.",
+    supplier_profile: supplier_profiles.first,
+    category: categories.first,
+    brand: brands.first,
+    status: "active"
+  },
+  {
+    name: "Denim Jeans",
+    description: "High-quality denim jeans with a modern slim fit. Made from sustainable materials.",
+    supplier_profile: supplier_profiles.first,
+    category: categories.first,
+    brand: brands.second,
+    status: "active"
+  },
+  {
+    name: "Summer Dress",
+    description: "Elegant summer dress perfect for warm weather. Lightweight and breathable fabric.",
+    supplier_profile: supplier_profiles.second,
+    category: categories.second,
+    brand: brands.third,
+    status: "pending"
+  },
+  {
+    name: "Leather Handbag",
+    description: "Luxury leather handbag with multiple compartments. Handcrafted with attention to detail.",
+    supplier_profile: supplier_profiles.second,
+    category: categories.fifth,
+    brand: brands.fifth,
+    status: "active"
+  },
+  {
+    name: "Running Shoes",
+    description: "High-performance running shoes with advanced cushioning technology.",
+    supplier_profile: supplier_profiles.first,
+    category: categories.fourth,
+    brand: brands.first,
+    status: "rejected"
+  }
+]
+
+products.each do |product_attrs|
+  Product.find_or_create_by!(name: product_attrs[:name]) do |product|
+    product.description = product_attrs[:description]
+    product.supplier_profile = product_attrs[:supplier_profile]
+    product.category = product_attrs[:category]
+    product.brand = product_attrs[:brand]
+    product.status = product_attrs[:status]
+  end
 end
 
-puts "✅ Created customer: #{customer.email}"
+# Create Product Variants
+puts "Creating product variants..."
+products = Product.all
 
-# Create sample products
-if supplier.supplier_profile.products.count == 0
-  clothing_category = Category.find_by(name: 'Clothing')
-  nike_brand = Brand.find_by(name: 'Nike')
-  
-  product = supplier.supplier_profile.products.create!(
-    name: 'Premium Cotton T-Shirt',
-    description: 'High quality cotton t-shirt perfect for everyday wear',
-    category: clothing_category,
-    brand: nike_brand,
-    status: 'active'
-  )
-  
-  # Create product variant
-  product.product_variants.create!(
-    sku: 'TSHIRT-M-BLUE-001',
-    price: 29.99,
-    discounted_price: 24.99,
-    stock_quantity: 100,
-    weight_kg: 0.2
-  )
-  
-  puts "✅ Created sample product: #{product.name}"
+products.each do |product|
+  variants = [
+    {
+      sku: "#{product.name.parameterize}-small",
+      price: rand(20..100),
+      discounted_price: rand(15..80),
+      stock_quantity: rand(10..50),
+      weight_kg: rand(0.1..2.0)
+    },
+    {
+      sku: "#{product.name.parameterize}-medium",
+      price: rand(20..100),
+      discounted_price: rand(15..80),
+      stock_quantity: rand(10..50),
+      weight_kg: rand(0.1..2.0)
+    },
+    {
+      sku: "#{product.name.parameterize}-large",
+      price: rand(20..100),
+      discounted_price: rand(15..80),
+      stock_quantity: rand(10..50),
+      weight_kg: rand(0.1..2.0)
+    }
+  ]
+
+  variants.each do |variant_attrs|
+    ProductVariant.find_or_create_by!(product: product, sku: variant_attrs[:sku]) do |variant|
+      variant.price = variant_attrs[:price]
+      variant.discounted_price = variant_attrs[:discounted_price]
+      variant.stock_quantity = variant_attrs[:stock_quantity]
+      variant.weight_kg = variant_attrs[:weight_kg]
+    end
+  end
 end
 
-puts "🎉 Seeding completed!"
+# Create Addresses
+puts "Creating addresses..."
+customers = User.where(role: "customer")
+
+customers.each do |customer|
+  addresses = [
+    {
+      address_type: "shipping",
+      full_name: "#{customer.first_name} #{customer.last_name}",
+      phone_number: customer.phone_number,
+      line1: "123 Main Street",
+      line2: "Apt 4B",
+      city: "New York",
+      state: "NY",
+      postal_code: "10001",
+      country: "USA"
+    },
+    {
+      address_type: "billing",
+      full_name: "#{customer.first_name} #{customer.last_name}",
+      phone_number: customer.phone_number,
+      line1: "456 Oak Avenue",
+      line2: "",
+      city: "New York",
+      state: "NY",
+      postal_code: "10002",
+      country: "USA"
+    }
+  ]
+
+  addresses.each do |address_attrs|
+    Address.find_or_create_by!(user: customer, address_type: address_attrs[:address_type]) do |address|
+      address.full_name = address_attrs[:full_name]
+      address.phone_number = address_attrs[:phone_number]
+      address.line1 = address_attrs[:line1]
+      address.line2 = address_attrs[:line2]
+      address.city = address_attrs[:city]
+      address.state = address_attrs[:state]
+      address.postal_code = address_attrs[:postal_code]
+      address.country = address_attrs[:country]
+    end
+  end
+end
+
+# Create Orders
+puts "Creating orders..."
+customers = User.where(role: "customer")
+product_variants = ProductVariant.all
+
+customers.each do |customer|
+  shipping_address = customer.addresses.find_by(address_type: "shipping")
+  billing_address = customer.addresses.find_by(address_type: "billing")
+  
+  orders = [
+    {
+      shipping_address: shipping_address,
+      billing_address: billing_address,
+      status: "delivered",
+      payment_status: "complete",
+      shipping_method: "standard",
+      total_amount: rand(50..200)
+    },
+    {
+      shipping_address: shipping_address,
+      billing_address: billing_address,
+      status: "shipped",
+      payment_status: "complete",
+      shipping_method: "express",
+      total_amount: rand(50..200)
+    }
+  ]
+
+  orders.each do |order_attrs|
+    order = Order.find_or_create_by!(user: customer, total_amount: order_attrs[:total_amount]) do |o|
+      o.shipping_address = order_attrs[:shipping_address]
+      o.billing_address = order_attrs[:billing_address]
+      o.status = order_attrs[:status]
+      o.payment_status = order_attrs[:payment_status]
+      o.shipping_method = order_attrs[:shipping_method]
+    end
+
+    # Create order items
+    selected_variants = product_variants.sample(rand(1..3))
+    selected_variants.each do |variant|
+      OrderItem.find_or_create_by!(order: order, product_variant: variant) do |item|
+        item.quantity = rand(1..3)
+        item.price_at_purchase = variant.price
+      end
+    end
+  end
+end
+
+puts "✅ Database seeding completed successfully!"
+puts "📊 Summary:"
+puts "   - #{Category.count} categories created"
+puts "   - #{Brand.count} brands created"
+puts "   - #{User.count} users created"
+puts "   - #{SupplierProfile.count} supplier profiles created"
+puts "   - #{Product.count} products created"
+puts "   - #{ProductVariant.count} product variants created"
+puts "   - #{Address.count} addresses created"
+puts "   - #{Order.count} orders created"
+puts "   - #{OrderItem.count} order items created"
 puts ""
-puts "📋 Login credentials:"
-puts "Admin: admin@luxethreads.com / admin123"
-puts "Supplier: supplier@example.com / supplier123"
-puts "Customer: customer@example.com / customer123"
+puts "🔑 Admin Login:"
+puts "   Email: admin@luxethreads.com"
+puts "   Password: admin123"
 puts ""
-puts "🔗 Access Rails Admin at: http://localhost:3000/admin"
+puts "🌐 Access RailsAdmin at: http://localhost:3000/admin"

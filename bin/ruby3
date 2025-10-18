@@ -1,0 +1,4 @@
+#!/bin/bash
+# Script to use Ruby 3.4.7 for this project
+export PATH="/usr/local/opt/ruby/bin:$PATH"
+exec "$@"

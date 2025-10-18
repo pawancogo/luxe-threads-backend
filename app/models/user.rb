@@ -2,12 +2,12 @@ class User < ApplicationRecord
   has_secure_password
 
   # Define roles using an enum
-  enum role: {
-    customer: 0,
-    supplier: 1,
-    super_admin: 2,
-    product_admin: 3,
-    order_admin: 4
+  enum :role, {
+    customer: 'customer',
+    supplier: 'supplier',
+    super_admin: 'super_admin',
+    product_admin: 'product_admin',
+    order_admin: 'order_admin'
   }
 
   # Associations

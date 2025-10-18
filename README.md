@@ -21,4 +21,12 @@ Things you may want to cover:
 
 * Deployment instructions
 
+
+./bin/bundle3 install
+./bin/bundle3 update
+./bin/bundle3 exec rake db:migrate
+
+
+
+
 * ...

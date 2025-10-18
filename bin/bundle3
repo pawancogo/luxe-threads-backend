@@ -1,0 +1,4 @@
+#!/bin/bash
+# Use Ruby 3.4.7 bundle for this project
+export PATH="/usr/local/opt/ruby/bin:$PATH"
+exec bundle "$@"
