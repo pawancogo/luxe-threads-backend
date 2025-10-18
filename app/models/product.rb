@@ -1,5 +1,5 @@
 class Product < ApplicationRecord
-  searchkick
+  # searchkick # Temporarily disabled for seeding
 
   belongs_to :supplier_profile
   belongs_to :category
@@ -10,6 +10,9 @@ class Product < ApplicationRecord
   has_many :reviews, dependent: :destroy
 
   enum status: { pending: 0, active: 1, rejected: 2, archived: 3 }
+
+  validates :name, presence: true
+  validates :description, presence: true
 
   def search_data
     {

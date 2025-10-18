@@ -1,5 +1,6 @@
 class Api::V1::AuthenticationController < ApplicationController
   include JsonWebToken
+  skip_before_action :authenticate_request, only: [:create]
 
   # POST /api/v1/login
   def create

@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
   mount RailsAdmin::Engine => '/admin', as: 'rails_admin'
+  
+  # Admin authentication routes
+  get '/admin/login', to: 'admin#login'
+  post '/admin/authenticate', to: 'admin#authenticate'
+  get '/admin/logout', to: 'admin#logout'
 
   namespace :api do
     namespace :v1 do

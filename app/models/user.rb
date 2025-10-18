@@ -16,7 +16,10 @@ class User < ApplicationRecord
   has_many :orders, dependent: :destroy
   has_many :reviews, dependent: :destroy
   has_one :cart, dependent: :destroy
+  has_one :wishlist, dependent: :destroy
+  has_many :verified_products, class_name: 'Product', foreign_key: 'verified_by_admin_id'
   after_create :create_cart
+  after_create :create_wishlist
 
   # Validations
   validates :first_name, presence: true
@@ -25,9 +28,18 @@ class User < ApplicationRecord
   validates :phone_number, presence: true, uniqueness: true
   validates :role, presence: true
 
+  # Helper method to check if user is any type of admin
+  def admin?
+    super_admin? || product_admin? || order_admin?
+  end
+
   private
 
   def create_cart
     Cart.create(user: self)
+  end
+
+  def create_wishlist
+    Wishlist.create(user: self)
   end
 end

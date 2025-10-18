@@ -1,12 +1,11 @@
 source "http://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "~> 7.1.5"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
-# Use sqlite3 as the database for Active Record
-# Use PostgreSQL as the database
-gem "sqlite3"
+# Use SQLite for development, PostgreSQL for production
+gem "sqlite3", "~> 1.4"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
@@ -77,3 +76,4 @@ end
 gem 'cloudinary'
 
 gem 'stripe'
+gem "sassc-rails"
