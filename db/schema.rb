@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
+ActiveRecord::Schema[7.1].define(version: 2025_10_21_210800) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -52,7 +52,28 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.string "country"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_addresses_on_deleted_at"
     t.index ["user_id"], name: "index_addresses_on_user_id"
+  end
+
+  create_table "admins", force: :cascade do |t|
+    t.string "first_name"
+    t.string "last_name"
+    t.string "email"
+    t.string "phone_number"
+    t.string "password_digest"
+    t.string "role"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "email_verified"
+    t.datetime "temp_password_expires_at"
+    t.boolean "password_reset_required"
+    t.string "temp_password_digest"
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_admins_on_deleted_at"
+    t.index ["email"], name: "index_admins_on_email", unique: true
+    t.index ["phone_number"], name: "index_admins_on_phone_number", unique: true
   end
 
   create_table "attribute_types", force: :cascade do |t|
@@ -82,7 +103,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.integer "quantity"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
     t.index ["cart_id"], name: "index_cart_items_on_cart_id"
+    t.index ["deleted_at"], name: "index_cart_items_on_deleted_at"
     t.index ["product_variant_id"], name: "index_cart_items_on_product_variant_id"
   end
 
@@ -90,6 +113,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.integer "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_carts_on_deleted_at"
     t.index ["user_id"], name: "index_carts_on_user_id"
   end
 
@@ -99,6 +124,23 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["parent_id"], name: "index_categories_on_parent_id"
+  end
+
+  create_table "email_verifications", force: :cascade do |t|
+    t.string "email"
+    t.string "otp"
+    t.datetime "expires_at"
+    t.integer "attempts"
+    t.integer "max_attempts"
+    t.boolean "verified"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "verifiable_type"
+    t.integer "verifiable_id"
+    t.datetime "verified_at"
+    t.index ["email"], name: "index_email_verifications_on_email", unique: true
+    t.index ["verifiable_type", "verifiable_id"], name: "index_email_verifications_on_verifiable"
+    t.index ["verifiable_type", "verifiable_id"], name: "index_email_verifications_on_verifiable_type_and_verifiable_id"
   end
 
   create_table "order_items", force: :cascade do |t|
@@ -122,7 +164,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.decimal "total_amount"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
     t.index ["billing_address_id"], name: "index_orders_on_billing_address_id"
+    t.index ["deleted_at"], name: "index_orders_on_deleted_at"
     t.index ["shipping_address_id"], name: "index_orders_on_shipping_address_id"
     t.index ["user_id"], name: "index_orders_on_user_id"
   end
@@ -170,8 +214,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.datetime "verified_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
     t.index ["brand_id"], name: "index_products_on_brand_id"
     t.index ["category_id"], name: "index_products_on_category_id"
+    t.index ["deleted_at"], name: "index_products_on_deleted_at"
     t.index ["supplier_profile_id"], name: "index_products_on_supplier_profile_id"
     t.index ["verified_by_admin_id"], name: "index_products_on_verified_by_admin_id"
   end
@@ -215,12 +261,13 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.boolean "verified_purchase"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_reviews_on_deleted_at"
     t.index ["product_id"], name: "index_reviews_on_product_id"
     t.index ["user_id"], name: "index_reviews_on_user_id"
   end
 
   create_table "supplier_profiles", force: :cascade do |t|
-    t.integer "user_id", null: false
     t.string "company_name"
     t.string "gst_number"
     t.text "description"
@@ -228,7 +275,27 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.boolean "verified"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["user_id"], name: "index_supplier_profiles_on_user_id"
+    t.integer "supplier_id", null: false
+    t.index ["supplier_id"], name: "index_supplier_profiles_on_supplier_id"
+  end
+
+  create_table "suppliers", force: :cascade do |t|
+    t.string "first_name"
+    t.string "last_name"
+    t.string "email"
+    t.string "phone_number"
+    t.string "password_digest"
+    t.string "role"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "email_verified"
+    t.string "temp_password_digest"
+    t.datetime "temp_password_expires_at"
+    t.boolean "password_reset_required", default: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_suppliers_on_deleted_at"
+    t.index ["email"], name: "index_suppliers_on_email", unique: true
+    t.index ["phone_number"], name: "index_suppliers_on_phone_number", unique: true
   end
 
   create_table "users", force: :cascade do |t|
@@ -240,8 +307,33 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.string "role"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "email_verified"
+    t.string "temp_password_digest"
+    t.datetime "temp_password_expires_at"
+    t.boolean "password_reset_required", default: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["phone_number"], name: "index_users_on_phone_number", unique: true
+  end
+
+  create_table "versions", force: :cascade do |t|
+    t.string "item_type", null: false
+    t.bigint "item_id", null: false
+    t.string "event", null: false
+    t.string "whodunnit"
+    t.text "object", limit: 1073741823
+    t.text "object_changes", limit: 1073741823
+    t.string "ip_address"
+    t.string "user_agent"
+    t.string "transaction_id"
+    t.datetime "created_at", null: false
+    t.index ["created_at"], name: "index_versions_on_created_at"
+    t.index ["event"], name: "index_versions_on_event"
+    t.index ["item_type", "item_id", "created_at"], name: "index_versions_on_item_type_and_item_id_and_created_at"
+    t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
+    t.index ["transaction_id"], name: "index_versions_on_transaction_id"
+    t.index ["whodunnit"], name: "index_versions_on_whodunnit"
   end
 
   create_table "wishlist_items", force: :cascade do |t|
@@ -249,6 +341,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.integer "product_variant_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_wishlist_items_on_deleted_at"
     t.index ["product_variant_id"], name: "index_wishlist_items_on_product_variant_id"
     t.index ["wishlist_id"], name: "index_wishlist_items_on_wishlist_id"
   end
@@ -257,6 +351,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
     t.integer "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_wishlists_on_deleted_at"
     t.index ["user_id"], name: "index_wishlists_on_user_id"
   end
 
@@ -288,7 +384,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_18_203806) do
   add_foreign_key "return_requests", "users"
   add_foreign_key "reviews", "products"
   add_foreign_key "reviews", "users"
-  add_foreign_key "supplier_profiles", "users"
+  add_foreign_key "supplier_profiles", "suppliers"
   add_foreign_key "wishlist_items", "product_variants"
   add_foreign_key "wishlist_items", "wishlists"
   add_foreign_key "wishlists", "users"

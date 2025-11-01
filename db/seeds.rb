@@ -36,7 +36,63 @@ brands.each do |brand_attrs|
   end
 end
 
-# Create Users
+# Create Admins
+puts "Creating admins..."
+admins = [
+  {
+    first_name: "Super",
+    last_name: "Admin",
+    email: "admin@luxethreads.com",
+    phone_number: "+1234567892",
+    password: "Admin@123",
+    role: "super_admin"
+  },
+  {
+    first_name: "Product",
+    last_name: "Manager",
+    email: "product.admin@luxethreads.com",
+    phone_number: "+1234567895",
+    password: "Product@123",
+    role: "product_admin"
+  },
+  {
+    first_name: "Order",
+    last_name: "Manager",
+    email: "order.admin@luxethreads.com",
+    phone_number: "+1234567896",
+    password: "Order@123",
+    role: "order_admin"
+  },
+  {
+    first_name: "User",
+    last_name: "Manager",
+    email: "user.admin@luxethreads.com",
+    phone_number: "+1234567897",
+    password: "User@123",
+    role: "user_admin"
+  },
+  {
+    first_name: "Supplier",
+    last_name: "Manager",
+    email: "supplier.admin@luxethreads.com",
+    phone_number: "+1234567898",
+    password: "Supplier@123",
+    role: "supplier_admin"
+  }
+]
+
+admins.each do |admin_attrs|
+  Admin.find_or_create_by!(email: admin_attrs[:email]) do |admin|
+    admin.first_name = admin_attrs[:first_name]
+    admin.last_name = admin_attrs[:last_name]
+    admin.phone_number = admin_attrs[:phone_number]
+    admin.password = admin_attrs[:password]
+    admin.role = admin_attrs[:role]
+    admin.email_verified = true
+  end
+end
+
+# Create Users (Customers)
 puts "Creating users..."
 users = [
   {
@@ -53,31 +109,15 @@ users = [
     email: "jane.smith@example.com",
     phone_number: "+1234567891",
     password: "password123",
-    role: "customer"
+    role: "premium_customer"
   },
   {
-    first_name: "Admin",
-    last_name: "User",
-    email: "admin@luxethreads.com",
-    phone_number: "+1234567892",
-    password: "admin123",
-    role: "super_admin"
-  },
-  {
-    first_name: "Supplier",
-    last_name: "One",
-    email: "supplier1@example.com",
-    phone_number: "+1234567893",
+    first_name: "VIP",
+    last_name: "Customer",
+    email: "vip.customer@example.com",
+    phone_number: "+1234567899",
     password: "password123",
-    role: "supplier"
-  },
-  {
-    first_name: "Supplier",
-    last_name: "Two",
-    email: "supplier2@example.com",
-    phone_number: "+1234567894",
-    password: "password123",
-    role: "supplier"
+    role: "vip_customer"
   }
 ]
 
@@ -88,15 +128,56 @@ users.each do |user_attrs|
     user.phone_number = user_attrs[:phone_number]
     user.password = user_attrs[:password]
     user.role = user_attrs[:role]
+    user.email_verified = true
+  end
+end
+
+# Create Suppliers
+puts "Creating suppliers..."
+suppliers = [
+  {
+    first_name: "Supplier",
+    last_name: "One",
+    email: "supplier1@example.com",
+    phone_number: "+1234567893",
+    password: "password123",
+    role: "verified_supplier"
+  },
+  {
+    first_name: "Supplier",
+    last_name: "Two",
+    email: "supplier2@example.com",
+    phone_number: "+1234567894",
+    password: "password123",
+    role: "premium_supplier"
+  },
+  {
+    first_name: "Partner",
+    last_name: "Supplier",
+    email: "partner.supplier@example.com",
+    phone_number: "+1234567900",
+    password: "password123",
+    role: "partner_supplier"
+  }
+]
+
+suppliers.each do |supplier_attrs|
+  Supplier.find_or_create_by!(email: supplier_attrs[:email]) do |supplier|
+    supplier.first_name = supplier_attrs[:first_name]
+    supplier.last_name = supplier_attrs[:last_name]
+    supplier.phone_number = supplier_attrs[:phone_number]
+    supplier.password = supplier_attrs[:password]
+    supplier.role = supplier_attrs[:role]
+    supplier.email_verified = true
   end
 end
 
 # Create Supplier Profiles
 puts "Creating supplier profiles..."
-supplier_users = User.where(role: "supplier")
+suppliers = Supplier.all
 supplier_profiles = [
   {
-    user: supplier_users.first,
+    supplier: suppliers.first,
     company_name: "Fashion Forward Ltd",
     gst_number: "GST123456789001",
     description: "Premium fashion supplier specializing in contemporary clothing",
@@ -104,7 +185,7 @@ supplier_profiles = [
     verified: true
   },
   {
-    user: supplier_users.second,
+    supplier: suppliers.second,
     company_name: "Style Masters Inc",
     gst_number: "GST987654321002",
     description: "Leading supplier of trendy accessories and footwear",
@@ -114,7 +195,7 @@ supplier_profiles = [
 ]
 
 supplier_profiles.each do |profile_attrs|
-  SupplierProfile.find_or_create_by!(user: profile_attrs[:user]) do |profile|
+  SupplierProfile.find_or_create_by!(supplier: profile_attrs[:supplier]) do |profile|
     profile.company_name = profile_attrs[:company_name]
     profile.gst_number = profile_attrs[:gst_number]
     profile.description = profile_attrs[:description]
@@ -317,7 +398,9 @@ puts "✅ Database seeding completed successfully!"
 puts "📊 Summary:"
 puts "   - #{Category.count} categories created"
 puts "   - #{Brand.count} brands created"
+puts "   - #{Admin.count} admins created"
 puts "   - #{User.count} users created"
+puts "   - #{Supplier.count} suppliers created"
 puts "   - #{SupplierProfile.count} supplier profiles created"
 puts "   - #{Product.count} products created"
 puts "   - #{ProductVariant.count} product variants created"
@@ -325,8 +408,21 @@ puts "   - #{Address.count} addresses created"
 puts "   - #{Order.count} orders created"
 puts "   - #{OrderItem.count} order items created"
 puts ""
-puts "🔑 Admin Login:"
-puts "   Email: admin@luxethreads.com"
-puts "   Password: admin123"
+puts "🔑 Admin Logins:"
+puts "   Super Admin:"
+puts "     Email: admin@luxethreads.com"
+puts "     Password: Admin@123"
+puts "   Product Admin:"
+puts "     Email: product.admin@luxethreads.com"
+puts "     Password: Product@123"
+puts "   Order Admin:"
+puts "     Email: order.admin@luxethreads.com"
+puts "     Password: Order@123"
+puts "   User Admin:"
+puts "     Email: user.admin@luxethreads.com"
+puts "     Password: User@123"
+puts "   Supplier Admin:"
+puts "     Email: supplier.admin@luxethreads.com"
+puts "     Password: Supplier@123"
 puts ""
 puts "🌐 Access RailsAdmin at: http://localhost:3000/admin"

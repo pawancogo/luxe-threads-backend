@@ -1,0 +1,83 @@
+<% content_for :page_title, "Admin Details" %>
+
+<div class="admin-details">
+  <div class="page-header">
+    <h1>Admin Details: <%= @admin.full_name %></h1>
+    <div class="breadcrumb">
+      <%= link_to "Dashboard", admin_root_path %> > 
+      <%= link_to "Admin Management", admin_admins_path %> > 
+      Admin Details
+    </div>
+  </div>
+
+  <div class="admin-info-grid">
+    <div class="info-card">
+      <h3>Personal Information</h3>
+      <div class="info-row">
+        <span class="label">Name:</span>
+        <span class="value"><%= @admin.full_name %></span>
+      </div>
+      <div class="info-row">
+        <span class="label">Email:</span>
+        <span class="value"><%= @admin.email %></span>
+      </div>
+      <div class="info-row">
+        <span class="label">Phone:</span>
+        <span class="value"><%= @admin.phone_number %></span>
+      </div>
+      <div class="info-row">
+        <span class="label">Role:</span>
+        <span class="value">
+          <span class="role-badge role-<%= @admin.role %>">
+            <%= @admin.role.humanize %>
+          </span>
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="label">Member Since:</span>
+        <span class="value"><%= @admin.created_at.strftime("%B %d, %Y") %></span>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h3>Permissions</h3>
+      <div class="permissions">
+        <div class="permission-item">
+          <span class="permission-name">Manage Products:</span>
+          <span class="permission-status <%= @admin.can_manage_products? ? 'allowed' : 'denied' %>">
+            <%= @admin.can_manage_products? ? '✓ Allowed' : '✗ Denied' %>
+          </span>
+        </div>
+        <div class="permission-item">
+          <span class="permission-name">Manage Orders:</span>
+          <span class="permission-status <%= @admin.can_manage_orders? ? 'allowed' : 'denied' %>">
+            <%= @admin.can_manage_orders? ? '✓ Allowed' : '✗ Denied' %>
+          </span>
+        </div>
+        <div class="permission-item">
+          <span class="permission-name">Manage Users:</span>
+          <span class="permission-status <%= @admin.can_manage_users? ? 'allowed' : 'denied' %>">
+            <%= @admin.can_manage_users? ? '✓ Allowed' : '✗ Denied' %>
+          </span>
+        </div>
+        <div class="permission-item">
+          <span class="permission-name">Manage Suppliers:</span>
+          <span class="permission-status <%= @admin.can_manage_suppliers? ? 'allowed' : 'denied' %>">
+            <%= @admin.can_manage_suppliers? ? '✓ Allowed' : '✗ Denied' %>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-buttons">
+    <%= link_to "Edit Admin", edit_admin_admin_path(@admin), class: "btn btn-warning" %>
+    <%= link_to "Back to Admin Management", admin_admins_path, class: "btn btn-secondary" %>
+    <% unless @admin == current_admin %>
+      <%= link_to "Delete Admin", admin_admin_path(@admin), method: :delete, 
+          confirm: "Are you sure? This action cannot be undone.", 
+          class: "btn btn-danger" %>
+    <% end %>
+  </div>
+</div>
+

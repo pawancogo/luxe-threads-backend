@@ -1,0 +1,20 @@
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <%= link_to 'RailsAdmin', rails_admin.dashboard_path, class: 'navbar-brand' %>
+    </div>
+    
+    <div class="navbar-right" style="display: flex; align-items: center; margin-right: 15px;">
+      <span class="navbar-text" style="margin-right: 10px; color: #333;">Dashboard</span>
+      <%= link_to '/admin_auth/logout', class: 'btn btn-danger btn-sm', 
+          method: :delete, 
+          confirm: 'Are you sure you want to logout?',
+          style: 'margin-left: 10px;' do %>
+          
+        <i class="fa fa-power-off"></i> Logout
+      <% end %>
+    </div>
+  </div>
+</nav>
+
+

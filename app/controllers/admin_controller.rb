@@ -1,55 +1,57 @@
-class AdminController < ApplicationController
-  skip_before_action :authenticate_request, only: [:login, :authenticate]
-  
-  def login
-    # Simple login form for Rails Admin
-    render html: <<~HTML.html_safe
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Admin Login - LuxeThreads</title>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 400px; margin: 100px auto; padding: 20px; }
-          .form-group { margin-bottom: 15px; }
-          label { display: block; margin-bottom: 5px; }
-          input[type="email"], input[type="password"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-          button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-          button:hover { background: #0056b3; }
-          .error { color: red; margin-top: 10px; }
-        </style>
-      </head>
-      <body>
-        <h2>Admin Login</h2>
-        <form action="/admin/authenticate" method="post">
-          <div class="form-group">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-          </div>
-          <div class="form-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-          </div>
-          <button type="submit">Login</button>
-          #{params[:error] ? "<div class='error'>#{params[:error]}</div>" : ""}
-        </form>
-      </body>
-      </html>
-    HTML
+class AdminController < BaseController
+  before_action :authenticate_admin!, except: [:login]
+  before_action :set_current_admin, except: [:login]
+
+  def dashboard
+    # Dashboard access is already controlled by authenticate_admin! before_action
+    @admins_count = Admin.count
+    @users_count = User.count
+    @suppliers_count = Supplier.count
+    @products_count = Product.count
+    @orders_count = Order.count
+    @recent_orders = Order.includes(:user).order(created_at: :desc).limit(5)
+    @recent_users = User.order(created_at: :desc).limit(5)
   end
 
-  def authenticate
-    user = User.find_by(email: params[:email])
-    
-    if user&.authenticate(params[:password]) && user.admin?
-      session[:admin_user_id] = user.id
-      redirect_to '/admin'
+  def login
+    if request.post?
+      admin = Admin.find_by(email: params[:email])
+      
+      if admin&.authenticate(params[:password])
+        session[:admin_id] = admin.id
+        redirect_to admin_dashboard_path, notice: 'Successfully logged in!'
+      else
+        flash.now[:alert] = 'Invalid email or password'
+        render :login, layout: false
+      end
     else
-      redirect_to '/admin/login?error=Invalid credentials or insufficient permissions'
+      render :login, layout: false
     end
   end
 
   def logout
-    session[:admin_user_id] = nil
-    redirect_to '/admin/login'
+    session[:admin_id] = nil
+    redirect_to admin_login_path, notice: 'Successfully logged out!'
   end
+
+  private
+
+  def authenticate_admin!
+    unless current_admin
+      redirect_to admin_login_path
+    end
+  end
+
+  def current_admin
+    @current_admin ||= Admin.find(session[:admin_id]) if session[:admin_id]
+  rescue ActiveRecord::RecordNotFound
+    session[:admin_id] = nil
+    nil
+  end
+
+  def set_current_admin
+    @current_admin = current_admin
+  end
+
+  helper_method :current_admin
 end

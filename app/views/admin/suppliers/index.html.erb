@@ -1,0 +1,58 @@
+<% content_for :page_title, "Supplier Management" %>
+
+<div class="supplier-management">
+  <div class="page-header">
+    <h1>Supplier Management</h1>
+    <div class="actions">
+      <%= link_to "Add New Supplier", new_admin_supplier_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="supplier-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Products</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @suppliers.each do |supplier| %>
+          <tr>
+            <td><%= supplier.full_name %></td>
+            <td><%= supplier.email %></td>
+            <td><%= supplier.supplier_profile&.company_name || 'N/A' %></td>
+            <td>
+              <span class="role-badge role-<%= supplier.role %>">
+                <%= supplier.role.humanize %>
+              </span>
+            </td>
+            <td>
+              <% if supplier.supplier_profile&.verified %>
+                <span class="status-badge status-verified">Verified</span>
+              <% else %>
+                <span class="status-badge status-unverified">Unverified</span>
+              <% end %>
+            </td>
+            <td><%= supplier.products.count %></td>
+            <td><%= supplier.created_at.strftime("%B %d, %Y") %></td>
+            <td>
+              <div class="action-buttons">
+                <%= link_to "View", admin_supplier_path(supplier), class: "btn btn-sm btn-primary" %>
+                <%= link_to "Edit", edit_admin_supplier_path(supplier), class: "btn btn-sm btn-warning" %>
+                <%= link_to "Delete", admin_supplier_path(supplier), method: :delete, 
+                    confirm: "Are you sure?", class: "btn btn-sm btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

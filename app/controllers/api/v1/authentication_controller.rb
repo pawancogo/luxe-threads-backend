@@ -4,12 +4,20 @@ class Api::V1::AuthenticationController < ApplicationController
 
   # POST /api/v1/login
   def create
-    @user = User.find_by_email(params[:email])
+    @user = User.find_by(email: params[:email])
     if @user&.authenticate(params[:password])
       token = jwt_encode({ user_id: @user.id })
-      render json: { token: token }, status: :ok
+      user_data = {
+        id: @user.id,
+        email: @user.email,
+        role: @user.role,
+        first_name: @user.first_name,
+        last_name: @user.last_name,
+        email_verified: @user.email_verified?
+      }
+      render_success({ token: token, user: user_data }, 'Login successful')
     else
-      render json: { error: 'unauthorized' }, status: :unauthorized
+      render_unauthorized('Invalid email or password')
     end
   end
 end

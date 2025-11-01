@@ -1,0 +1,32 @@
+EMAIL VERIFICATION - LUXETHREADS
+================================
+
+Hello <%= @verifiable.full_name %>!
+
+Thank you for signing up with LuxeThreads. To complete your registration and secure your account, please verify your email address using the verification code below:
+
+VERIFICATION CODE: <%= @otp %>
+
+This code will expire in <%= Rails.application.config.otp_expiry_minutes %> minutes for security reasons.
+
+To verify your email, visit: <%= @verification_url %>
+
+SECURITY NOTE:
+- Never share this verification code with anyone
+- LuxeThreads will never ask for your verification code via phone, email, or any other method
+- If you didn't create an account with LuxeThreads, please ignore this email
+
+If you're having trouble with the verification process, please contact our support team at <%= Rails.application.config.support_email %>.
+
+Best regards,
+The LuxeThreads Team
+
+---
+LuxeThreads - Premium Fashion Marketplace
+This email was sent to <%= @verification.email %>
+© <%= Date.current.year %> LuxeThreads. All rights reserved.
+
+
+
+
+

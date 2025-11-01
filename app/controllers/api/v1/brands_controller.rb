@@ -3,6 +3,6 @@ class Api::V1::BrandsController < ApplicationController
 
   def index
     @brands = Brand.all
-    render json: @brands
+    render_success(format_collection_data(@brands), 'Brands retrieved successfully')
   end
 end

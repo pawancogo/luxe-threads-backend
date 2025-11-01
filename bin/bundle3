@@ -1,4 +1,13 @@
 #!/bin/bash
-# Use Ruby 3.4.7 bundle for this project
-export PATH="/usr/local/opt/ruby/bin:$PATH"
+# Use Ruby 3.3.0 bundle for this project (as specified in .ruby-version)
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+# Use rbenv to set the correct Ruby version
+if command -v rbenv >/dev/null 2>&1; then
+  eval "$(rbenv init - bash)"
+  rbenv local 3.3.0
+fi
+
 exec bundle "$@"

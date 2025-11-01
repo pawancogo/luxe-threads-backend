@@ -1,0 +1,150 @@
+<% content_for :page_title, "Product Approval Management" %>
+
+<div class="product-approval-management">
+  <div class="page-header">
+    <h1>Product Approval Management</h1>
+    <div class="breadcrumb">
+      <%= link_to "Dashboard", admin_root_path %> > Product Approval
+    </div>
+  </div>
+
+  <!-- Status Filter Tabs -->
+  <ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+      <%= link_to "Pending", admin_products_path(status: 'pending'), 
+          class: "nav-link #{'active' if @status == 'pending'}" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to "Active", admin_products_path(status: 'active'), 
+          class: "nav-link #{'active' if @status == 'active'}" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to "Rejected", admin_products_path(status: 'rejected'), 
+          class: "nav-link #{'active' if @status == 'rejected'}" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to "All", admin_products_path(status: 'all'), 
+          class: "nav-link #{'active' if @status.blank? || @status == 'all'}" %>
+    </li>
+  </ul>
+
+  <div class="table-container">
+    <% if @products.any? %>
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Product Name</th>
+            <th>Supplier</th>
+            <th>Category</th>
+            <th>Brand</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Verified By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @products.each do |product| %>
+            <tr>
+              <td><%= product.id %></td>
+              <td>
+                <%= link_to product.name, admin_product_path(product), class: "text-primary" %>
+              </td>
+              <td>
+                <%= product.supplier_profile&.company_name || 'N/A' %>
+              </td>
+              <td><%= product.category.name %></td>
+              <td><%= product.brand.name %></td>
+              <td>
+                <span class="badge bg-<%= product.status == 'active' ? 'success' : product.status == 'rejected' ? 'danger' : 'warning' %>">
+                  <%= product.status.humanize %>
+                </span>
+              </td>
+              <td><%= product.created_at.strftime("%B %d, %Y") %></td>
+              <td>
+                <% if product.verified_by_admin %>
+                  <%= product.verified_by_admin.full_name %>
+                <% else %>
+                  <span class="text-muted">Not verified</span>
+                <% end %>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to "View", admin_product_path(product), class: "btn btn-primary" %>
+                  <% if product.status == 'pending' %>
+                    <%= button_to "Approve", approve_admin_product_path(product), 
+                        method: :post, 
+                        class: "btn btn-success",
+                        data: { confirm: "Are you sure you want to approve this product?" } %>
+                    <%= button_to "Reject", reject_admin_product_path(product), 
+                        method: :post, 
+                        class: "btn btn-danger",
+                        data: { confirm: "Are you sure you want to reject this product?" } %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No products found with status "<%= @status.humanize %>".
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style>
+  .product-approval-management {
+    padding: 20px;
+  }
+  
+  .page-header {
+    margin-bottom: 30px;
+  }
+  
+  .page-header h1 {
+    margin-bottom: 10px;
+  }
+  
+  .breadcrumb {
+    color: #6c757d;
+    font-size: 14px;
+  }
+  
+  .breadcrumb a {
+    color: #007bff;
+    text-decoration: none;
+  }
+  
+  .table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  
+  .nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  .nav-tabs .nav-link {
+    color: #495057;
+    border: none;
+    border-bottom: 3px solid transparent;
+  }
+  
+  .nav-tabs .nav-link:hover {
+    border-bottom-color: #dee2e6;
+  }
+  
+  .nav-tabs .nav-link.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    font-weight: 600;
+  }
+</style>
+

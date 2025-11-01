@@ -1,0 +1,188 @@
+// Admin Panel Styles
+// ==================
+
+// Variables
+$primary-color: #667eea;
+$secondary-color: #764ba2;
+$success-color: #28a745;
+$warning-color: #ffc107;
+$danger-color: #dc3545;
+$info-color: #17a2b8;
+$light-color: #f8f9fa;
+$dark-color: #343a40;
+$border-color: #dee2e6;
+$text-muted: #6c757d;
+
+// Mixins
+@mixin gradient-bg($start, $end) {
+  background: linear-gradient(135deg, $start 0%, $end 100%);
+}
+
+@mixin card-shadow {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+@mixin hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+}
+
+// Base Admin Layout
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+// Sidebar Styles
+.sidebar {
+  width: 250px;
+  @include gradient-bg($primary-color, $secondary-color);
+  color: white;
+  padding: 20px 0;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 1000;
+  
+  &-header {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 20px;
+    
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    p {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+  }
+}
+
+// Navigation
+.nav-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-item {
+  margin-bottom: 5px;
+}
+
+.nav-link {
+  display: block;
+  padding: 12px 20px;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+  
+  &:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-left-color: #fff;
+    color: white;
+  }
+  
+  &.active {
+    background-color: rgba(255,255,255,0.2);
+    border-left-color: #fff;
+  }
+}
+
+// Main Content
+.main-content {
+  flex: 1;
+  margin-left: 250px;
+  padding: 20px;
+  background-color: $light-color;
+  min-height: 100vh;
+}
+
+// Header
+.header {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  @include card-shadow;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  h2 {
+    color: $dark-color;
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  
+  &-avatar {
+    width: 40px;
+    height: 40px;
+    @include gradient-bg($primary-color, $secondary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+  }
+  
+  &-details {
+    .name {
+      font-weight: 600;
+      color: $dark-color;
+    }
+    
+    .role {
+      font-size: 12px;
+      color: $text-muted;
+    }
+  }
+}
+
+// Content Area
+.content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  @include card-shadow;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    
+    &.open {
+      transform: translateX(0);
+    }
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+}
+
+

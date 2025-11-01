@@ -1,0 +1,496 @@
+// Admin Components
+// ================
+
+// Buttons
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-align: center;
+  
+  &:hover {
+    text-decoration: none;
+  }
+  
+  // Sizes
+  &-sm {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  
+  &-lg {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+  
+  // Colors
+  &-primary {
+    @include gradient-bg($primary-color, $secondary-color);
+    color: white;
+    @include hover-lift;
+  }
+  
+  &-secondary {
+    background-color: $text-muted;
+    color: white;
+    
+    &:hover {
+      background-color: darken($text-muted, 10%);
+      color: white;
+    }
+  }
+  
+  &-success {
+    background-color: $success-color;
+    color: white;
+    
+    &:hover {
+      background-color: darken($success-color, 10%);
+      color: white;
+    }
+  }
+  
+  &-warning {
+    background-color: $warning-color;
+    color: $dark-color;
+    
+    &:hover {
+      background-color: darken($warning-color, 10%);
+      color: $dark-color;
+    }
+  }
+  
+  &-danger {
+    background-color: $danger-color;
+    color: white;
+    
+    &:hover {
+      background-color: darken($danger-color, 10%);
+      color: white;
+    }
+  }
+  
+  &-info {
+    background-color: $info-color;
+    color: white;
+    
+    &:hover {
+      background-color: darken($info-color, 10%);
+      color: white;
+    }
+  }
+}
+
+// Cards
+.card {
+  background: white;
+  border-radius: 8px;
+  @include card-shadow;
+  padding: 20px;
+  margin-bottom: 20px;
+  
+  &-header {
+    border-bottom: 1px solid $border-color;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    
+    h3 {
+      margin: 0;
+      color: $dark-color;
+      font-size: 18px;
+    }
+  }
+  
+  &-body {
+    padding: 0;
+  }
+}
+
+// Tables
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  @include card-shadow;
+  
+  th {
+    background: $light-color;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: $dark-color;
+    border-bottom: 2px solid $border-color;
+  }
+  
+  td {
+    padding: 15px;
+    border-bottom: 1px solid $border-color;
+    vertical-align: middle;
+  }
+  
+  tr:hover {
+    background-color: $light-color;
+  }
+  
+  &-container {
+    overflow-x: auto;
+  }
+}
+
+// Forms
+.form {
+  &-group {
+    margin-bottom: 20px;
+  }
+  
+  &-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: $dark-color;
+  }
+  
+  &-control {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    }
+  }
+  
+  &-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    @include card-shadow;
+    
+    h3 {
+      color: $dark-color;
+      margin-bottom: 20px;
+      font-size: 18px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+  }
+  
+  &-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+  }
+}
+
+// Badges
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  
+  &-role {
+    &-super_admin {
+      background-color: $danger-color;
+      color: white;
+    }
+    
+    &-product_admin {
+      background-color: $success-color;
+      color: white;
+    }
+    
+    &-order_admin {
+      background-color: $info-color;
+      color: white;
+    }
+    
+    &-user_admin {
+      background-color: #6f42c1;
+      color: white;
+    }
+    
+    &-supplier_admin {
+      background-color: #fd7e14;
+      color: white;
+    }
+    
+    &-basic_supplier {
+      background-color: $text-muted;
+      color: white;
+    }
+    
+    &-verified_supplier {
+      background-color: $success-color;
+      color: white;
+    }
+    
+    &-premium_supplier {
+      background-color: $info-color;
+      color: white;
+    }
+    
+    &-partner_supplier {
+      background-color: $danger-color;
+      color: white;
+    }
+  }
+  
+  &-status {
+    &-verified {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    &-unverified {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    &-pending {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+    
+    &-completed {
+      background-color: #d4edda;
+      color: #155724;
+    }
+  }
+}
+
+// Alerts
+.alert {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  
+  &-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  
+  &-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+  
+  &-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+  }
+  
+  &-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+  }
+}
+
+// Statistics Cards
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  @include gradient-bg($primary-color, $secondary-color);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  @include card-shadow;
+  
+  &-icon {
+    font-size: 32px;
+  }
+  
+  &-content {
+    h3 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    p {
+      font-size: 14px;
+      opacity: 0.9;
+      margin: 0;
+    }
+  }
+}
+
+// Dashboard Grid
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  @include card-shadow;
+  
+  h3 {
+    margin-bottom: 15px;
+    color: $dark-color;
+    font-size: 18px;
+  }
+}
+
+// List Items
+.list-container {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.list-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  
+  &-meta {
+    font-size: 14px;
+    color: $text-muted;
+  }
+}
+
+// Action Buttons
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// Page Header
+.page-header {
+  margin-bottom: 30px;
+  
+  h1 {
+    color: $dark-color;
+    margin-bottom: 10px;
+  }
+  
+  .breadcrumb {
+    color: $text-muted;
+    font-size: 14px;
+    
+    a {
+      color: $primary-color;
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// Info Grid
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.info-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  @include card-shadow;
+  
+  h3 {
+    color: $dark-color;
+    margin-bottom: 15px;
+    font-size: 18px;
+  }
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  .label {
+    font-weight: 600;
+    color: $text-muted;
+  }
+  
+  .value {
+    color: $dark-color;
+  }
+}
+
+// Empty State
+.empty-state {
+  color: $text-muted;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+// Responsive Utilities
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+}
+
+

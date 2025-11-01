@@ -1,7 +1,12 @@
 source "http://rubygems.org"
 
+ruby "3.3.0"
+
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 7.1.5"
+
+# Environment variables
+gem "dotenv-rails", "~> 2.8"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use SQLite for development, PostgreSQL for production
@@ -17,8 +22,8 @@ gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
-# Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-gem "bcrypt", "~> 3.1.7"
+# Use argon2 for modern password hashing (compatible with Ruby 3.4+)
+gem "argon2", "~> 2.2"
 
 # For API development
 gem "rack-cors"
@@ -27,6 +32,12 @@ gem "jwt"
 # For Admin Interface and Authorization
 gem "rails_admin"
 gem "pundit"
+
+# For audit logging and versioning
+gem "paper_trail", "~> 14.0"
+
+# For soft deletes
+gem "paranoia", "~> 2.6"
 
 # For Elasticsearch integration
 gem "searchkick"
@@ -90,3 +101,7 @@ gem 'cloudinary'
 
 gem 'stripe'
 gem "sassc-rails"
+
+# Bootstrap and jQuery for admin panel
+gem 'bootstrap', '~> 5.3'
+gem 'jquery-rails'

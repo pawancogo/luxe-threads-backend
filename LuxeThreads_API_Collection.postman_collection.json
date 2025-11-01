@@ -14,6 +14,26 @@
       "key": "auth_token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "customer_email",
+      "value": "customer@example.com",
+      "type": "string"
+    },
+    {
+      "key": "customer_password",
+      "value": "password123",
+      "type": "string"
+    },
+    {
+      "key": "supplier_email",
+      "value": "supplier@example.com",
+      "type": "string"
+    },
+    {
+      "key": "supplier_password",
+      "value": "password123",
+      "type": "string"
     }
   ],
   "item": [
@@ -32,7 +52,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"user\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"john@example.com\",\n    \"phone_number\": \"1234567890\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"role\": \"customer\"\n  }\n}"
+              "raw": "{\n  \"user\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"{{customer_email}}\",\n    \"phone_number\": \"1234567890\",\n    \"password\": \"{{customer_password}}\",\n    \"role\": \"customer\"\n  }\n}"
             },
             "url": {
               "raw": "{{base_url}}/signup",
@@ -47,7 +67,11 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('auth_token', response.token);",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.data.token);",
+                  "    } else if (response.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.token);",
+                  "    }",
                   "}"
                 ]
               }
@@ -66,7 +90,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"email\": \"{{customer_email}}\",\n  \"password\": \"{{customer_password}}\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/login",
@@ -81,33 +105,16 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('auth_token', response.token);",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.data.token);",
+                  "    } else if (response.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.token);",
+                  "    }",
                   "}"
                 ]
               }
             }
           ]
-        },
-        {
-          "name": "Supplier Signup",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": {\n    \"first_name\": \"Jane\",\n    \"last_name\": \"Smith\",\n    \"email\": \"jane@supplier.com\",\n    \"phone_number\": \"0987654321\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"role\": \"supplier\"\n  }\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/signup",
-              "host": ["{{base_url}}"],
-              "path": ["signup"]
-            }
-          }
         }
       ]
     },
@@ -184,27 +191,37 @@
       ]
     },
     {
-      "name": "Categories & Brands",
+      "name": "Public Products",
       "item": [
         {
-          "name": "Get Categories",
+          "name": "Get Public Products",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/categories",
+              "raw": "{{base_url}}/public/products?page=1&per_page=20",
               "host": ["{{base_url}}"],
-              "path": ["categories"]
+              "path": ["public", "products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
             }
           }
         },
         {
-          "name": "Get Brands",
+          "name": "Get Product Details",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/brands",
+              "raw": "{{base_url}}/public/products/1",
               "host": ["{{base_url}}"],
-              "path": ["brands"]
+              "path": ["public", "products", "1"]
             }
           }
         }
@@ -421,7 +438,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/search?query=shirt&category_id=1&brand_id=1&price[min]=10&price[max]=50",
+              "raw": "{{base_url}}/search?query=shirt&category_id=1&brand_id=1&min_price=10&max_price=50",
               "host": ["{{base_url}}"],
               "path": ["search"],
               "query": [
@@ -438,14 +455,41 @@
                   "value": "1"
                 },
                 {
-                  "key": "price[min]",
+                  "key": "min_price",
                   "value": "10"
                 },
                 {
-                  "key": "price[max]",
+                  "key": "max_price",
                   "value": "50"
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories & Brands",
+      "item": [
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": ["{{base_url}}"],
+              "path": ["categories"]
+            }
+          }
+        },
+        {
+          "name": "Get Brands",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/brands",
+              "host": ["{{base_url}}"],
+              "path": ["brands"]
             }
           }
         }
@@ -535,6 +579,70 @@
               "raw": "{{base_url}}/cart_items/1",
               "host": ["{{base_url}}"],
               "path": ["cart_items", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wishlist",
+      "item": [
+        {
+          "name": "Get Wishlist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wishlist/items",
+              "host": ["{{base_url}}"],
+              "path": ["wishlist", "items"]
+            }
+          }
+        },
+        {
+          "name": "Add to Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_variant_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wishlist/items",
+              "host": ["{{base_url}}"],
+              "path": ["wishlist", "items"]
+            }
+          }
+        },
+        {
+          "name": "Remove from Wishlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wishlist/items/1",
+              "host": ["{{base_url}}"],
+              "path": ["wishlist", "items", "1"]
             }
           }
         }
@@ -648,7 +756,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"order\": {\n    \"shipping_address_id\": 1,\n    \"billing_address_id\": 1,\n    \"payment_token\": \"tok_visa\"\n  }\n}"
+              "raw": "{\n  \"order\": {\n    \"shipping_address_id\": 1,\n    \"billing_address_id\": 1,\n    \"shipping_method\": \"standard\",\n    \"payment_method_id\": \"pm_123456\"\n  }\n}"
             },
             "url": {
               "raw": "{{base_url}}/orders",
@@ -668,9 +776,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/orders",
+              "raw": "{{base_url}}/my-orders",
               "host": ["{{base_url}}"],
-              "path": ["orders"]
+              "path": ["my-orders"]
             }
           }
         },
@@ -685,12 +793,17 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/orders/1",
+              "raw": "{{base_url}}/my-orders/1",
               "host": ["{{base_url}}"],
-              "path": ["orders", "1"]
+              "path": ["my-orders", "1"]
             }
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "Supplier Orders",
+      "item": [
         {
           "name": "Get Supplier Orders",
           "request": {
@@ -705,6 +818,48 @@
               "raw": "{{base_url}}/supplier/orders",
               "host": ["{{base_url}}"],
               "path": ["supplier", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Supplier Order Item",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Ship Order Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_number\": \"1Z9999W99999999999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/orders/1/ship",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "orders", "1", "ship"]
             }
           }
         }
@@ -770,7 +925,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"return_request\": {\n    \"order_id\": 1,\n    \"resolution_type\": \"refund\",\n    \"items\": [\n      {\n        \"order_item_id\": 1,\n        \"quantity\": 1,\n        \"reason\": \"Does not fit\"\n      }\n    ]\n  }\n}"
+              "raw": "{\n  \"return_request\": {\n    \"order_id\": 1,\n    \"resolution_type\": \"refund\"\n  },\n  \"items\": [\n    {\n      \"order_item_id\": 1,\n      \"quantity\": 1,\n      \"reason\": \"Does not fit\"\n    }\n  ],\n  \"media\": [\n    {\n      \"file_key\": \"s3_key_for_image.jpg\",\n      \"media_type\": \"image\"\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{base_url}}/return_requests",
@@ -790,9 +945,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/return_requests",
+              "raw": "{{base_url}}/my-returns",
               "host": ["{{base_url}}"],
-              "path": ["return_requests"]
+              "path": ["my-returns"]
             }
           }
         },

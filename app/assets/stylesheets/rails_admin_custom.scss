@@ -1,0 +1,35 @@
+// RailsAdmin Custom Styles for Logout Button
+.navbar-right {
+  display: flex !important;
+  align-items: center !important;
+  margin-right: 15px !important;
+}
+
+.navbar-right .navbar-text {
+  color: #333 !important;
+  margin-right: 10px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+.navbar-right .btn {
+  margin-left: 10px !important;
+}
+
+.navbar-right .btn-danger {
+  background-color: #d9534f !important;
+  border-color: #d43f3a !important;
+  color: white !important;
+}
+
+.navbar-right .btn-danger:hover {
+  background-color: #c9302c !important;
+  border-color: #ac2925 !important;
+  color: white !important;
+}
+
+.navbar-right .fa-power-off {
+  margin-right: 5px !important;
+}
+
+

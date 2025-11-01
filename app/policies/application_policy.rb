@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ApplicationPolicy
   attr_reader :user, :record
 
@@ -6,22 +8,16 @@ class ApplicationPolicy
     @record = record
   end
 
-  # This is the key method for RailsAdmin access.
-  # Allow access only to admin roles.
-  def access?
-    user.present? && user.admin?
-  end
-
   def index?
-    user.admin?
+    false
   end
 
   def show?
-    user.admin?
+    false
   end
 
   def create?
-    user.admin?
+    false
   end
 
   def new?
@@ -29,7 +25,7 @@ class ApplicationPolicy
   end
 
   def update?
-    user.admin?
+    false
   end
 
   def edit?
@@ -37,23 +33,21 @@ class ApplicationPolicy
   end
 
   def destroy?
-    user.admin?
-  end
-
-  def scope
-    Pundit.policy_scope!(user, record.class)
+    false
   end
 
   class Scope
-    attr_reader :user, :scope
-
     def initialize(user, scope)
       @user = user
       @scope = scope
     end
 
     def resolve
-      scope
+      raise NoMethodError, "You must define #resolve in #{self.class}"
     end
+
+    private
+
+    attr_reader :user, :scope
   end
 end

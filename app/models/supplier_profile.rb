@@ -1,5 +1,5 @@
 class SupplierProfile < ApplicationRecord
-  belongs_to :user
+  belongs_to :supplier
   has_many :products, dependent: :destroy
 
   validates :company_name, presence: true

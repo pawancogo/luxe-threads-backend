@@ -1,10 +1,16 @@
 class Product < ApplicationRecord
   # searchkick # Temporarily disabled for seeding
+  
+  # PaperTrail for audit logging
+  has_paper_trail
+  
+  # Soft delete functionality
+  acts_as_paranoid
 
   belongs_to :supplier_profile
   belongs_to :category
   belongs_to :brand
-  belongs_to :verified_by_admin, class_name: 'User', optional: true
+  belongs_to :verified_by_admin, class_name: 'Admin', optional: true
 
   has_many :product_variants, dependent: :destroy
   has_many :reviews, dependent: :destroy

@@ -3,34 +3,37 @@ class Api::V1::AddressesController < ApplicationController
 
   def index
     @addresses = current_user.addresses
-    render json: @addresses
+    render_success(format_collection_data(@addresses), 'Addresses retrieved successfully')
   end
 
   def create
     @address = current_user.addresses.build(address_params)
     if @address.save
-      render json: @address, status: :created
+      render_created(format_model_data(@address), 'Address created successfully')
     else
-      render json: @address.errors, status: :unprocessable_entity
+      render_validation_errors(@address.errors.full_messages, 'Address creation failed')
     end
   end
 
   def update
     if @address.update(address_params)
-      render json: @address
+      render_success(format_model_data(@address), 'Address updated successfully')
     else
-      render json: @address.errors, status: :unprocessable_entity
+      render_validation_errors(@address.errors.full_messages, 'Address update failed')
     end
   end
 
   def destroy
     @address.destroy
+    render_no_content('Address deleted successfully')
   end
 
   private
 
   def set_address
     @address = current_user.addresses.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    render_not_found('Address not found')
   end
 
   def address_params

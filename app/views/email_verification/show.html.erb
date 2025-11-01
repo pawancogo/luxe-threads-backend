@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Email Verification - LuxeThreads</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 20px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container { 
+      max-width: 500px; 
+      margin: 0 auto; 
+      background: white; 
+      padding: 40px; 
+      border-radius: 12px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .header { 
+      margin-bottom: 30px; 
+    }
+    .header h1 { 
+      color: #333; 
+      margin: 0 0 10px 0; 
+      font-size: 28px;
+    }
+    .header p { 
+      color: #666; 
+      margin: 0; 
+      font-size: 16px;
+    }
+    .form-group { 
+      margin-bottom: 25px; 
+      text-align: left;
+    }
+    .form-label { 
+      display: block; 
+      margin-bottom: 8px; 
+      font-weight: bold; 
+      color: #333;
+    }
+    .form-control { 
+      width: 100%; 
+      padding: 15px; 
+      border: 2px solid #e1e5e9; 
+      border-radius: 8px; 
+      font-size: 16px; 
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
+    }
+    .form-control:focus { 
+      outline: none; 
+      border-color: #667eea; 
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .btn { 
+      padding: 15px 30px; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      text-decoration: none; 
+      display: inline-block; 
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      margin: 5px;
+    }
+    .btn-primary { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+    }
+    .btn-primary:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary { 
+      background-color: #f8f9fa; 
+      color: #6c757d; 
+      border: 2px solid #e9ecef;
+    }
+    .btn-secondary:hover { 
+      background-color: #e9ecef;
+    }
+    .alert { 
+      padding: 15px; 
+      margin-bottom: 20px; 
+      border-radius: 8px; 
+      font-weight: 500;
+    }
+    .alert-success { 
+      background-color: #d4edda; 
+      color: #155724; 
+      border: 1px solid #c3e6cb; 
+    }
+    .alert-danger { 
+      background-color: #f8d7da; 
+      color: #721c24; 
+      border: 1px solid #f5c6cb; 
+    }
+    .info-box {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+    .info-box h3 {
+      margin: 0 0 10px 0;
+      color: #495057;
+      font-size: 18px;
+    }
+    .info-box p {
+      margin: 0;
+      color: #6c757d;
+      font-size: 14px;
+    }
+    .otp-input {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 5px;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+      color: #6c757d;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📧 Email Verification</h1>
+      <p>Please verify your email address to continue</p>
+    </div>
+
+    <% if notice %>
+      <div class="alert alert-success"><%= notice %></div>
+    <% end %>
+
+    <% if alert %>
+      <div class="alert alert-danger"><%= alert %></div>
+    <% end %>
+
+    <div class="info-box">
+      <h3>Verification Code Sent</h3>
+      <p>We've sent a 6-digit verification code to <strong><%= @email %></strong></p>
+      <p>Please check your email and enter the code below. The code will expire in 15 minutes.</p>
+    </div>
+
+    <%= form_with url: '/verify-email', method: :post, local: true, class: "verification-form" do |form| %>
+      <%= form.hidden_field :type, value: @verifiable_type %>
+      <%= form.hidden_field :id, value: @verifiable_id %>
+      
+      <div class="form-group">
+        <%= form.label :otp, "Enter Verification Code", class: "form-label" %>
+        <%= form.text_field :otp, 
+            class: "form-control otp-input", 
+            placeholder: "000000",
+            maxlength: 6,
+            pattern: "[0-9]{6}",
+            required: true %>
+      </div>
+
+      <div class="form-group">
+        <%= form.submit "Verify Email", class: "btn btn-primary" %>
+      </div>
+    <% end %>
+
+    <div style="margin-top: 20px;">
+      <%= form_with url: '/resend-verification', method: :post, local: true do |form| %>
+        <%= form.hidden_field :type, value: @verifiable_type %>
+        <%= form.hidden_field :id, value: @verifiable_id %>
+        <%= form.submit "Resend Code", class: "btn btn-secondary" %>
+      <% end %>
+    </div>
+
+    <div class="footer">
+      <p>Didn't receive the email? Check your spam folder or try resending the code.</p>
+      <p>For support, contact us at support@luxethreads.com</p>
+    </div>
+  </div>
+
+  <script>
+    // Auto-focus on OTP input
+    document.querySelector('.otp-input').focus();
+    
+    // Format OTP input (numbers only)
+    document.querySelector('.otp-input').addEventListener('input', function(e) {
+      this.value = this.value.replace(/[^0-9]/g, '');
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+

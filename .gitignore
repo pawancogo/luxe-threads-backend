@@ -6,6 +6,7 @@
 
 # Ignore bundler config.
 /.bundle
+/vendor/bundle/
 
 # Ignore all environment files.
 /.env*
@@ -64,7 +65,6 @@ ehthumbs.db
 Thumbs.db
 
 # Ignore Ruby version manager files
-.ruby-version
 .rvmrc
 
 # Ignore coverage reports
@@ -86,6 +86,7 @@ Thumbs.db
 # Ignore cache files
 .cache/
 .byebug_history
+/tmp/cache/
 
 # Ignore test files
 /test/tmp/
@@ -108,3 +109,8 @@ Thumbs.db
 # Ignore temporary files
 *.tmp
 *.temp
+
+# Ignore generated bin files (keep bin/setup, bin/rails, bin/bundle, etc.)
+/bin/bundle3
+/bin/ruby3
+/bin/thrust

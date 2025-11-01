@@ -1,0 +1,72 @@
+<% content_for :page_title, "Admin Management" %>
+
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col">
+      <h1 class="h3 mb-0">Admin Management</h1>
+    </div>
+    <div class="col-auto">
+      <%= link_to "Add New Admin", new_admin_admin_path, class: "btn btn-admin" %>
+    </div>
+  </div>
+
+  <div class="card card-admin">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-admin">
+          <thead class="table-header">
+            <tr>
+              <th data-sortable>Name</th>
+              <th data-sortable>Email</th>
+              <th data-sortable>Phone</th>
+              <th>Role</th>
+              <th data-sortable>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @admins.each do |admin| %>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-sm bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center">
+                      <%= admin.first_name.first.upcase %>
+                    </div>
+                    <%= admin.full_name %>
+                  </div>
+                </td>
+                <td><%= admin.email %></td>
+                <td><%= admin.phone_number %></td>
+                <td>
+                  <span class="badge badge-admin badge-<%= admin.role.gsub('_', '-') %>">
+                    <%= admin.role.humanize %>
+                  </span>
+                </td>
+                <td><%= admin.created_at.strftime("%B %d, %Y") %></td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <%= link_to admin_admin_path(admin), class: "btn btn-sm btn-outline-primary", 
+                        data: { bs_toggle: "tooltip", bs_placement: "top" }, title: "View Details" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                    <%= link_to edit_admin_admin_path(admin), class: "btn btn-sm btn-outline-warning",
+                        data: { bs_toggle: "tooltip", bs_placement: "top" }, title: "Edit Admin" do %>
+                      <i class="bi bi-pencil"></i>
+                    <% end %>
+                    <% unless admin == current_admin %>
+                      <%= link_to admin_admin_path(admin), method: :delete, 
+                          data: { confirm: "Are you sure?", bs_toggle: "tooltip", bs_placement: "top" }, 
+                          title: "Delete Admin", class: "btn btn-sm btn-outline-danger btn-delete" do %>
+                        <i class="bi bi-trash"></i>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
