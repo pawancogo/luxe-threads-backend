@@ -71,6 +71,9 @@ Rails.application.routes.draw do
       resources :categories, only: [:index]
       resources :brands, only: [:index]
       
+      # Attribute Types (for product variants - Color, Size, Fabric, etc.)
+      resources :attribute_types, only: [:index]
+      
       # Search
       get 'search', to: 'search#search'
 

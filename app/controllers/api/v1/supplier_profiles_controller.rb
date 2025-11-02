@@ -6,7 +6,7 @@ class Api::V1::SupplierProfilesController < ApplicationController
     if @profile
       render_success(format_supplier_profile_data(@profile), 'Supplier profile retrieved successfully')
     else
-      render_not_found('Supplier profile not found')
+      render_not_found('Supplier profile not found. Please create a supplier profile first.')
     end
   end
 
@@ -22,7 +22,7 @@ class Api::V1::SupplierProfilesController < ApplicationController
   def update
     @profile = current_user.supplier_profile
     if @profile.nil?
-      render_not_found('Supplier profile not found')
+      render_not_found('Supplier profile not found. Please create a supplier profile first.')
     elsif @profile.update(profile_params)
       render_success(format_supplier_profile_data(@profile), 'Supplier profile updated successfully')
     else
@@ -41,13 +41,18 @@ class Api::V1::SupplierProfilesController < ApplicationController
   end
 
   def format_supplier_profile_data(profile)
+    # Check if profile has placeholder/temporary values indicating it needs completion
+    temp_gst = profile.gst_number&.start_with?('GST') && profile.gst_number.length > 10
+    needs_completion = profile.company_name&.include?('please complete') || temp_gst
+    
     {
       id: profile.id,
       company_name: profile.company_name,
       gst_number: profile.gst_number,
       description: profile.description,
       website_url: profile.website_url,
-      verified: profile.verified
+      verified: profile.verified,
+      needs_completion: needs_completion
     }
   end
 end

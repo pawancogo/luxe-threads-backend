@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_10_21_210800) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_02_005807) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -171,6 +171,16 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_21_210800) do
     t.index ["user_id"], name: "index_orders_on_user_id"
   end
 
+  create_table "product_attributes", force: :cascade do |t|
+    t.integer "product_id", null: false
+    t.integer "attribute_value_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["attribute_value_id"], name: "index_product_attributes_on_attribute_value_id"
+    t.index ["product_id", "attribute_value_id"], name: "index_product_attributes_on_product_id_and_attribute_value_id", unique: true
+    t.index ["product_id"], name: "index_product_attributes_on_product_id"
+  end
+
   create_table "product_images", force: :cascade do |t|
     t.integer "product_variant_id", null: false
     t.string "image_url"
@@ -275,8 +285,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_21_210800) do
     t.boolean "verified"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.integer "supplier_id", null: false
+    t.integer "supplier_id"
+    t.integer "user_id"
     t.index ["supplier_id"], name: "index_supplier_profiles_on_supplier_id"
+    t.index ["user_id"], name: "index_supplier_profiles_on_user_id"
   end
 
   create_table "suppliers", force: :cascade do |t|
@@ -369,6 +381,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_21_210800) do
   add_foreign_key "orders", "addresses", column: "billing_address_id"
   add_foreign_key "orders", "addresses", column: "shipping_address_id"
   add_foreign_key "orders", "users"
+  add_foreign_key "product_attributes", "attribute_values"
+  add_foreign_key "product_attributes", "products"
   add_foreign_key "product_images", "product_variants"
   add_foreign_key "product_variant_attributes", "attribute_values"
   add_foreign_key "product_variant_attributes", "product_variants"
@@ -385,6 +399,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_21_210800) do
   add_foreign_key "reviews", "products"
   add_foreign_key "reviews", "users"
   add_foreign_key "supplier_profiles", "suppliers"
+  add_foreign_key "supplier_profiles", "users"
   add_foreign_key "wishlist_items", "product_variants"
   add_foreign_key "wishlist_items", "wishlists"
   add_foreign_key "wishlists", "users"

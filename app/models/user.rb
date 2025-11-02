@@ -1,25 +1,18 @@
 class User < ApplicationRecord
-  # Custom password hashing with argon2
-  attr_accessor :password
-  validates :password, presence: true, on: :create
-  validates :password, length: { minimum: 8 }, if: :password_required?
-  
-  # PaperTrail for audit logging
-  has_paper_trail
-  
-  # Soft delete functionality
-  acts_as_paranoid
+  # Include concerns for shared behavior
+  include Passwordable
+  include Verifiable
+  include Auditable
 
   # Define customer roles using an enum
   enum :role, {
     customer: 'customer',
     premium_customer: 'premium_customer',
-
     vip_customer: 'vip_customer',
     supplier: 'supplier'
   }
 
-  # Associations
+  # Associations - keep only associations here
   has_one :supplier_profile, dependent: :destroy
   has_many :addresses, dependent: :destroy
   has_many :orders, dependent: :destroy
@@ -27,10 +20,6 @@ class User < ApplicationRecord
   has_one :cart, dependent: :destroy
   has_one :wishlist, dependent: :destroy
   has_many :verified_products, class_name: 'Product', foreign_key: 'verified_by_admin_id'
-  has_many :email_verifications, as: :verifiable, dependent: :destroy
-  after_create :create_cart
-  after_create :create_wishlist
-  after_create :send_verification_email
 
   # Validations
   validates :first_name, presence: true
@@ -57,19 +46,7 @@ class User < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
-  def send_verification_email
-    EmailVerificationService.new(self).send_verification_email
-  end
-
-  def resend_verification_email
-    EmailVerificationService.new(self).resend_verification_email
-  end
-
-  def verify_email_with_otp(otp)
-    EmailVerificationService.new(self).verify_email_with_otp(otp)
-  end
-
-  # Generic verification methods for temporary passwords
+  # Business logic methods - delegate to services
   def send_verification_email_with_temp_password
     temp_password = TempPasswordService.generate_for(self)
     VerificationMailer.verification_email(self, temp_password, 'user').deliver_now
@@ -97,34 +74,5 @@ class User < ApplicationRecord
 
   def temp_password_expired?
     TempPasswordService.temp_password_expired?(self)
-  end
-
-  # Password authentication methods
-  def authenticate(password)
-    return false if password_digest.blank?
-    PasswordHashingService.verify_password(password, password_digest)
-  end
-
-  def password=(new_password)
-    @password = new_password
-    self.password_digest = PasswordHashingService.hash_password(new_password) if new_password.present?
-  end
-
-  private
-
-  def password_required?
-    password.present? && !password_reset_required?
-  end
-
-  def create_cart
-    Cart.create(user: self)
-  end
-
-  def create_wishlist
-    Wishlist.create(user: self)
-  end
-
-  def send_verification_email
-    EmailVerificationService.new(self).send_verification_email
   end
 end

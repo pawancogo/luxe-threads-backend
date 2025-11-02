@@ -6,5 +6,8 @@ class CreateAttributeValues < ActiveRecord::Migration[7.1]
 
       t.timestamps
     end
+
+    # Add unique index to prevent duplicate values for same attribute type
+    add_index :attribute_values, [:attribute_type_id, :value], unique: true
   end
 end

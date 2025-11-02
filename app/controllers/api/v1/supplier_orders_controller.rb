@@ -1,10 +1,10 @@
 class Api::V1::SupplierOrdersController < ApplicationController
   before_action :authorize_supplier!
+  before_action :ensure_supplier_profile!
 
   # GET /api/v1/supplier/orders
   def index
     supplier_profile = current_user.supplier_profile
-    return render_unauthorized('Supplier profile not found') unless supplier_profile
 
     # Get all order items that belong to products from this supplier
     @order_items = OrderItem.joins(product_variant: { product: :supplier_profile })
@@ -18,7 +18,6 @@ class Api::V1::SupplierOrdersController < ApplicationController
   # GET /api/v1/supplier/orders/:item_id
   def show
     supplier_profile = current_user.supplier_profile
-    return render_unauthorized('Supplier profile not found') unless supplier_profile
 
     @order_item = OrderItem.joins(product_variant: { product: :supplier_profile })
                           .where(supplier_profiles: { id: supplier_profile.id })
@@ -32,7 +31,6 @@ class Api::V1::SupplierOrdersController < ApplicationController
   # PUT /api/v1/supplier/orders/:item_id/ship
   def ship
     supplier_profile = current_user.supplier_profile
-    return render_unauthorized('Supplier profile not found') unless supplier_profile
 
     @order_item = OrderItem.joins(product_variant: { product: :supplier_profile })
                           .where(supplier_profiles: { id: supplier_profile.id })
@@ -54,6 +52,13 @@ class Api::V1::SupplierOrdersController < ApplicationController
 
   def authorize_supplier!
     render_unauthorized('Not Authorized') unless current_user.supplier?
+  end
+
+  def ensure_supplier_profile!
+    if current_user.supplier_profile.nil?
+      render_validation_errors(['Supplier profile not found. Please create a supplier profile first.'], 'Supplier profile required')
+      return
+    end
   end
 
   def format_supplier_orders_data(order_items)

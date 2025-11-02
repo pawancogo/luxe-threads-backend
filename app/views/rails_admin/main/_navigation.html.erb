@@ -4,13 +4,15 @@
       <%= link_to 'RailsAdmin', rails_admin.dashboard_path, class: 'navbar-brand' %>
     </div>
     
-    <div class="navbar-right" style="display: flex; align-items: center; margin-right: 15px;">
-      <span class="navbar-text" style="margin-right: 10px; color: #333;">Dashboard</span>
-      <%= link_to '/admin_auth/logout', class: 'btn btn-danger btn-sm', 
+    <div class="navbar-right" style="display: flex; align-items: center; margin-right: 15px; gap: 10px;">
+      <%= link_to admin_dashboard_path, class: 'btn btn-default btn-sm', 
+          style: 'margin-right: 5px;' do %>
+        <i class="fa fa-tachometer-alt"></i> Auth Dashboard
+      <% end %>
+      <%= link_to admin_logout_path, class: 'btn btn-danger btn-sm', 
           method: :delete, 
           confirm: 'Are you sure you want to logout?',
-          style: 'margin-left: 10px;' do %>
-          
+          style: 'margin-left: 5px;' do %>
         <i class="fa fa-power-off"></i> Logout
       <% end %>
     </div>

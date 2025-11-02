@@ -1,26 +1,17 @@
 class Admin < ApplicationRecord
-  # Custom password hashing with argon2
-  attr_accessor :password
-  validates :password, presence: true, on: :create
-  validates :password, length: { minimum: 8 }, if: :password_required?
-  
-  # PaperTrail for audit logging
-  has_paper_trail
-  
-  # Soft delete functionality
-  acts_as_paranoid
+  # Include concerns for shared behavior
+  include Passwordable
+  include Verifiable
+  include Auditable
 
   # Define admin roles using an enum
   enum :role, {
-    super_admin: 'super_admin',        # Full system access
-    product_admin: 'product_admin',    # Product management only
-    order_admin: 'order_admin',        # Order management only
-    user_admin: 'user_admin',          # User management only
-    supplier_admin: 'supplier_admin'   # Supplier management only
+    super_admin: 'super_admin',
+    product_admin: 'product_admin',
+    order_admin: 'order_admin',
+    user_admin: 'user_admin',
+    supplier_admin: 'supplier_admin'
   }
-
-  # Associations
-  has_many :email_verifications, as: :verifiable, dependent: :destroy
 
   # Validations
   validates :first_name, presence: true
@@ -54,17 +45,7 @@ class Admin < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
-  def send_verification_email
-    EmailVerificationService.new(self).send_verification_email
-  end
-
-  def resend_verification_email
-    EmailVerificationService.new(self).resend_verification_email
-  end
-
-  def verify_email_with_otp(otp)
-    EmailVerificationService.new(self).verify_email_with_otp(otp)
-  end
+  # Verification methods inherited from Verifiable concern
 
   # Generic verification methods
   def send_verification_email_with_temp_password

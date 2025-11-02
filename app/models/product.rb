@@ -1,12 +1,8 @@
 class Product < ApplicationRecord
-  # searchkick # Temporarily disabled for seeding
-  
-  # PaperTrail for audit logging
-  has_paper_trail
-  
-  # Soft delete functionality
-  acts_as_paranoid
+  # Include shared behavior
+  include Auditable
 
+  # Associations - only associations
   belongs_to :supplier_profile
   belongs_to :category
   belongs_to :brand
@@ -14,12 +10,18 @@ class Product < ApplicationRecord
 
   has_many :product_variants, dependent: :destroy
   has_many :reviews, dependent: :destroy
+  has_many :product_attributes, dependent: :destroy
+  has_many :attribute_values, through: :product_attributes
 
+  # Enums
   enum :status, { pending: 0, active: 1, rejected: 2, archived: 3 }
 
-  validates :name, presence: true
-  validates :description, presence: true
+  # Validations
+  validates :name, presence: true, length: { minimum: 3, maximum: 255 }
+  validates :description, presence: true, length: { minimum: 10 }
 
+  # Presentation logic moved to ProductPresenter
+  # Search logic can be moved to SearchService if needed
   def search_data
     {
       id: id,

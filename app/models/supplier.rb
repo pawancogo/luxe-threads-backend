@@ -1,28 +1,20 @@
 class Supplier < ApplicationRecord
-  # Custom password hashing with argon2
-  attr_accessor :password
-  validates :password, presence: true, on: :create
-  validates :password, length: { minimum: 8 }, if: :password_required?
-  
-  # PaperTrail for audit logging
-  has_paper_trail
-  
-  # Soft delete functionality
-  acts_as_paranoid
+  # Include concerns for shared behavior
+  include Passwordable
+  include Verifiable
+  include Auditable
 
   # Define supplier roles using an enum
   enum :role, {
-    basic_supplier: 'basic_supplier',      # Basic supplier with limited features
-    verified_supplier: 'verified_supplier', # Verified supplier with more features
-    premium_supplier: 'premium_supplier',   # Premium supplier with full features
-    partner_supplier: 'partner_supplier'    # Partner supplier with special privileges
+    basic_supplier: 'basic_supplier',
+    verified_supplier: 'verified_supplier',
+    premium_supplier: 'premium_supplier',
+    partner_supplier: 'partner_supplier'
   }
 
   # Associations
   has_one :supplier_profile, dependent: :destroy
-  has_many :products, dependent: :destroy
-  has_many :orders, through: :products
-  has_many :email_verifications, as: :verifiable, dependent: :destroy
+  has_many :products, through: :supplier_profile
 
   # Validations
   validates :first_name, presence: true
@@ -31,7 +23,7 @@ class Supplier < ApplicationRecord
   validates :phone_number, presence: true, uniqueness: true
   validates :role, presence: true
 
-  # Callbacks
+  # Callback replaced by service
   after_create :send_verification_email
 
   # Helper methods for role checking
@@ -63,19 +55,7 @@ class Supplier < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
-  def send_verification_email
-    EmailVerificationService.new(self).send_verification_email
-  end
-
-  def resend_verification_email
-    EmailVerificationService.new(self).resend_verification_email
-  end
-
-  def verify_email_with_otp(otp)
-    EmailVerificationService.new(self).verify_email_with_otp(otp)
-  end
-
-  # Generic verification methods for temporary passwords
+  # Business logic methods
   def send_verification_email_with_temp_password
     temp_password = TempPasswordService.generate_for(self)
     VerificationMailer.verification_email(self, temp_password, 'supplier').deliver_now
@@ -105,22 +85,7 @@ class Supplier < ApplicationRecord
     TempPasswordService.temp_password_expired?(self)
   end
 
-  # Password authentication methods
-  def authenticate(password)
-    return false if password_digest.blank?
-    PasswordHashingService.verify_password(password, password_digest)
-  end
-
-  def password=(new_password)
-    @password = new_password
-    self.password_digest = PasswordHashingService.hash_password(new_password) if new_password.present?
-  end
-
   private
-
-  def password_required?
-    password.present? && !password_reset_required?
-  end
 
   def send_verification_email
     EmailVerificationService.new(self).send_verification_email

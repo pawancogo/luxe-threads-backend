@@ -302,6 +302,12 @@ products.each do |product|
   end
 end
 
+# Note: Attribute Types and Values are automatically seeded via migration
+# They are defined in config/initializers/attribute_constants.rb
+# and seeded in db/migrate/20251102000000_seed_predefined_attribute_types.rb
+puts "ℹ️  Attribute types and values are automatically seeded during migration"
+puts "   #{AttributeType.count} attribute types with #{AttributeValue.count} values available"
+
 # Create Addresses
 puts "Creating addresses..."
 customers = User.where(role: "customer")
@@ -404,6 +410,8 @@ puts "   - #{Supplier.count} suppliers created"
 puts "   - #{SupplierProfile.count} supplier profiles created"
 puts "   - #{Product.count} products created"
 puts "   - #{ProductVariant.count} product variants created"
+puts "   - #{AttributeType.count} attribute types created"
+puts "   - #{AttributeValue.count} attribute values created"
 puts "   - #{Address.count} addresses created"
 puts "   - #{Order.count} orders created"
 puts "   - #{OrderItem.count} order items created"

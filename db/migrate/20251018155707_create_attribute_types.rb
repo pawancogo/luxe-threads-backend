@@ -5,5 +5,8 @@ class CreateAttributeTypes < ActiveRecord::Migration[7.1]
 
       t.timestamps
     end
+
+    # Add index for performance
+    add_index :attribute_types, :name, unique: true
   end
 end
