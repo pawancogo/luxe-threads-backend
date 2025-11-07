@@ -64,7 +64,7 @@ class VerificationController < BaseController
     when 'admin'
       Admin
     when 'supplier'
-      Supplier
+      User
     else
       User
     end
@@ -75,7 +75,7 @@ class VerificationController < BaseController
     when 'admin'
       Admin.find(session[:admin_id]) if session[:admin_id]
     when 'supplier'
-      Supplier.find(session[:supplier_id]) if session[:supplier_id]
+      User.find(session[:supplier_id]) if session[:supplier_id] && User.find_by(id: session[:supplier_id])&.role == 'supplier'
     else
       User.find(session[:user_id]) if session[:user_id]
     end

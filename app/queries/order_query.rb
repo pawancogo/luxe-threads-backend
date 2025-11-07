@@ -1,12 +1,18 @@
 # frozen_string_literal: true
 
 # Query object for complex order queries
-class OrderQuery
-  attr_reader :scope
-
-  def initialize(scope = Order.all)
-    @scope = scope
+class OrderQuery < BaseQuery
+  def initialize(scope = nil)
+    super(scope)
   end
+
+  protected
+
+  def default_scope
+    Order.all
+  end
+
+  public
 
   def for_user(user_id)
     @scope = scope.where(user_id: user_id)
@@ -34,14 +40,7 @@ class OrderQuery
   end
 
   def order_by_date(direction = :desc)
-    @scope = scope.order(created_at: direction)
-    self
+    order_by_created(direction)
   end
-
-  def result
-    @scope
-  end
-
-  delegate :to_a, :each, :map, :count, :exists?, :find, :find_by, to: :result
 end
 

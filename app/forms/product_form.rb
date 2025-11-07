@@ -25,6 +25,29 @@ class ProductForm
   validate :supplier_profile_exists
   validate :at_least_one_variant
 
+  # Phase 2: Add Phase 2 attributes
+  attribute :short_description, :string
+  attribute :product_type, :string
+  attribute :slug, :string
+  attribute :meta_title, :string
+  attribute :meta_description, :string
+  attribute :meta_keywords, :string
+  attribute :highlights, :string
+  attribute :search_keywords, :string
+  attribute :tags, :string
+  attribute :base_price, :decimal
+  attribute :base_discounted_price, :decimal
+  attribute :base_mrp, :decimal
+  attribute :length_cm, :decimal
+  attribute :width_cm, :decimal
+  attribute :height_cm, :decimal
+  attribute :weight_kg, :decimal
+  attribute :is_featured, :boolean
+  attribute :is_bestseller, :boolean
+  attribute :is_new_arrival, :boolean
+  attribute :is_trending, :boolean
+  attribute :published_at, :datetime
+
   def initialize(attributes = {})
     super
     @variants_attributes = attributes[:variants_attributes] || attributes['variants_attributes'] || []
@@ -93,11 +116,28 @@ class ProductForm
     {
       name: name,
       description: description,
+      short_description: attributes[:short_description],
       category_id: category_id,
       brand_id: brand_id,
       supplier_profile_id: supplier_profile_id,
+      product_type: attributes[:product_type],
+      highlights: attributes[:highlights]&.to_json,
+      search_keywords: attributes[:search_keywords]&.to_json,
+      tags: attributes[:tags]&.to_json,
+      base_price: attributes[:base_price],
+      base_discounted_price: attributes[:base_discounted_price],
+      base_mrp: attributes[:base_mrp],
+      length_cm: attributes[:length_cm],
+      width_cm: attributes[:width_cm],
+      height_cm: attributes[:height_cm],
+      weight_kg: attributes[:weight_kg],
+      is_featured: attributes[:is_featured] || false,
+      is_bestseller: attributes[:is_bestseller] || false,
+      is_new_arrival: attributes[:is_new_arrival] || false,
+      is_trending: attributes[:is_trending] || false,
+      published_at: attributes[:published_at],
       status: :pending
-    }
+    }.compact
   end
 
   def create_product

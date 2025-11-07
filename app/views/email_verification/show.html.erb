@@ -142,46 +142,67 @@
       <p>Please verify your email address to continue</p>
     </div>
 
-    <% if notice %>
-      <div class="alert alert-success"><%= notice %></div>
+    <% if flash[:notice] %>
+      <div class="alert alert-success"><%= flash[:notice] %></div>
     <% end %>
 
-    <% if alert %>
-      <div class="alert alert-danger"><%= alert %></div>
+    <% if flash[:alert] %>
+      <div class="alert alert-danger"><%= flash[:alert] %></div>
     <% end %>
 
-    <div class="info-box">
-      <h3>Verification Code Sent</h3>
-      <p>We've sent a 6-digit verification code to <strong><%= @email %></strong></p>
-      <p>Please check your email and enter the code below. The code will expire in 15 minutes.</p>
-    </div>
-
-    <%= form_with url: '/verify-email', method: :post, local: true, class: "verification-form" do |form| %>
-      <%= form.hidden_field :type, value: @verifiable_type %>
-      <%= form.hidden_field :id, value: @verifiable_id %>
+    <% if @verification_successful %>
+      <!-- Success State -->
+      <div class="info-box" style="background-color: #d4edda; border-color: #c3e6cb;">
+        <h3 style="color: #155724;">✅ Email Verified Successfully!</h3>
+        <p style="color: #155724;">Your email address has been verified. You can now use all features of your account.</p>
+      </div>
       
-      <div class="form-group">
-        <%= form.label :otp, "Enter Verification Code", class: "form-label" %>
-        <%= form.text_field :otp, 
-            class: "form-control otp-input", 
-            placeholder: "000000",
-            maxlength: 6,
-            pattern: "[0-9]{6}",
-            required: true %>
+      <div style="margin-top: 30px;">
+        <p style="color: #6c757d;">You can close this page or proceed to login.</p>
+      </div>
+    <% elsif @verifiable&.email_verified? %>
+      <!-- Already Verified State -->
+      <div class="info-box" style="background-color: #d1ecf1; border-color: #bee5eb;">
+        <h3 style="color: #0c5460;">✓ Already Verified</h3>
+        <p style="color: #0c5460;">This email address has already been verified.</p>
+      </div>
+    <% else %>
+      <!-- Verification Form -->
+      <div class="info-box">
+        <h3>Verification Code Sent</h3>
+        <p>We've sent a 6-digit verification code to <strong><%= @email %></strong></p>
+        <p>Please check your email and enter the code below. The code will expire in 15 minutes.</p>
       </div>
 
-      <div class="form-group">
-        <%= form.submit "Verify Email", class: "btn btn-primary" %>
-      </div>
-    <% end %>
-
-    <div style="margin-top: 20px;">
-      <%= form_with url: '/resend-verification', method: :post, local: true do |form| %>
+      <%= form_with url: '/verify-email', method: :post, local: true, class: "verification-form" do |form| %>
         <%= form.hidden_field :type, value: @verifiable_type %>
         <%= form.hidden_field :id, value: @verifiable_id %>
-        <%= form.submit "Resend Code", class: "btn btn-secondary" %>
+        <%= form.hidden_field :email, value: @email %>
+        
+        <div class="form-group">
+          <%= form.label :otp, "Enter Verification Code", class: "form-label" %>
+          <%= form.text_field :otp, 
+              class: "form-control otp-input", 
+              placeholder: "000000",
+              maxlength: 6,
+              pattern: "[0-9]{6}",
+              required: true %>
+        </div>
+
+        <div class="form-group">
+          <%= form.submit "Verify Email", class: "btn btn-primary" %>
+        </div>
       <% end %>
-    </div>
+
+      <div style="margin-top: 20px;">
+        <%= form_with url: '/resend-verification', method: :post, local: true do |form| %>
+          <%= form.hidden_field :type, value: @verifiable_type %>
+          <%= form.hidden_field :id, value: @verifiable_id %>
+          <%= form.hidden_field :email, value: @email %>
+          <%= form.submit "Resend Code", class: "btn btn-secondary" %>
+        <% end %>
+      </div>
+    <% end %>
 
     <div class="footer">
       <p>Didn't receive the email? Check your spam folder or try resending the code.</p>
@@ -190,13 +211,16 @@
   </div>
 
   <script>
-    // Auto-focus on OTP input
-    document.querySelector('.otp-input').focus();
-    
-    // Format OTP input (numbers only)
-    document.querySelector('.otp-input').addEventListener('input', function(e) {
-      this.value = this.value.replace(/[^0-9]/g, '');
-    });
+    // Auto-focus on OTP input (only if it exists)
+    const otpInput = document.querySelector('.otp-input');
+    if (otpInput) {
+      otpInput.focus();
+      
+      // Format OTP input (numbers only)
+      otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+      });
+    }
   </script>
 </body>
 </html>

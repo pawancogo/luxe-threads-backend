@@ -1,229 +1,213 @@
-<% content_for :page_title, "Product Details: #{@product.name}" %>
+<% content_for :title, "Product - #{@product.name}" %>
 
-<div class="product-details">
-  <div class="page-header">
-    <h1>Product Details: <%= @product.name %></h1>
-    <div class="breadcrumb">
-      <%= link_to "Dashboard", admin_root_path %> > 
-      <%= link_to "Product Approval", admin_products_path %> > 
-      Product Details
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-box me-2"></i><%= @product.name %>
+      </h1>
+      <p class="text-muted mb-0 mt-2">Product Details & Variants</p>
+    </div>
+    <div>
+      <%= link_to "Back to Products", admin_products_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_product_path(@product), class: "btn btn-primary" %>
     </div>
   </div>
-
-  <!-- Product Status Banner -->
-  <div class="alert alert-<%= @product.status == 'active' ? 'success' : @product.status == 'rejected' ? 'danger' : 'warning' %> mb-4">
-    <h5 class="alert-heading">
-      <i class="fas fa-<%= @product.status == 'active' ? 'check-circle' : @product.status == 'rejected' ? 'times-circle' : 'clock' %> me-2"></i>
-      Status: <%= @product.status.humanize %>
-    </h5>
-    <% if @product.verified_by_admin %>
-      <p class="mb-0">Verified by <%= @product.verified_by_admin.full_name %> on <%= @product.verified_at&.strftime("%B %d, %Y at %I:%M %p") %></p>
-    <% end %>
-  </div>
-
+  
   <div class="row">
-    <!-- Product Information -->
     <div class="col-md-8">
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Product Information</h5>
-        </div>
-        <div class="card-body">
-          <div class="row mb-3">
-            <div class="col-md-3"><strong>Product Name:</strong></div>
-            <div class="col-md-9"><%= @product.name %></div>
+      <!-- Product Images -->
+      <% if @product_variants.any? && @product_variants.first.product_images.any? %>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Product Images</h5>
           </div>
-          <div class="row mb-3">
-            <div class="col-md-3"><strong>Description:</strong></div>
-            <div class="col-md-9"><%= simple_format(@product.description) %></div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-3"><strong>Category:</strong></div>
-            <div class="col-md-9"><%= @product.category.name %></div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-3"><strong>Brand:</strong></div>
-            <div class="col-md-9"><%= @product.brand.name %></div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-3"><strong>Supplier:</strong></div>
-            <div class="col-md-9">
-              <%= @product.supplier_profile&.company_name || 'N/A' %>
-              <% if @product.supplier_profile %>
-                <br><small class="text-muted">GST: <%= @product.supplier_profile.gst_number %></small>
+          <div class="card-body">
+            <div class="row g-2">
+              <% @product_variants.first.product_images.limit(4).each do |image| %>
+                <div class="col-md-3">
+                  <%= image_tag image.image_url, class: "img-fluid rounded", style: "max-height: 150px; object-fit: cover; width: 100%;" %>
+                </div>
               <% end %>
             </div>
           </div>
-          <div class="row mb-3">
-            <div class="col-md-3"><strong>Created:</strong></div>
-            <div class="col-md-9"><%= @product.created_at.strftime("%B %d, %Y at %I:%M %p") %></div>
-          </div>
         </div>
-      </div>
-
-      <!-- Product Variants -->
+      <% end %>
+      
+      <!-- Product Details -->
       <div class="card mb-4">
         <div class="card-header">
-          <h5 class="mb-0"><i class="fas fa-cubes me-2"></i>Product Variants</h5>
+          <h5 class="mb-0">Product Details</h5>
         </div>
         <div class="card-body">
-          <% if @product_variants.any? %>
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">ID</th>
+              <td><%= @product.id %></td>
+            </tr>
+            <tr>
+              <th>Name</th>
+              <td><%= @product.name %></td>
+            </tr>
+            <tr>
+              <th>Description</th>
+              <td><%= simple_format(@product.description) %></td>
+            </tr>
+            <tr>
+              <th>Supplier</th>
+              <td><%= @product.supplier_profile&.company_name || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th>Category</th>
+              <td><%= @product.category&.name || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th>Brand</th>
+              <td><%= @product.brand&.name || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                <span class="badge bg-<%= @product.status == 'active' ? 'success' : @product.status == 'pending' ? 'warning' : 'danger' %>">
+                  <%= @product.status %>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th>Featured</th>
+              <td>
+                <% if @product.is_featured? %>
+                  <span class="badge bg-warning">Yes</span>
+                <% else %>
+                  <span class="badge bg-secondary">No</span>
+                <% end %>
+              </td>
+            </tr>
+            <% if @product.rejection_reason.present? %>
+              <tr>
+                <th>Rejection Reason</th>
+                <td class="text-danger"><%= @product.rejection_reason %></td>
+              </tr>
+            <% end %>
+            <tr>
+              <th>Created At</th>
+              <td><%= @product.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Product Variants -->
+      <% if @product_variants.any? %>
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Product Variants</h5>
+            <span class="badge bg-primary"><%= @product_variants.total_count %> total</span>
+          </div>
+          <div class="card-body">
+            <!-- Variant Filters -->
+            <%= render 'variant_filters' %>
+            
             <div class="table-responsive">
-              <table class="table table-sm">
+              <table class="table table-sm table-hover">
                 <thead>
                   <tr>
+                    <th>ID</th>
                     <th>SKU</th>
+                    <th>Size</th>
+                    <th>Color</th>
                     <th>Price</th>
-                    <th>Discounted Price</th>
                     <th>Stock</th>
-                    <th>Weight (kg)</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   <% @product_variants.each do |variant| %>
-                    <tr>
-                      <td><%= variant.sku %></td>
-                      <td><%= number_to_currency(variant.price) %></td>
+                    <% 
+                      # Get size and color from variant attributes
+                      size_attr = variant.product_variant_attributes.joins(attribute_value: :attribute_type)
+                                        .where(attribute_types: { name: 'Size' })
+                                        .first&.attribute_value&.value
+                      color_attr = variant.product_variant_attributes.joins(attribute_value: :attribute_type)
+                                         .where(attribute_types: { name: 'Color' })
+                                         .first&.attribute_value&.value
+                    %>
+                    <tr data-id="<%= variant.id %>" data-sku="<%= variant.sku %>">
+                      <td><%= variant.id %></td>
+                      <td><strong><%= variant.sku %></strong></td>
+                      <td><%= size_attr || '<span class="text-muted">N/A</span>'.html_safe %></td>
+                      <td><%= color_attr || '<span class="text-muted">N/A</span>'.html_safe %></td>
+                      <td>₹<%= number_with_delimiter(variant.price) %></td>
                       <td>
-                        <% if variant.discounted_price && variant.discounted_price < variant.price %>
-                          <span class="text-success"><%= number_to_currency(variant.discounted_price) %></span>
-                        <% else %>
-                          <span class="text-muted">N/A</span>
+                        <%= variant.stock_quantity %>
+                        <% if variant.is_low_stock? %>
+                          <span class="badge bg-warning ms-1">Low Stock</span>
+                        <% end %>
+                        <% if variant.out_of_stock? %>
+                          <span class="badge bg-danger ms-1">Out of Stock</span>
                         <% end %>
                       </td>
                       <td>
-                        <span class="badge bg-<%= variant.stock_quantity > 0 ? 'success' : 'danger' %>">
-                          <%= variant.stock_quantity %>
+                        <span class="badge bg-<%= variant.is_available? ? 'success' : 'secondary' %>">
+                          <%= variant.is_available? ? 'Available' : 'Unavailable' %>
                         </span>
                       </td>
-                      <td><%= variant.weight_kg %> kg</td>
                     </tr>
                   <% end %>
                 </tbody>
               </table>
             </div>
-          <% else %>
-            <p class="text-muted">No variants available for this product.</p>
-          <% end %>
+            
+            <!-- Variant Pagination -->
+            <% if @product_variants.respond_to?(:current_page) %>
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted">
+                  <% if @product_variants.respond_to?(:total_count) %>
+                    Showing <%= (@product_variants.current_page - 1) * @product_variants.limit_value + 1 %> to 
+                    <%= [@product_variants.current_page * @product_variants.limit_value, @product_variants.total_count].min %> of 
+                    <%= @product_variants.total_count %> variants
+                  <% end %>
+                </div>
+                <div>
+                  <%= paginate @product_variants, param_name: 'variant_page', params: { id: @product.id } if defined?(Kaminari) %>
+                </div>
+              </div>
+            <% end %>
+          </div>
         </div>
-      </div>
+      <% end %>
     </div>
-
-    <!-- Approval Actions Sidebar -->
+    
     <div class="col-md-4">
       <div class="card">
-        <div class="card-header bg-primary text-white">
-          <h5 class="mb-0"><i class="fas fa-gavel me-2"></i>Approval Actions</h5>
-        </div>
-        <div class="card-body">
-          <% if @product.status == 'pending' %>
-            <div class="d-grid gap-2">
-              <%= button_to approve_admin_product_path(@product), 
-                  method: :post,
-                  class: "btn btn-success btn-lg",
-                  data: { confirm: "Are you sure you want to approve this product? It will become active and visible to customers." } do %>
-                <i class="fas fa-check-circle me-2"></i>Approve Product
-              <% end %>
-              
-              <%= button_to reject_admin_product_path(@product), 
-                  method: :post,
-                  class: "btn btn-danger btn-lg mt-2",
-                  data: { confirm: "Are you sure you want to reject this product? The supplier will be notified." } do %>
-                <i class="fas fa-times-circle me-2"></i>Reject Product
-              <% end %>
-            </div>
-          <% elsif @product.status == 'active' %>
-            <div class="alert alert-success">
-              <i class="fas fa-check-circle me-2"></i>
-              This product has been approved and is active.
-            </div>
-            <p class="text-muted small">
-              Approved by: <%= @product.verified_by_admin&.full_name %><br>
-              Approved on: <%= @product.verified_at&.strftime("%B %d, %Y") %>
-            </p>
-          <% elsif @product.status == 'rejected' %>
-            <div class="alert alert-danger">
-              <i class="fas fa-times-circle me-2"></i>
-              This product has been rejected.
-            </div>
-            <p class="text-muted small">
-              Rejected by: <%= @product.verified_by_admin&.full_name %><br>
-              Rejected on: <%= @product.verified_at&.strftime("%B %d, %Y") %>
-            </p>
-          <% end %>
-
-          <hr>
-
-          <div class="d-grid gap-2">
-            <%= link_to "Back to Product List", admin_products_path, class: "btn btn-secondary" %>
-            <%= link_to "View Supplier", admin_supplier_path(@product.supplier_profile.supplier), class: "btn btn-outline-primary" %>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Stats -->
-      <div class="card mt-3">
         <div class="card-header">
-          <h6 class="mb-0">Quick Stats</h6>
+          <h5 class="mb-0">Actions</h5>
         </div>
         <div class="card-body">
-          <div class="mb-2">
-            <small class="text-muted">Total Variants:</small>
-            <strong class="float-end"><%= @product_variants.count %></strong>
-          </div>
-          <div class="mb-2">
-            <small class="text-muted">Total Stock:</small>
-            <strong class="float-end"><%= @product_variants.sum(:stock_quantity) %></strong>
-          </div>
-          <div>
-            <small class="text-muted">Price Range:</small>
-            <strong class="float-end">
-              <% if @product_variants.any? %>
-                <%= number_to_currency(@product_variants.minimum(:price)) %> - <%= number_to_currency(@product_variants.maximum(:price)) %>
-              <% else %>
-                N/A
-              <% end %>
-            </strong>
+          <div class="d-grid gap-2">
+            <% if @product.status == 'pending' %>
+              <%= link_to "Approve Product", approve_admin_product_path(@product), method: :patch, 
+                          class: "btn btn-success",
+                          data: { confirm: "Approve this product?" } %>
+              <%= link_to "Reject Product", reject_admin_product_path(@product), method: :patch, 
+                          class: "btn btn-danger",
+                          data: { confirm: "Reject this product?" } %>
+            <% elsif @product.status == 'active' %>
+              <button class="btn btn-outline-secondary" disabled>Product is Active</button>
+            <% elsif @product.status == 'rejected' %>
+              <%= link_to "Approve Product", approve_admin_product_path(@product), method: :patch, 
+                          class: "btn btn-success",
+                          data: { confirm: "Approve this product?" } %>
+            <% end %>
+            
+            <%= link_to "Edit Product", edit_admin_product_path(@product), class: "btn btn-primary" %>
+            <%= link_to "Delete Product", admin_product_path(@product), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary mt-2", target: "_blank" %>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-
-<style>
-  .product-details {
-    padding: 20px;
-  }
-  
-  .page-header {
-    margin-bottom: 30px;
-  }
-  
-  .page-header h1 {
-    margin-bottom: 10px;
-  }
-  
-  .breadcrumb {
-    color: #6c757d;
-    font-size: 14px;
-  }
-  
-  .breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-  }
-  
-  .card {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border: none;
-  }
-  
-  .card-header {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    font-weight: 600;
-  }
-</style>
-
-

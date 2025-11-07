@@ -1,0 +1,42 @@
+<ul class="navbar-nav ms-auto root_links">
+  <% actions(:root).select(&:show_in_navigation).each do |action| %>
+    <li class="nav-item <%= action.action_name %>_root_link">
+      <%= link_to wording_for(:menu, action), 
+          { action: action.action_name, controller: 'rails_admin/main' }, 
+          { class: ['nav-link'], data: action.turbo? ? {} : { turbo: 'false' } } %>
+    </li>
+  <% end %>
+  <% if main_app_root_path = (main_app.root_path rescue false) %>
+    <li class="nav-item">
+      <%= link_to t('admin.home.name'), main_app_root_path, class: 'nav-link', data: { turbo: 'false' } %>
+    </li>
+  <% end %>
+  <% if _current_user %>
+    <li class="nav-item">
+      <span class="navbar-text me-3" style="color: #333; white-space: nowrap;">
+        <i class="fa fa-user"></i> <%= _current_user.email %>
+      </span>
+    </li>
+    <li class="nav-item">
+      <%= link_to main_app.admin_admins_path, 
+          class: 'btn btn-primary btn-sm me-2', 
+          style: 'font-weight: 600; padding: 0.5rem 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);',
+          data: { turbo: 'false' }, 
+          title: 'Admin Dashboard' do %>
+        <i class="fa fa-tachometer-alt me-1"></i>
+        <span>Admin Dashboard</span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to logout_path, 
+          method: logout_method, 
+          class: 'btn btn-danger btn-sm rails-admin-logout-only', 
+          data: { turbo: 'false', confirm: 'Are you sure you want to logout?' }, 
+          title: 'Logout' do %>
+        <i class="fa fa-sign-out"></i>
+        <span class="d-none d-md-inline">Logout</span>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+

@@ -14,10 +14,14 @@ class SupplierProfileCreationService
     return user.supplier_profile if user.supplier_profile.present?
     return nil unless should_create?
 
-    user.create_supplier_profile!(profile_attributes)
+    profile = user.create_supplier_profile!(profile_attributes)
+    # Reload user to ensure association is available
+    user.reload
+    profile
   rescue StandardError => e
     Rails.logger.error "SupplierProfileCreationService failed for user #{user.id}: #{e.message}"
-    nil
+    Rails.logger.error e.backtrace.join("\n")
+    raise e # Re-raise to be caught by calling service
   end
 
   private
@@ -28,6 +32,8 @@ class SupplierProfileCreationService
 
   def profile_attributes
     {
+      owner_id: user.id, # Phase 1: Set owner_id instead of supplier_id
+      user_id: user.id, # Legacy field for backward compatibility
       company_name: options[:company_name] || default_company_name,
       gst_number: options[:gst_number] || generate_gst_number,
       description: options[:description] || default_description,

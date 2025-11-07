@@ -1,0 +1,91 @@
+<% content_for :title, "Setting - #{@setting.key}" %>
+
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-cog me-2"></i>Setting: <strong><%= @setting.key %></strong>
+    </h1>
+    <div>
+      <%= link_to "Back to Settings", admin_settings_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_setting_path(@setting), class: "btn btn-primary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Setting Details</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">Key</th>
+              <td><strong><%= @setting.key %></strong></td>
+            </tr>
+            <tr>
+              <th>Value</th>
+              <td>
+                <% if @setting.value_type == 'boolean' %>
+                  <span class="badge bg-<%= @setting.cast_value ? 'success' : 'secondary' %>">
+                    <%= @setting.cast_value ? 'Yes' : 'No' %>
+                  </span>
+                <% else %>
+                  <%= @setting.cast_value %>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Value Type</th>
+              <td><span class="badge bg-info"><%= @setting.value_type %></span></td>
+            </tr>
+            <tr>
+              <th>Category</th>
+              <td><span class="badge bg-secondary"><%= @setting.category %></span></td>
+            </tr>
+            <tr>
+              <th>Description</th>
+              <td><%= @setting.description || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th>Public</th>
+              <td>
+                <% if @setting.is_public? %>
+                  <span class="badge bg-success">Yes (Exposed to frontend)</span>
+                <% else %>
+                  <span class="badge bg-secondary">No (Admin only)</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Created At</th>
+              <td><%= @setting.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+            <tr>
+              <th>Last Updated</th>
+              <td><%= @setting.updated_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "Edit Setting", edit_admin_setting_path(@setting), class: "btn btn-primary" %>
+            <%= link_to "Delete Setting", admin_setting_path(@setting), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

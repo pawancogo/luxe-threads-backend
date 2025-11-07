@@ -1,0 +1,137 @@
+<% content_for :title, "Coupon - #{@coupon.code}" %>
+
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-ticket-alt me-2"></i>Coupon: <span class="font-mono"><%= @coupon.code %></span>
+    </h1>
+    <div>
+      <%= link_to "Back to Coupons", admin_coupons_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_coupon_path(@coupon), class: "btn btn-primary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Coupon Details</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">Coupon Code</th>
+              <td><span class="font-mono font-weight-bold"><%= @coupon.code %></span></td>
+            </tr>
+            <tr>
+              <th>Name</th>
+              <td><%= @coupon.name %></td>
+            </tr>
+            <tr>
+              <th>Description</th>
+              <td><%= simple_format(@coupon.description) %></td>
+            </tr>
+            <tr>
+              <th>Coupon Type</th>
+              <td><%= @coupon.coupon_type.humanize %></td>
+            </tr>
+            <tr>
+              <th>Discount Value</th>
+              <td>
+                <% if @coupon.coupon_type == 'percentage' %>
+                  <strong class="text-success"><%= @coupon.discount_value %>% OFF</strong>
+                <% else %>
+                  <strong class="text-success">₹<%= number_with_delimiter(@coupon.discount_value) %> OFF</strong>
+                <% end %>
+              </td>
+            </tr>
+            <% if @coupon.max_discount_amount %>
+              <tr>
+                <th>Maximum Discount</th>
+                <td>₹<%= number_with_delimiter(@coupon.max_discount_amount) %></td>
+              </tr>
+            <% end %>
+            <tr>
+              <th>Minimum Order Amount</th>
+              <td>₹<%= number_with_delimiter(@coupon.min_order_amount) %></td>
+            </tr>
+            <tr>
+              <th>Valid From</th>
+              <td><%= @coupon.valid_from.strftime('%B %d, %Y') %></td>
+            </tr>
+            <tr>
+              <th>Valid Until</th>
+              <td><%= @coupon.valid_until.strftime('%B %d, %Y') %></td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                <% if @coupon.is_active? %>
+                  <% if @coupon.valid_from > Date.current %>
+                    <span class="badge bg-secondary">Upcoming</span>
+                  <% elsif @coupon.valid_until < Date.current %>
+                    <span class="badge bg-secondary">Expired</span>
+                  <% elsif @coupon.max_uses && @coupon.usage_count && @coupon.usage_count >= @coupon.max_uses %>
+                    <span class="badge bg-secondary">Max Uses Reached</span>
+                  <% else %>
+                    <span class="badge bg-success">Active</span>
+                  <% end %>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Max Uses</th>
+              <td><%= @coupon.max_uses || 'Unlimited' %></td>
+            </tr>
+            <tr>
+              <th>Max Uses Per User</th>
+              <td><%= @coupon.max_uses_per_user || 'Unlimited' %></td>
+            </tr>
+            <tr>
+              <th>Usage Count</th>
+              <td><%= @coupon.usage_count || 0 %></td>
+            </tr>
+            <tr>
+              <th>Restrictions</th>
+              <td>
+                <% if @coupon.is_new_user_only? %>
+                  <span class="badge bg-primary">New Users Only</span>
+                <% end %>
+                <% if @coupon.is_first_order_only? %>
+                  <span class="badge bg-warning">First Order Only</span>
+                <% end %>
+                <% unless @coupon.is_new_user_only? || @coupon.is_first_order_only? %>
+                  <span class="text-muted">No restrictions</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Created At</th>
+              <td><%= @coupon.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "Edit Coupon", edit_admin_coupon_path(@coupon), class: "btn btn-primary" %>
+            <%= link_to "Delete Coupon", admin_coupon_path(@coupon), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

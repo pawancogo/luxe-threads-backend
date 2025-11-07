@@ -17,18 +17,28 @@ class Api::V1::AttributeTypesController < ApplicationController
     level = params[:level]&.to_sym # :product or :variant
     category_id = params[:category_id]&.to_i
     
+    # Start with all attribute types
     attribute_types = AttributeType.includes(:attribute_values).order(:name)
     
     # Filter by level if specified
     if level && AttributeConstants::ATTRIBUTE_LEVELS.key?(level)
       allowed_types = AttributeConstants::ATTRIBUTE_LEVELS[level]
       attribute_types = attribute_types.where(name: allowed_types)
+    elsif level
+      # If level is specified but not in ATTRIBUTE_LEVELS, return empty
+      attribute_types = attribute_types.none
     end
     
     # Get category for size filtering
     category = Category.find_by(id: category_id) if category_id
     
     formatted_data = attribute_types.map do |attr_type|
+      # Ensure predefined values exist if this is a predefined attribute type
+      if attr_type.predefined? && attr_type.attribute_values.empty?
+        attr_type.ensure_predefined_values!
+        attr_type.reload
+      end
+      
       is_color_type = attr_type.name.downcase == 'color'
       is_size_type = attr_type.name.downcase == 'size'
       is_product_level = AttributeConstants.product_level?(attr_type.name)
@@ -38,9 +48,9 @@ class Api::V1::AttributeTypesController < ApplicationController
       values = if is_size_type && category
         # Filter size values by category
         category_size_values = AttributeConstants.size_values_for_category(category.name)
-        attr_type.attribute_values.where(value: category_size_values).order(:value)
+        attr_type.attribute_values.where(value: category_size_values).order(:display_order, :value)
       else
-        attr_type.attribute_values.order(:value)
+        attr_type.attribute_values.order(:display_order, :value)
       end
       
       {
@@ -76,12 +86,8 @@ class Api::V1::AttributeTypesController < ApplicationController
     end
     
     # Check if user is a supplier (has supplier role or supplier_profile)
-    is_supplier = current_user.supplier_profile.present? || 
-                  current_user.role&.downcase&.include?('supplier') ||
-                  current_user.role == 'supplier' ||
-                  current_user.role == 'verified_supplier' ||
-                  current_user.role == 'premium_supplier' ||
-                  current_user.role == 'partner_supplier'
+    is_supplier = current_user.supplier? || 
+                  current_user.supplier_profile.present?
     
     unless is_supplier
       Rails.logger.warn "User #{current_user.id} (#{current_user.role}) attempted to access attribute_types API"
@@ -90,4 +96,5 @@ class Api::V1::AttributeTypesController < ApplicationController
     end
   end
 end
+
 

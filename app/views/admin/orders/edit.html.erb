@@ -1,0 +1,51 @@
+<% content_for :title, "Edit Order - #{@order.order_number}" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-edit me-2"></i>Edit Order
+    </h1>
+    <%= link_to "Back", admin_order_path(@order), class: "btn btn-outline-secondary" %>
+  </div>
+  
+  <%= form_with model: [:admin, @order], local: true do |f| %>
+    <% if @order.errors.any? %>
+      <div class="alert alert-danger">
+        <h5>Please fix the following errors:</h5>
+        <ul class="mb-0">
+          <% @order.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    
+    <div class="mb-3">
+      <%= f.label :internal_notes, "Internal Notes", class: "form-label" %>
+      <%= f.text_area :internal_notes, rows: 5, class: "form-control" %>
+      <small class="form-text text-muted">These notes are only visible to admins</small>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :tracking_number, class: "form-label" %>
+          <%= f.text_field :tracking_number, class: "form-control" %>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :tracking_url, "Tracking URL", class: "form-label" %>
+          <%= f.url_field :tracking_url, class: "form-control" %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="d-flex gap-2">
+      <%= f.submit "Update Order", class: "btn btn-primary" %>
+      <%= link_to "Cancel", admin_order_path(@order), class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+</div>
+

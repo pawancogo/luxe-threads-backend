@@ -59,6 +59,11 @@ Rails.application.configure do
 
   # Suppress logger output for asset requests.
   config.assets.quiet = true
+  
+  # Enable asset pipeline for RailsAdmin
+  config.assets.enabled = true
+  config.assets.compile = true
+  config.assets.debug = false
 
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
@@ -75,26 +80,16 @@ Rails.application.configure do
   # ===========================================
   # EMAIL CONFIGURATION
   # ===========================================
-  config.action_mailer.default_url_options = { 
-    host: ENV.fetch('HOST', 'localhost'), 
-    port: ENV.fetch('PORT', 3000) 
+  config.action_mailer.default_url_options = {
+    host: ENV.fetch('HOST', 'localhost'),
+    port: ENV.fetch('PORT', 3000)
   }
 
-  # SMTP Configuration
-  config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = {
-    address: ENV.fetch('SMTP_ADDRESS', 'smtp.gmail.com'),
-    port: ENV.fetch('SMTP_PORT', 587).to_i,
-    domain: ENV.fetch('SMTP_DOMAIN', 'gmail.com'),
-    user_name: ENV.fetch('SMTP_USERNAME', ''),
-    password: ENV.fetch('SMTP_PASSWORD', ''),
-    authentication: ENV.fetch('SMTP_AUTHENTICATION', 'plain'),
-    enable_starttls_auto: ENV.fetch('SMTP_ENABLE_STARTTLS_AUTO', 'true') == 'true',
-    openssl_verify_mode: ENV.fetch('SMTP_OPENSSL_VERIFY_MODE', 'none')
-  }
+  # SMTP Configuration using SmtpConfigurable concern
+  SmtpConfigurable.configure_smtp(config, :development) if defined?(SmtpConfigurable)
 
-  # Development email settings
-  if ENV.fetch('LOG_EMAILS_TO_CONSOLE', 'true') == 'true'
+  # Fallback to test delivery if SMTP credentials not available
+  unless ENV['SMTP_USERNAME'].present? && ENV['SMTP_PASSWORD'].present?
     config.action_mailer.delivery_method = :test
     config.action_mailer.perform_deliveries = false
   end

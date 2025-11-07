@@ -7,3 +7,6 @@ class ProductAttribute < ApplicationRecord
   validates :attribute_value_id, uniqueness: { scope: :product_id, message: "already exists for this product" }
 end
 
+
+
+

@@ -6,9 +6,11 @@ module Passwordable
   extend ActiveSupport::Concern
 
   included do
-    attr_accessor :password
+    attr_accessor :password, :password_confirmation
     validates :password, presence: true, on: :create
     validates :password, length: { minimum: 8 }, if: :password_required?
+    validates :password_confirmation, presence: true, if: -> { password.present? && (new_record? || password_required?) }
+    validate :password_confirmation_match, if: -> { password.present? }
   end
 
   # Set password with automatic hashing
@@ -27,6 +29,14 @@ module Passwordable
 
   def password_required?
     password.present? && !password_reset_required?
+  end
+
+  def password_confirmation_match
+    return if password.blank? || password_confirmation.blank?
+    
+    if password != password_confirmation
+      errors.add(:password_confirmation, "doesn't match password")
+    end
   end
 end
 

@@ -1,4 +1,7 @@
 class Api::V1::WishlistItemsController < ApplicationController
+  include ApiFormatters
+  include CustomerOnly
+  
   before_action :set_wishlist
 
   # GET /api/v1/wishlist
@@ -41,24 +44,6 @@ class Api::V1::WishlistItemsController < ApplicationController
   end
 
   def format_wishlist_data(items)
-    items.map do |item|
-      variant = item.product_variant
-      product = variant.product
-      {
-        wishlist_item_id: item.id,
-        product_variant: {
-          variant_id: variant.id,
-          sku: variant.sku,
-          price: variant.price,
-          discounted_price: variant.discounted_price,
-          stock_quantity: variant.stock_quantity,
-          product_name: product.name,
-          product_id: product.id,
-          brand_name: product.brand.name,
-          category_name: product.category.name,
-          image_url: variant.product_images.first&.image_url || product.product_variants.first&.product_images&.first&.image_url
-        }
-      }
-    end
+    items.map { |item| format_wishlist_item_data(item) }
   end
 end

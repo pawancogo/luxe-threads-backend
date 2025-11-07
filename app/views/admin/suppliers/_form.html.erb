@@ -37,14 +37,27 @@
       <%= form.label :role, class: "form-label" %>
       <%= form.select :role, 
           options_for_select([
-            ['Basic Supplier', 'basic_supplier'],
-            ['Verified Supplier', 'verified_supplier'],
-            ['Premium Supplier', 'premium_supplier'],
-            ['Partner Supplier', 'partner_supplier']
-          ], supplier.role), 
+            ['Supplier', 'supplier']
+          ], supplier.role || 'supplier'), 
           { prompt: 'Select a role' }, 
-          { class: "form-control" } %>
+          { class: "form-control", disabled: true } %>
+      <small class="form-text text-muted">Role is automatically set to 'supplier' for supplier accounts</small>
     </div>
+    
+    <%= form.fields_for :supplier_profile_attributes do |profile_form| %>
+      <div class="form-group">
+        <%= profile_form.label :supplier_tier, "Supplier Tier", class: "form-label" %>
+        <%= profile_form.select :supplier_tier, 
+            options_for_select([
+              ['Basic', 'basic'],
+              ['Verified', 'verified'],
+              ['Premium', 'premium'],
+              ['Partner', 'partner']
+            ], @supplier_profile&.supplier_tier || 'basic'), 
+            { prompt: 'Select tier' }, 
+            { class: "form-control" } %>
+      </div>
+    <% end %>
 
     <div class="form-group">
       <%= form.label :password, class: "form-label" %>

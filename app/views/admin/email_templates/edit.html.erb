@@ -1,0 +1,82 @@
+<% content_for :title, "Edit Email Template - #{@template.template_type.humanize}" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-edit me-2"></i>Edit Email Template
+    </h1>
+    <%= link_to "Back", admin_email_template_path(@template), class: "btn btn-outline-secondary" %>
+  </div>
+  
+  <%= form_with model: [:admin, @template], local: true do |f| %>
+    <% if @template.errors.any? %>
+      <div class="alert alert-danger">
+        <h5>Please fix the following errors:</h5>
+        <ul class="mb-0">
+          <% @template.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    
+    <div class="mb-3">
+      <%= f.label :template_type, class: "form-label" %>
+      <%= f.select :template_type, 
+          EmailTemplate::TEMPLATE_TYPES.map { |type| [type.humanize.gsub('_', ' '), type] },
+          {}, { class: "form-select", disabled: true } %>
+      <small class="form-text text-muted">Template type cannot be changed after creation</small>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :subject, class: "form-label" %>
+      <%= f.text_field :subject, class: "form-control", required: true %>
+      <small class="form-text text-muted">Use {{variable_name}} for dynamic content</small>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :from_email, "From Email", class: "form-label" %>
+          <%= f.email_field :from_email, class: "form-control" %>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :from_name, "From Name", class: "form-label" %>
+          <%= f.text_field :from_name, class: "form-control" %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :body_html, "HTML Body", class: "form-label" %>
+      <%= f.text_area :body_html, rows: 15, class: "form-control font-mono" %>
+      <small class="form-text text-muted">Use {{variable_name}} syntax for dynamic content</small>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :body_text, "Plain Text Body", class: "form-label" %>
+      <%= f.text_area :body_text, rows: 10, class: "form-control font-mono" %>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :description, class: "form-label" %>
+      <%= f.text_area :description, rows: 3, class: "form-control" %>
+    </div>
+    
+    <div class="mb-3">
+      <div class="form-check">
+        <%= f.check_box :is_active, class: "form-check-input" %>
+        <%= f.label :is_active, "Active", class: "form-check-label" %>
+      </div>
+    </div>
+    
+    <div class="d-flex gap-2">
+      <%= f.submit "Update Template", class: "btn btn-primary" %>
+      <%= link_to "Cancel", admin_email_template_path(@template), class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+</div>
+

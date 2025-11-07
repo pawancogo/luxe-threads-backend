@@ -1,0 +1,120 @@
+<% content_for :title, "Sales Report" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-chart-line me-2"></i>Sales Report
+    </h1>
+    <div>
+      <%= link_to "Export CSV", admin_reports_export_path(report_type: 'sales', start_date: params[:start_date], end_date: params[:end_date]), 
+          class: "btn btn-sm btn-outline-success" %>
+      <%= link_to "Back to Reports", admin_reports_path, class: "btn btn-sm btn-outline-secondary" %>
+    </div>
+  </div>
+  
+  <% if @report_data.present? %>
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="card border-primary">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Total Revenue</h6>
+            <h3 class="mb-0 text-primary">₹<%= number_with_delimiter(@report_data[:summary][:total_revenue] || 0) %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-info">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Total Orders</h6>
+            <h3 class="mb-0 text-info"><%= @report_data[:summary][:total_orders] || 0 %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-success">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Completed Orders</h6>
+            <h3 class="mb-0 text-success"><%= @report_data[:summary][:completed_orders] || 0 %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-warning">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Avg Order Value</h6>
+            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@report_data[:summary][:average_order_value] || 0) %></h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Daily Stats Table -->
+    <% if @report_data[:daily_stats].present? %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Daily Sales Trend</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Orders</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:daily_stats].each do |stat| %>
+                  <tr>
+                    <td><%= Date.parse(stat[:date]).strftime('%b %d, %Y') %></td>
+                    <td><%= stat[:orders_count] %></td>
+                    <td>₹<%= number_with_delimiter(stat[:revenue]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    
+    <!-- Sales by Status -->
+    <% if @report_data[:sales_by_status].present? %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Sales by Status</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Count</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:sales_by_status].each do |stat| %>
+                  <tr>
+                    <td><%= stat[:status] %></td>
+                    <td><%= stat[:count] %></td>
+                    <td><%= stat[:percentage] %>%</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      No sales data available for the selected date range.
+    </div>
+  <% end %>
+</div>
+

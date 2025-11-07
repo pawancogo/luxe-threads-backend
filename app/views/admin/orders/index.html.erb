@@ -1,0 +1,114 @@
+<% content_for :title, "Order Management" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-shopping-cart me-2"></i>Order Management
+    </h1>
+    <div>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <%= form_with url: admin_orders_path, method: :get, local: true, class: "row g-3" do |f| %>
+        <div class="col-md-3">
+          <%= f.text_field :search, placeholder: "Search by order number...", value: params[:search], class: "form-control" %>
+        </div>
+        <div class="col-md-2">
+          <%= f.select :status, 
+              [["All Status", ""], ["Pending", "pending"], ["Paid", "paid"], ["Shipped", "shipped"], 
+               ["Delivered", "delivered"], ["Cancelled", "cancelled"]],
+              { selected: params[:status] }, { class: "form-select" } %>
+        </div>
+        <div class="col-md-2">
+          <%= f.select :user_id, 
+              options_from_collection_for_select(User.where.not(role: 'supplier'), :id, :email, params[:user_id]),
+              { include_blank: "All Customers" }, 
+              { class: "form-select", 
+                data: { searchable: User.where.not(role: 'supplier').count > 10 ? "true" : "false", max_items: 10 } } %>
+        </div>
+        <div class="col-md-3">
+          <%= f.submit "Filter", class: "btn btn-primary" %>
+          <%= link_to "Clear", admin_orders_path, class: "btn btn-outline-secondary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Orders Table -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Customer</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Payment Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @orders.any? %>
+          <% @orders.each do |order| %>
+            <tr>
+              <td>
+                <strong><%= link_to order.order_number, admin_order_path(order), class: "text-decoration-none" %></strong>
+              </td>
+              <td>
+                <%= order.user&.email || 'N/A' %><br>
+                <small class="text-muted"><%= order.user&.full_name %></small>
+              </td>
+              <td>₹<%= number_with_delimiter(order.total_amount) %></td>
+              <td>
+                <span class="badge bg-<%= case order.status
+                  when 'pending' then 'warning'
+                  when 'paid', 'shipped' then 'info'
+                  when 'delivered' then 'success'
+                  when 'cancelled' then 'danger'
+                  else 'secondary'
+                  end %>">
+                  <%= order.status %>
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-<%= order.payment_status == 'payment_complete' ? 'success' : 'warning' %>">
+                  <%= order.payment_status&.gsub('payment_', '') || 'N/A' %>
+                </span>
+              </td>
+              <td><%= order.created_at.strftime('%b %d, %Y') %></td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to admin_order_path(order), class: "btn btn-outline-primary", title: "View" do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_order_path(order), class: "btn btn-outline-info", title: "Edit" do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">No orders found</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Pagination -->
+  <% if @orders.respond_to?(:current_page) %>
+    <div class="d-flex justify-content-center mt-4">
+      <%= paginate @orders if defined?(Kaminari) %>
+    </div>
+  <% end %>
+</div>
+

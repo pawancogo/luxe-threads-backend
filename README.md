@@ -28,5 +28,18 @@ Things you may want to cover:
 
 
 
+## Kill rails s 
+pkill -f "rails s"
+
+OR 
+
+# Find the process
+ps aux | grep rails
+# Kill it by PID
+kill <PID>
+# Or force kill if needed
+kill -9 <PID>
+
+
 
 * ...

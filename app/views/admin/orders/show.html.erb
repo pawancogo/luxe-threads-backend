@@ -1,0 +1,219 @@
+<% content_for :title, "Order - #{@order.order_number}" %>
+
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-shopping-cart me-2"></i>Order #<%= @order.order_number %>
+    </h1>
+    <div>
+      <%= link_to "Back to Orders", admin_orders_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_order_path(@order), class: "btn btn-primary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Order Items -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Order Items</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @order.order_items.each do |item| %>
+                  <tr>
+                    <td><%= item.product_variant&.product&.name || 'N/A' %></td>
+                    <td><%= item.product_variant&.sku || 'N/A' %></td>
+                    <td><%= item.quantity %></td>
+                    <td>₹<%= number_with_delimiter(item.price) %></td>
+                    <td>₹<%= number_with_delimiter(item.price * item.quantity) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="4" class="text-end">Total:</th>
+                  <th>₹<%= number_with_delimiter(@order.total_amount) %></th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Order Details -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Order Details</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">Order Number</th>
+              <td><%= @order.order_number %></td>
+            </tr>
+            <tr>
+              <th>Customer</th>
+              <td>
+                <%= @order.user&.email || 'N/A' %><br>
+                <small class="text-muted"><%= @order.user&.full_name %></small>
+              </td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                <span class="badge bg-<%= case @order.status
+                  when 'pending' then 'warning'
+                  when 'paid', 'shipped' then 'info'
+                  when 'delivered' then 'success'
+                  when 'cancelled' then 'danger'
+                  else 'secondary'
+                  end %>">
+                  <%= @order.status %>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th>Payment Status</th>
+              <td>
+                <span class="badge bg-<%= @order.payment_status == 'payment_complete' ? 'success' : 'warning' %>">
+                  <%= @order.payment_status&.gsub('payment_', '') || 'N/A' %>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th>Payment Method</th>
+              <td><%= @order.payment_method || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th>Total Amount</th>
+              <td><strong>₹<%= number_with_delimiter(@order.total_amount) %></strong></td>
+            </tr>
+            <% if @order.tracking_number.present? %>
+              <tr>
+                <th>Tracking Number</th>
+                <td>
+                  <%= @order.tracking_number %>
+                  <% if @order.tracking_url.present? %>
+                    <%= link_to "Track", @order.tracking_url, target: "_blank", class: "btn btn-sm btn-outline-primary ms-2" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+            <% if @order.cancellation_reason.present? %>
+              <tr>
+                <th>Cancellation Reason</th>
+                <td class="text-danger"><%= @order.cancellation_reason %></td>
+              </tr>
+            <% end %>
+            <tr>
+              <th>Created At</th>
+              <td><%= @order.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Shipping Address -->
+      <% if @order.shipping_address.present? %>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Shipping Address</h5>
+          </div>
+          <div class="card-body">
+            <address class="mb-0">
+              <%= @order.shipping_address['name'] %><br>
+              <%= @order.shipping_address['address_line1'] %><br>
+              <% if @order.shipping_address['address_line2'].present? %>
+                <%= @order.shipping_address['address_line2'] %><br>
+              <% end %>
+              <%= @order.shipping_address['city'] %>, <%= @order.shipping_address['state'] %> <%= @order.shipping_address['postal_code'] %><br>
+              <%= @order.shipping_address['country'] %><br>
+              Phone: <%= @order.shipping_address['phone'] %>
+            </address>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <!-- Status Update -->
+            <div class="mb-3">
+              <label class="form-label">Update Status</label>
+              <%= form_with url: update_status_admin_order_path(@order), method: :patch, local: true, class: "d-flex gap-2" do |f| %>
+                <%= f.select :status, 
+                    [['Pending', 'pending'], ['Paid', 'paid'], ['Packed', 'packed'], 
+                     ['Shipped', 'shipped'], ['Delivered', 'delivered'], ['Cancelled', 'cancelled']],
+                    { selected: @order.status }, { class: "form-select" } %>
+                <%= f.submit "Update", class: "btn btn-primary btn-sm" %>
+              <% end %>
+            </div>
+            
+            <!-- Cancel Order -->
+            <% unless @order.status == 'cancelled' || @order.status == 'delivered' %>
+              <%= form_with url: cancel_admin_order_path(@order), method: :patch, local: true, class: "mb-3" do |f| %>
+                <label class="form-label">Cancel Order</label>
+                <%= f.text_area :cancellation_reason, placeholder: "Reason for cancellation...", rows: 3, class: "form-control mb-2" %>
+                <%= f.submit "Cancel Order", class: "btn btn-danger w-100", 
+                    data: { confirm: "Are you sure you want to cancel this order?" } %>
+              <% end %>
+            <% end %>
+            
+            <!-- Refund -->
+            <% if @order.payment_status == 'payment_complete' && @order.status != 'cancelled' %>
+              <%= form_with url: refund_admin_order_path(@order), method: :patch, local: true, class: "mb-3" do |f| %>
+                <label class="form-label">Process Refund</label>
+                <%= f.number_field :refund_amount, value: @order.total_amount, step: 0.01, class: "form-control mb-2" %>
+                <%= f.text_area :refund_reason, placeholder: "Refund reason...", rows: 2, class: "form-control mb-2" %>
+                <%= f.submit "Process Refund", class: "btn btn-warning w-100",
+                    data: { confirm: "Process refund for this order?" } %>
+              <% end %>
+            <% end %>
+            
+            <%= link_to "View Audit Log", audit_log_admin_order_path(@order), class: "btn btn-outline-info" %>
+            <%= link_to "Delete Order", admin_order_path(@order), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary mt-2", target: "_blank" %>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Internal Notes -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5 class="mb-0">Internal Notes</h5>
+        </div>
+        <div class="card-body">
+          <% if @order.internal_notes.present? %>
+            <p class="text-muted"><%= simple_format(@order.internal_notes) %></p>
+          <% else %>
+            <p class="text-muted">No notes</p>
+          <% end %>
+          <%= form_with url: notes_admin_order_path(@order), method: :post, local: true do |f| %>
+            <%= f.text_area :note, placeholder: "Add a note...", rows: 3, class: "form-control mb-2" %>
+            <%= f.submit "Add Note", class: "btn btn-sm btn-primary" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

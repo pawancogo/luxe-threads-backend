@@ -22,6 +22,8 @@
     body {
       background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
       min-height: 100vh;
+      max-height: 100vh;
+      overflow-y: auto;
       padding-top: 0;
     }
     
@@ -39,6 +41,9 @@
     .main-content {
       margin-top: 80px;
       padding: 0;
+      min-height: calc(100vh - 80px);
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
     }
     
     @media (max-width: 768px) {
@@ -552,6 +557,65 @@
       </div>
     </div>
 
+    <!-- Phase 2: Additional Stats Row -->
+    <div class="row mb-4">
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <div class="number"><%= @active_products_count %></div>
+              <div class="label">Active Products</div>
+            </div>
+            <div class="icon">
+              <i class="fas fa-check-circle text-success"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <div class="number"><%= @featured_products_count %></div>
+              <div class="label">Featured Products</div>
+            </div>
+            <div class="icon">
+              <i class="fas fa-star text-warning"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <div class="number"><%= @low_stock_variants_count %></div>
+              <div class="label">Low Stock Variants</div>
+            </div>
+            <div class="icon">
+              <i class="fas fa-exclamation-triangle text-warning"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <div class="number"><%= @categories_count %></div>
+              <div class="label">Categories</div>
+            </div>
+            <div class="icon">
+              <i class="fas fa-tags"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Content Row -->
     <div class="row">
       <!-- Recent Orders -->
@@ -562,31 +626,48 @@
               <i class="fas fa-shopping-cart me-2"></i>
               Recent Orders
             </h6>
-            <a href="/admin/order" class="btn btn-sm btn-primary" target="_blank">View All</a>
+            <%= link_to admin_orders_path, class: "btn btn-sm btn-primary" do %>
+              View All
+            <% end %>
           </div>
-          <div class="card-body">
-            <% if @recent_orders.any? %>
+          <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+            <% if @recent_orders&.any? %>
               <div class="table-responsive">
-                <table class="table">
+                <table class="table table-sm">
                   <thead>
                     <tr>
-                      <th>Order ID</th>
+                      <th>Order #</th>
                       <th>Customer</th>
                       <th>Status</th>
                       <th>Amount</th>
+                      <th>Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     <% @recent_orders.each do |order| %>
                       <tr>
-                        <td><strong>#<%= order.id %></strong></td>
-                        <td><%= order.user.first_name %> <%= order.user.last_name %></td>
                         <td>
-                          <span class="badge bg-<%= order.status == 'delivered' ? 'success' : 'warning' %>">
-                            <%= order.status.titleize %>
+                          <strong>
+                            <%= link_to order.order_number || "##{order.id}", admin_order_path(order), class: "text-decoration-none" %>
+                          </strong>
+                        </td>
+                        <td>
+                          <%= order.user&.email || 'N/A' %><br>
+                          <small class="text-muted"><%= order.user&.full_name || 'N/A' %></small>
+                        </td>
+                        <td>
+                          <span class="badge bg-<%= case order.status
+                            when 'delivered' then 'success'
+                            when 'shipped', 'paid' then 'info'
+                            when 'pending' then 'warning'
+                            when 'cancelled' then 'danger'
+                            else 'secondary'
+                            end %>">
+                            <%= order.status&.titleize || 'N/A' %>
                           </span>
                         </td>
-                        <td><strong>$<%= order.total_amount %></strong></td>
+                        <td><strong>₹<%= number_with_delimiter(order.total_amount || 0) %></strong></td>
+                        <td><%= order.created_at.strftime('%b %d, %Y') %></td>
                       </tr>
                     <% end %>
                   </tbody>
@@ -612,10 +693,10 @@
             </h6>
             <a href="/admin/user" class="btn btn-sm btn-primary" target="_blank">View All</a>
           </div>
-          <div class="card-body">
-            <% if @recent_users.any? %>
+          <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+            <% if @recent_users&.any? %>
               <div class="table-responsive">
-                <table class="table">
+                <table class="table table-sm">
                   <thead>
                     <tr>
                       <th>Name</th>
@@ -631,7 +712,7 @@
                         <td><%= user.email %></td>
                         <td>
                           <span class="badge bg-info">
-                            <%= user.role.titleize %>
+                            <%= user.role&.titleize || 'Customer' %>
                           </span>
                         </td>
                         <td><%= user.created_at.strftime("%b %d, %Y") %></td>
@@ -644,6 +725,80 @@
               <div class="text-center py-4">
                 <i class="fas fa-users fa-3x text-muted mb-3"></i>
                 <p class="text-muted">No users found.</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2: Recent Products Row -->
+    <div class="row">
+      <div class="col-12 mb-4">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+              <i class="fas fa-box me-2"></i>
+              Recent Products
+            </h6>
+            <%= link_to admin_products_path, class: "btn btn-sm btn-primary" do %>
+              View All
+            <% end %>
+          </div>
+          <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+            <% if @recent_products&.any? %>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Brand</th>
+                      <th>Status</th>
+                      <th>Stock</th>
+                      <th>Flags</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @recent_products.each do |product| %>
+                      <tr>
+                        <td>
+                          <strong>
+                            <%= link_to product.name, admin_product_path(product), class: "text-decoration-none" %>
+                          </strong>
+                        </td>
+                        <td><%= product.category&.name || 'N/A' %></td>
+                        <td><%= product.brand&.name || 'N/A' %></td>
+                        <td>
+                          <span class="badge bg-<%= product.status == 'active' ? 'success' : product.status == 'pending' ? 'warning' : 'danger' %>">
+                            <%= product.status&.titleize || 'N/A' %>
+                          </span>
+                        </td>
+                        <td>
+                          <%= product.total_stock_quantity || 0 %>
+                          <% if product.low_stock_variants_count && product.low_stock_variants_count > 0 %>
+                            <span class="badge bg-warning text-dark" title="Low stock variants">
+                              <%= product.low_stock_variants_count %>
+                            </span>
+                          <% end %>
+                        </td>
+                        <td>
+                          <% if product.is_featured %><span class="badge bg-primary">Featured</span><% end %>
+                          <% if product.is_bestseller %><span class="badge bg-success">Bestseller</span><% end %>
+                          <% if product.is_new_arrival %><span class="badge bg-info">New</span><% end %>
+                          <% if product.is_trending %><span class="badge bg-danger">Trending</span><% end %>
+                        </td>
+                        <td><%= product.created_at.strftime("%b %d, %Y") %></td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% else %>
+              <div class="text-center py-4">
+                <i class="fas fa-box fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No products found.</p>
               </div>
             <% end %>
           </div>
@@ -664,29 +819,29 @@
           <div class="card-body">
             <div class="row quick-actions">
               <div class="col-md-3 col-sm-6">
-                <a href="/admin/user/new" class="btn btn-primary w-100" target="_blank">
-                  <i class="fas fa-user-plus"></i>
-                  Add User
-                </a>
-              </div>
-              <div class="col-md-3 col-sm-6">
-                <a href="/admin/supplier/new" class="btn btn-success w-100" target="_blank">
-                  <i class="fas fa-store"></i>
-                  Add Supplier
-                </a>
-              </div>
-              <div class="col-md-3 col-sm-6">
-                <a href="/admin/product/new" class="btn btn-info w-100" target="_blank">
-                  <i class="fas fa-box"></i>
-                  Add Product
-                </a>
-              </div>
-              <div class="col-md-3 col-sm-6">
-                <a href="/admin/order" class="btn btn-warning w-100" target="_blank">
-                  <i class="fas fa-shopping-cart"></i>
-                  Manage Orders
-                </a>
-              </div>
+            <%= link_to admin_users_path, class: "btn btn-primary w-100" do %>
+              <i class="fas fa-users"></i>
+              Manage Users
+            <% end %>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <%= link_to admin_suppliers_path, class: "btn btn-success w-100" do %>
+              <i class="fas fa-store"></i>
+              Manage Suppliers
+            <% end %>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <%= link_to admin_products_path, class: "btn btn-info w-100" do %>
+              <i class="fas fa-box"></i>
+              Manage Products
+            <% end %>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <%= link_to admin_orders_path, class: "btn btn-warning w-100" do %>
+              <i class="fas fa-shopping-cart"></i>
+              Manage Orders
+            <% end %>
+          </div>
             </div>
           </div>
         </div>

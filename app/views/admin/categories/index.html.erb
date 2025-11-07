@@ -1,0 +1,208 @@
+<% content_for :title, "Category Management" %>
+
+<%= form_with url: bulk_action_admin_categories_path, method: :post, local: true, id: "bulk-action-form" do |f| %>
+  <div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="card-title mb-0">
+          <i class="fas fa-tags me-2"></i>Category Management
+        </h1>
+        <p class="text-muted mb-0 mt-2">Organize products with categories and subcategories</p>
+      </div>
+      <div>
+        <%= link_to "New Category", new_admin_category_path, class: "btn btn-primary" %>
+        <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+          <i class="fas fa-database me-2"></i>View in RailsAdmin
+        <% end %>
+      </div>
+    </div>
+    
+    <!-- Bulk Actions Bar -->
+    <div id="bulk-actions-bar" class="card mb-3" style="display: none;">
+      <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span id="selected-count" class="badge bg-primary me-2">0</span>
+            <span class="text-muted">item(s) selected</span>
+          </div>
+          <div class="btn-group">
+            <%= f.hidden_field :bulk_action, id: "bulk-action-type" %>
+            <%= f.hidden_field :category_ids, id: "bulk-category-ids" %>
+            <button type="button" class="btn btn-sm btn-success" onclick="submitBulkAction('feature')">
+              <i class="fas fa-star me-1"></i>Feature
+            </button>
+            <button type="button" class="btn btn-sm btn-warning" onclick="submitBulkAction('unfeature')">
+              <i class="fas fa-star-half-alt me-1"></i>Unfeature
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="submitBulkAction('delete')">
+              <i class="fas fa-trash me-1"></i>Delete
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+              <i class="fas fa-times me-1"></i>Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Search & Filters -->
+    <%= render 'admin/shared/filters', records: @categories %>
+
+    <!-- Categories Table -->
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th width="40">
+              <input type="checkbox" id="select-all" class="form-check-input" onchange="toggleSelectAll(this)">
+            </th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Parent</th>
+            <th>Level</th>
+            <th>Products</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @categories.any? %>
+            <% @categories.each do |category| %>
+              <tr data-id="<%= category.id %>" data-name="<%= category.name %>">
+                <td>
+                  <input type="checkbox" name="selected_ids[]" value="<%= category.id %>" class="form-check-input row-checkbox" onchange="updateBulkActions()">
+                </td>
+                <td><%= category.id %></td>
+                <td>
+                  <strong><%= link_to category.name, admin_category_path(category), class: "text-decoration-none" %></strong>
+                </td>
+                <td><%= category.parent&.name || '<span class="text-muted">Root</span>'.html_safe %></td>
+                <td>
+                  <span class="badge bg-info"><%= category.level || 0 %></span>
+                </td>
+                <td>
+                  <span class="badge bg-secondary"><%= category.products_count || 0 %></span>
+                </td>
+                <td>
+                  <% if category.featured? %>
+                    <span class="badge bg-success">Featured</span>
+                  <% else %>
+                    <span class="badge bg-secondary">Regular</span>
+                  <% end %>
+                </td>
+                <td><%= category.created_at.strftime('%b %d, %Y') %></td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <%= link_to admin_category_path(category), class: "btn btn-outline-primary", title: "View" do %>
+                      <i class="fas fa-eye"></i>
+                    <% end %>
+                    <%= link_to edit_admin_category_path(category), class: "btn btn-outline-info", title: "Edit" do %>
+                      <i class="fas fa-edit"></i>
+                    <% end %>
+                    <%= link_to admin_category_path(category), method: :delete, 
+                                class: "btn btn-outline-danger", title: "Delete",
+                                data: { confirm: "Are you sure you want to delete #{category.name}? This action cannot be undone." } do %>
+                      <i class="fas fa-trash"></i>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="9" class="text-center text-muted py-4">
+                <i class="fas fa-tags fa-3x mb-3 d-block"></i>
+                No categories found. <%= link_to 'Create the first category', new_admin_category_path, class: 'text-decoration-none' %>.
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <div class="text-muted">
+        <% if @categories.respond_to?(:current_page) && @categories.respond_to?(:total_count) %>
+          Showing <%= (@categories.current_page - 1) * @categories.limit_value + 1 %> to 
+          <%= [@categories.current_page * @categories.limit_value, @categories.total_count].min %> of 
+          <%= @categories.total_count %> entries
+        <% end %>
+      </div>
+      <div>
+        <% if @categories.respond_to?(:current_page) %>
+          <%= paginate @categories if defined?(Kaminari) %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<script>
+  function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateBulkActions();
+  }
+
+  function updateBulkActions() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const bulkBar = document.getElementById('bulk-actions-bar');
+    const selectedCount = document.getElementById('selected-count');
+    const selectAll = document.getElementById('select-all');
+    
+    if (checked.length > 0) {
+      bulkBar.style.display = 'block';
+      selectedCount.textContent = checked.length;
+      if (selectAll) {
+        selectAll.indeterminate = checked.length < document.querySelectorAll('.row-checkbox').length;
+      }
+    } else {
+      bulkBar.style.display = 'none';
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      }
+    }
+  }
+
+  function submitBulkAction(action) {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) {
+      alert('Please select at least one item');
+      return;
+    }
+    
+    const ids = Array.from(checked).map(cb => cb.value);
+    document.getElementById('bulk-action-type').value = action;
+    document.getElementById('bulk-category-ids').value = ids.join(',');
+    
+    const actionText = action === 'feature' ? 'feature' : action === 'unfeature' ? 'unfeature' : 'delete';
+    if (confirm(`Are you sure you want to ${actionText} ${ids.length} item(s)?`)) {
+      document.getElementById('bulk-action-form').submit();
+    }
+  }
+
+  function clearSelection() {
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+    }
+    updateBulkActions();
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    updateBulkActions();
+  });
+</script>
+
+<style>
+  #bulk-actions-bar {
+    background-color: #e7f1ff;
+    border: 1px solid #b3d7ff;
+  }
+</style>

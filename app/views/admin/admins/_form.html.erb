@@ -1,7 +1,7 @@
-<%= form_with(model: [:admin, admin], local: true, class: "needs-validation", novalidate: true) do |form| %>
+<%= form_with(model: [:admin, admin], local: true) do |form| %>
   <% if admin.errors.any? %>
-    <div class="alert alert-danger alert-admin">
-      <h5><i class="bi bi-exclamation-triangle me-2"></i><%= pluralize(admin.errors.count, "error") %> prohibited this admin from being saved:</h5>
+    <div class="alert alert-danger">
+      <h5><i class="fas fa-exclamation-triangle me-2"></i>Please fix the following errors:</h5>
       <ul class="mb-0">
         <% admin.errors.full_messages.each do |message| %>
           <li><%= message %></li>
@@ -14,19 +14,13 @@
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :first_name, class: "form-label" %>
-        <%= form.text_field :first_name, class: "form-control form-admin", required: true %>
-        <div class="invalid-feedback">
-          Please provide a valid first name.
-        </div>
+        <%= form.text_field :first_name, class: "form-control", required: true %>
       </div>
     </div>
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :last_name, class: "form-label" %>
-        <%= form.text_field :last_name, class: "form-control form-admin", required: true %>
-        <div class="invalid-feedback">
-          Please provide a valid last name.
-        </div>
+        <%= form.text_field :last_name, class: "form-control", required: true %>
       </div>
     </div>
   </div>
@@ -35,19 +29,13 @@
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :email, class: "form-label" %>
-        <%= form.email_field :email, class: "form-control form-admin", required: true %>
-        <div class="invalid-feedback">
-          Please provide a valid email address.
-        </div>
+        <%= form.email_field :email, class: "form-control", required: true %>
       </div>
     </div>
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :phone_number, class: "form-label" %>
-        <%= form.text_field :phone_number, class: "form-control form-admin", required: true %>
-        <div class="invalid-feedback">
-          Please provide a valid phone number.
-        </div>
+        <%= form.text_field :phone_number, class: "form-control", required: true %>
       </div>
     </div>
   </div>
@@ -56,42 +44,40 @@
     <%= form.label :role, class: "form-label" %>
     <%= form.select :role, 
         options_for_select([
-          ['Super Admin', 'super_admin'],
-          ['Product Admin', 'product_admin'],
-          ['Order Admin', 'order_admin'],
-          ['User Admin', 'user_admin'],
-          ['Supplier Admin', 'supplier_admin']
+          ['Super Admin - Full access to all features', 'super_admin'],
+          ['Product Admin - Manage products and categories', 'product_admin'],
+          ['Order Admin - Manage orders and fulfillments', 'order_admin'],
+          ['User Admin - Manage customers and users', 'user_admin'],
+          ['Supplier Admin - Manage suppliers and approvals', 'supplier_admin']
         ], admin.role), 
         { prompt: 'Select a role' }, 
-        { class: "form-select form-admin", required: true } %>
-    <div class="invalid-feedback">
-      Please select a role.
-    </div>
+        { class: "form-select", required: true } %>
+    <small class="form-text text-muted">
+      <i class="fas fa-info-circle me-1"></i>
+      Each role has specific permissions. Super Admin has access to everything.
+    </small>
   </div>
 
   <div class="row">
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :password, class: "form-label" %>
-        <%= form.password_field :password, class: "form-control form-admin", required: admin.new_record? %>
-        <div class="invalid-feedback">
-          Please provide a password.
-        </div>
+        <%= form.password_field :password, class: "form-control", required: admin.new_record? %>
+        <% unless admin.new_record? %>
+          <small class="form-text text-muted">Leave blank if you don't want to change the password</small>
+        <% end %>
       </div>
     </div>
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :password_confirmation, class: "form-label" %>
-        <%= form.password_field :password_confirmation, class: "form-control form-admin", required: admin.new_record? %>
-        <div class="invalid-feedback">
-          Please confirm your password.
-        </div>
+        <%= form.password_field :password_confirmation, class: "form-control", required: admin.new_record? %>
       </div>
     </div>
   </div>
 
   <div class="d-flex gap-2">
-    <%= form.submit class: "btn btn-admin" %>
-    <%= link_to "Cancel", admin_admins_path, class: "btn btn-outline-secondary" %>
+    <%= form.submit admin.new_record? ? "Create Admin" : "Update Admin", class: "btn btn-primary" %>
+    <%= link_to "Cancel", admin.new_record? ? admin_admins_path : admin_admin_path(admin), class: "btn btn-outline-secondary" %>
   </div>
 <% end %>

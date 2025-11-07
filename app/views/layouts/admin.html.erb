@@ -1,132 +1,571 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>LuxeThreads Admin</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LuxeThreads Admin - <%= content_for?(:title) ? yield(:title) : "Dashboard" %></title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     
-    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags %>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- daterangepicker CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     
     <style>
-      .navbar-brand {
-        font-weight: bold;
-        color: #007bff !important;
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #f8f9fa;
       }
-      .admin-navbar {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      
+      /* Header */
+      .admin-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border-bottom: 1px solid #dee2e6;
+        height: 60px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1030;
       }
-      .admin-navbar .navbar-nav .nav-link {
-        color: white !important;
+      
+      .admin-header .company-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #212529;
+      }
+      
+      /* Sidebar */
+      .admin-sidebar {
+        position: fixed;
+        left: 0;
+        top: 60px;
+        width: 250px;
+        height: calc(100vh - 60px);
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+        overflow-y: auto;
+        z-index: 1000;
+      }
+      
+      .admin-sidebar .nav-link {
+        color: #495057;
+        padding: 0.75rem 1.25rem;
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
+      }
+      
+      .admin-sidebar .nav-link:hover {
+        background-color: #f8f9fa;
+        color: #0d6efd;
+        border-left-color: #0d6efd;
+      }
+      
+      .admin-sidebar .nav-link.active {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+        border-left-color: #0d6efd;
         font-weight: 500;
       }
-      .admin-navbar .navbar-nav .nav-link:hover {
-        color: #f8f9fa !important;
+      
+      .admin-sidebar .nav-link i {
+        width: 20px;
+        margin-right: 0.75rem;
       }
-      .dropdown-menu {
-        border: none;
-        box-shadow: 0 4px 6px rgba(0,0,0,.1);
+      
+      .admin-sidebar .nav-section {
+        padding: 1rem 1.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #6c757d;
+        letter-spacing: 0.5px;
+      }
+      
+      /* Subnav */
+      .subnav {
+        padding-left: 2rem;
+        background-color: #f8f9fa;
+      }
+      
+      .subnav .nav-link {
+        padding: 0.5rem 1.25rem;
+        font-size: 0.9rem;
+      }
+      
+      /* Main Content */
+      .admin-content {
+        margin-left: 250px;
+        margin-top: 60px;
+        padding: 2rem;
+        min-height: calc(100vh - 60px);
+      }
+      
+      /* Admin Card */
+      .admin-card {
+        background: #fff;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      
+      .admin-card .card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0;
+      }
+      
+      /* Table Styling */
+      .table {
+        margin-bottom: 0;
+      }
+      
+      .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: 1rem 0.75rem;
+      }
+      
+      .table tbody td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+      }
+      
+      .table tbody tr:hover {
+        background-color: #f8f9fa;
+      }
+      
+      /* Flash Messages */
+      .flash-messages {
+        position: fixed;
+        top: 70px;
+        right: 2rem;
+        z-index: 1050;
+        max-width: 400px;
+      }
+      
+      /* Responsive */
+      @media (max-width: 768px) {
+        .admin-sidebar {
+          transform: translateX(-100%);
+          transition: transform 0.3s;
+        }
+        
+        .admin-sidebar.show {
+          transform: translateX(0);
+        }
+        
+        .admin-content {
+          margin-left: 0;
+        }
       }
     </style>
   </head>
 
   <body>
-    <!-- Admin Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark admin-navbar">
-      <div class="container-fluid">
-        <%= link_to "LuxeThreads Admin", admin_dashboard_path, class: "navbar-brand" %>
-        
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-              <%= link_to "Dashboard", admin_dashboard_path, class: "nav-link" %>
-            </li>
-            <% if current_admin&.can_manage_products? %>
-              <li class="nav-item">
-                <%= link_to "Product Approval", admin_products_path, class: "nav-link" %>
-              </li>
-            <% end %>
-            <% if current_admin&.can_manage_suppliers? %>
-              <li class="nav-item">
-                <%= link_to "Supplier Management", admin_suppliers_path, class: "nav-link" %>
-              </li>
-            <% end %>
-            <li class="nav-item">
-              <%= link_to "RailsAdmin", rails_admin_path, class: "nav-link", target: "_blank" %>
-            </li>
-          </ul>
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="container-fluid h-100">
+        <div class="d-flex align-items-center justify-content-between h-100">
+          <!-- Company Name -->
+          <div class="d-flex align-items-center">
+            <button class="btn btn-link d-md-none me-2" id="sidebarToggle" type="button">
+              <i class="fas fa-bars"></i>
+            </button>
+            <span class="company-name">LuxeThreads</span>
+          </div>
           
-          <ul class="navbar-nav">
-            <% if session[:admin_id] %>
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                  <i class="fas fa-user-circle me-1"></i>
-                  <%= current_admin&.first_name || "Admin" %>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li>
-                    <%= link_to admin_dashboard_path, class: "dropdown-item" do %>
-                      <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                    <% end %>
-                  </li>
-                  <li>
-                    <%= link_to rails_admin_path, class: "dropdown-item", target: "_blank" do %>
-                      <i class="fas fa-cog me-2"></i>RailsAdmin
-                    <% end %>
-                  </li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li>
-                    <%= link_to admin_logout_path, method: :delete, class: "dropdown-item text-danger", 
-                                confirm: "Are you sure you want to logout?" do %>
-                      <i class="fas fa-sign-out-alt me-2"></i>Logout
-                    <% end %>
-                  </li>
-                </ul>
-              </li>
-            <% else %>
-              <li class="nav-item">
-                <%= link_to "Login", admin_login_path, class: "nav-link" %>
-              </li>
+          <!-- Right Menu -->
+          <div class="d-flex align-items-center gap-3">
+            <!-- RailsAdmin Link -->
+            <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+              <i class="fas fa-database me-1"></i>RailsAdmin
             <% end %>
-          </ul>
+            
+            <!-- Profile Dropdown -->
+            <div class="dropdown">
+              <button class="btn btn-link text-dark text-decoration-none dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown">
+                <i class="fas fa-user-circle me-1"></i>
+                <%= current_admin&.full_name || current_admin&.email || "Admin" %>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <%= link_to admin_dashboard_path, class: "dropdown-item" do %>
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                  <% end %>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <%= link_to admin_logout_path, method: :delete, class: "dropdown-item text-danger" do %>
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                  <% end %>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </nav>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <nav class="nav flex-column py-2">
+        <!-- Dashboard -->
+        <li class="nav-item">
+          <%= link_to admin_dashboard_path, class: "nav-link #{'active' if controller_name_without_namespace == 'dashboard'}" do %>
+            <i class="fas fa-tachometer-alt"></i>Dashboard
+          <% end %>
+        </li>
+        
+        <!-- User Management -->
+        <li class="nav-section">User Management</li>
+        <li class="nav-item">
+            <%= link_to admin_users_path, class: "nav-link #{'active' if controller_name_without_namespace == 'users'}" do %>
+            <i class="fas fa-users"></i>Customers
+          <% end %>
+        </li>
+        <li class="nav-item">
+            <%= link_to admin_suppliers_path, class: "nav-link #{'active' if controller_name_without_namespace == 'suppliers'}" do %>
+            <i class="fas fa-store"></i>Suppliers
+          <% end %>
+        </li>
+        <% if current_admin&.super_admin? %>
+          <li class="nav-item">
+            <%= link_to admin_admins_path, class: "nav-link #{'active' if controller_name_without_namespace == 'admins'}" do %>
+              <i class="fas fa-user-shield"></i>Admins
+            <% end %>
+          </li>
+        <% end %>
+        
+        <!-- Product Management -->
+        <li class="nav-section">Product Management</li>
+        <li class="nav-item">
+            <%= link_to admin_products_path, class: "nav-link #{'active' if controller_name_without_namespace == 'products'}" do %>
+            <i class="fas fa-box"></i>Products
+          <% end %>
+        </li>
+        <li class="nav-item">
+            <%= link_to admin_categories_path, class: "nav-link #{'active' if controller_name_without_namespace == 'categories'}" do %>
+            <i class="fas fa-tags"></i>Categories
+          <% end %>
+        </li>
+        
+        <!-- Orders -->
+        <li class="nav-section">Orders</li>
+        <li class="nav-item">
+            <%= link_to admin_orders_path, class: "nav-link #{'active' if controller_name_without_namespace == 'orders'}" do %>
+            <i class="fas fa-shopping-cart"></i>Orders
+          <% end %>
+        </li>
+        
+        <!-- Marketing -->
+        <li class="nav-section">Marketing</li>
+        <li class="nav-item">
+            <%= link_to admin_promotions_path, class: "nav-link #{'active' if controller_name_without_namespace == 'promotions'}" do %>
+            <i class="fas fa-bullhorn"></i>Promotions
+          <% end %>
+        </li>
+        <li class="nav-item">
+            <%= link_to admin_coupons_path, class: "nav-link #{'active' if controller_name_without_namespace == 'coupons'}" do %>
+            <i class="fas fa-ticket-alt"></i>Coupons
+          <% end %>
+        </li>
+        
+        <!-- Reports -->
+        <li class="nav-section">Reports</li>
+        <li class="nav-item">
+            <%= link_to admin_reports_path, class: "nav-link #{'active' if controller_name_without_namespace == 'reports'}" do %>
+            <i class="fas fa-chart-bar"></i>Reports
+          <% end %>
+        </li>
+        
+        <!-- System (Super Admin Only) -->
+        <% if current_admin&.super_admin? %>
+          <li class="nav-section">System</li>
+          <li class="nav-item">
+            <%= link_to admin_settings_path, class: "nav-link #{'active' if controller_name_without_namespace == 'settings'}" do %>
+              <i class="fas fa-cog"></i>Settings
+            <% end %>
+          </li>
+          <li class="nav-item">
+            <%= link_to admin_email_templates_path, class: "nav-link #{'active' if controller_name_without_namespace == 'email_templates'}" do %>
+              <i class="fas fa-envelope"></i>Email Templates
+            <% end %>
+          </li>
+        <% end %>
+      </nav>
+    </aside>
 
     <!-- Flash Messages -->
-    <% if notice %>
-      <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-check-circle me-2"></i>
-        <%= notice %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    <% end %>
-    
-    <% if alert %>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-circle me-2"></i>
-        <%= alert %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    <% end %>
+    <div class="flash-messages">
+      <% if notice %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <i class="fas fa-check-circle me-2"></i><%= notice %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+      
+      <% if alert %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="fas fa-exclamation-circle me-2"></i><%= alert %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+    </div>
 
     <!-- Main Content -->
-    <main class="container-fluid">
+    <main class="admin-content">
       <%= yield %>
     </main>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Searchable Dropdown Component -->
+    <script>
+      // Searchable Dropdown with Infinite Scroll
+      // Shows max 10 items at a time, loads more on scroll
+      class SearchableDropdown {
+        constructor(selectElement, options = {}) {
+          this.select = selectElement;
+          this.options = {
+            maxItems: options.maxItems || 10,
+            loadMoreOnScroll: options.loadMoreOnScroll !== false,
+            searchPlaceholder: options.searchPlaceholder || 'Search...',
+            ...options
+          };
+          
+          this.allOptions = [];
+          this.filteredOptions = [];
+          this.displayedCount = this.options.maxItems;
+          this.isLoading = false;
+          
+          this.init();
+        }
+        
+        init() {
+          // Store all options from the select element
+          this.allOptions = Array.from(this.select.options).map(option => ({
+            value: option.value,
+            text: option.text,
+            selected: option.selected
+          }));
+          
+          // Hide original select
+          this.select.style.display = 'none';
+          
+          // Create custom dropdown
+          this.createDropdown();
+          this.filteredOptions = this.allOptions;
+          this.renderOptions();
+        }
+        
+        createDropdown() {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'searchable-dropdown-wrapper';
+          wrapper.style.position = 'relative';
+          
+          // Create input field for search
+          const searchInput = document.createElement('input');
+          searchInput.type = 'text';
+          searchInput.className = 'form-control searchable-dropdown-search';
+          searchInput.placeholder = this.options.searchPlaceholder;
+          searchInput.style.marginBottom = '5px';
+          
+          // Create dropdown container
+          const dropdown = document.createElement('div');
+          dropdown.className = 'searchable-dropdown-list';
+          dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ced4da; border-radius: 0.375rem; max-height: 300px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);';
+          
+          // Create selected value display
+          const selectedDisplay = document.createElement('button');
+          selectedDisplay.type = 'button';
+          selectedDisplay.className = 'form-select searchable-dropdown-display';
+          selectedDisplay.style.textAlign = 'left';
+          selectedDisplay.innerHTML = this.select.options[this.select.selectedIndex]?.text || 'Select...';
+          selectedDisplay.addEventListener('click', (e) => {
+            e.preventDefault();
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            if (dropdown.style.display === 'block') {
+              searchInput.focus();
+            }
+          });
+          
+          // Search functionality
+          searchInput.addEventListener('input', (e) => {
+            this.filterOptions(e.target.value);
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+              dropdown.style.display = 'none';
+            }
+          });
+          
+          wrapper.appendChild(selectedDisplay);
+          wrapper.appendChild(dropdown);
+          dropdown.appendChild(searchInput);
+          
+          const optionsContainer = document.createElement('div');
+          optionsContainer.className = 'searchable-dropdown-options';
+          dropdown.appendChild(optionsContainer);
+          
+          this.wrapper = wrapper;
+          this.searchInput = searchInput;
+          this.dropdown = dropdown;
+          this.optionsContainer = optionsContainer;
+          this.selectedDisplay = selectedDisplay;
+          
+          // Insert wrapper after select
+          this.select.parentNode.insertBefore(wrapper, this.select.nextSibling);
+          
+          // Scroll handler for infinite scroll
+          if (this.options.loadMoreOnScroll) {
+            dropdown.addEventListener('scroll', () => {
+              if (this.isLoading) return;
+              
+              const scrollTop = dropdown.scrollTop;
+              const scrollHeight = dropdown.scrollHeight;
+              const clientHeight = dropdown.clientHeight;
+              
+              // Load more when near bottom (within 50px)
+              if (scrollHeight - scrollTop - clientHeight < 50) {
+                this.loadMore();
+              }
+            });
+          }
+        }
+        
+        filterOptions(searchTerm) {
+          const term = searchTerm.toLowerCase();
+          this.filteredOptions = this.allOptions.filter(option => 
+            option.text.toLowerCase().includes(term) || option.value.toLowerCase().includes(term)
+          );
+          this.displayedCount = this.options.maxItems;
+          this.renderOptions();
+        }
+        
+        renderOptions() {
+          this.optionsContainer.innerHTML = '';
+          
+          const optionsToShow = this.filteredOptions.slice(0, this.displayedCount);
+          
+          if (optionsToShow.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'p-2 text-muted text-center';
+            noResults.textContent = 'No results found';
+            this.optionsContainer.appendChild(noResults);
+            return;
+          }
+          
+          optionsToShow.forEach(option => {
+            const optionElement = document.createElement('div');
+            optionElement.className = 'searchable-dropdown-option p-2';
+            optionElement.style.cssText = 'cursor: pointer; border-bottom: 1px solid #f0f0f0;';
+            optionElement.textContent = option.text;
+            
+            if (option.selected) {
+              optionElement.style.backgroundColor = '#e7f3ff';
+              optionElement.style.fontWeight = 'bold';
+            }
+            
+            optionElement.addEventListener('mouseenter', () => {
+              optionElement.style.backgroundColor = '#f8f9fa';
+            });
+            
+            optionElement.addEventListener('mouseleave', () => {
+              optionElement.style.backgroundColor = option.selected ? '#e7f3ff' : 'transparent';
+            });
+            
+            optionElement.addEventListener('click', () => {
+              this.selectOption(option.value, option.text);
+            });
+            
+            this.optionsContainer.appendChild(optionElement);
+          });
+          
+          // Show "Load more" indicator if there are more items
+          if (this.filteredOptions.length > this.displayedCount) {
+            const loadMore = document.createElement('div');
+            loadMore.className = 'p-2 text-center text-muted';
+            loadMore.style.cssText = 'font-size: 0.875rem; border-top: 1px solid #f0f0f0;';
+            loadMore.textContent = `Scroll for more (${this.filteredOptions.length - this.displayedCount} remaining)`;
+            this.optionsContainer.appendChild(loadMore);
+          }
+        }
+        
+        loadMore() {
+          if (this.displayedCount >= this.filteredOptions.length) return;
+          
+          this.isLoading = true;
+          this.displayedCount += this.options.maxItems;
+          this.renderOptions();
+          this.isLoading = false;
+        }
+        
+        selectOption(value, text) {
+          this.select.value = value;
+          this.selectedDisplay.textContent = text;
+          this.dropdown.style.display = 'none';
+          this.searchInput.value = '';
+          
+          // Trigger change event on original select
+          const event = new Event('change', { bubbles: true });
+          this.select.dispatchEvent(event);
+        }
+      }
+      
+      // Initialize searchable dropdowns on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        // Find all selects with data-searchable="true"
+        document.querySelectorAll('select[data-searchable="true"]').forEach(select => {
+          const maxItems = parseInt(select.dataset.maxItems) || 10;
+          
+          // Only initialize if there are more than maxItems options
+          if (select.options.length > maxItems) {
+            new SearchableDropdown(select, {
+              maxItems: maxItems
+            });
+          }
+        });
+      });
+    </script>
+    <script>
+      // Sidebar toggle for mobile
+      document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+        document.getElementById('adminSidebar').classList.toggle('show');
+      });
+      
+      // Close sidebar when clicking outside on mobile
+      document.addEventListener('click', function(event) {
+        const sidebar = document.getElementById('adminSidebar');
+        const toggle = document.getElementById('sidebarToggle');
+        if (window.innerWidth <= 768 && 
+            sidebar && 
+            !sidebar.contains(event.target) && 
+            toggle && 
+            !toggle.contains(event.target)) {
+          sidebar.classList.remove('show');
+        }
+      });
+    </script>
+    
+    <!-- jQuery (required for daterangepicker) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Moment.js (required for daterangepicker) -->
+    <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <!-- daterangepicker -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
   </body>
 </html>

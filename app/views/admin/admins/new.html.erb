@@ -1,13 +1,14 @@
-<% content_for :page_title, "Create New Admin" %>
+<% content_for :title, "New Admin" %>
 
-<div class="admin-form-page">
-  <div class="page-header">
-    <h1>Create New Admin</h1>
-    <div class="breadcrumb">
-      <%= link_to "Dashboard", admin_root_path %> > 
-      <%= link_to "Admin Management", admin_admins_path %> > 
-      New Admin
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-user-plus me-2"></i>Create New Admin
+      </h1>
+      <p class="text-muted mb-0 mt-2">Add a new admin user to the system</p>
     </div>
+    <%= link_to "Back to Admins", admin_admins_path, class: "btn btn-outline-secondary" %>
   </div>
 
   <%= render 'form', admin: @admin %>

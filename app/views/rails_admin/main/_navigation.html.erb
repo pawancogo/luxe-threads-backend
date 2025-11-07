@@ -1,20 +1,34 @@
-<nav class="navbar navbar-default">
+<nav class="navbar navbar-default" style="margin-bottom: 0;">
   <div class="container-fluid">
     <div class="navbar-header">
       <%= link_to 'RailsAdmin', rails_admin.dashboard_path, class: 'navbar-brand' %>
     </div>
     
-    <div class="navbar-right" style="display: flex; align-items: center; margin-right: 15px; gap: 10px;">
-      <%= link_to admin_dashboard_path, class: 'btn btn-default btn-sm', 
-          style: 'margin-right: 5px;' do %>
-        <i class="fa fa-tachometer-alt"></i> Auth Dashboard
-      <% end %>
-      <%= link_to admin_logout_path, class: 'btn btn-danger btn-sm', 
-          method: :delete, 
-          confirm: 'Are you sure you want to logout?',
-          style: 'margin-left: 5px;' do %>
-        <i class="fa fa-power-off"></i> Logout
-      <% end %>
+    <div class="collapse navbar-collapse">
+      <ul class="nav navbar-nav navbar-right" style="display: flex; align-items: center; gap: 10px; padding-right: 15px;">
+        <li>
+          <% if defined?(current_admin) && current_admin %>
+            <span class="navbar-text" style="color: #333; margin-right: 10px;">
+              <i class="fa fa-user"></i> <%= current_admin.email %>
+            </span>
+          <% end %>
+        </li>
+        <li>
+          <%= link_to main_app.admin_admins_path, 
+              class: 'btn btn-primary btn-sm', 
+              style: 'font-weight: 600; padding: 0.5rem 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 10px;',
+              data: { turbo: 'false' } do %>
+            <i class="fa fa-tachometer-alt me-1"></i> Admin Dashboard
+          <% end %>
+        </li>
+        <li>
+          <%= link_to main_app.admin_logout_path, class: 'btn btn-danger btn-sm', 
+              method: :delete, 
+              data: { turbo: 'false', confirm: 'Are you sure you want to logout?' } do %>
+            <i class="fa fa-sign-out"></i> Logout
+          <% end %>
+        </li>
+      </ul>
     </div>
   </div>
 </nav>

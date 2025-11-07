@@ -1,58 +1,228 @@
-<% content_for :page_title, "Supplier Management" %>
+<% content_for :title, "Supplier Management" %>
 
-<div class="supplier-management">
-  <div class="page-header">
-    <h1>Supplier Management</h1>
-    <div class="actions">
-      <%= link_to "Add New Supplier", new_admin_supplier_path, class: "btn btn-primary" %>
+<%= form_with url: bulk_action_admin_suppliers_path, method: :post, local: true, id: "bulk-action-form" do |f| %>
+  <div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="card-title mb-0">
+          <i class="fas fa-store me-2"></i>Supplier Management
+        </h1>
+        <p class="text-muted mb-0 mt-2">Manage suppliers and their profiles</p>
+      </div>
+      <div>
+        <%= link_to "New Supplier", new_admin_supplier_path, class: "btn btn-primary" %>
+        <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+          <i class="fas fa-database me-2"></i>View in RailsAdmin
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div id="bulk-actions-bar" class="card mb-3" style="display: none;">
+      <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span id="selected-count" class="badge bg-primary me-2">0</span>
+            <span class="text-muted">item(s) selected</span>
+          </div>
+          <div class="btn-group">
+            <%= f.hidden_field :bulk_action, id: "bulk-action-type" %>
+            <%= f.hidden_field :supplier_ids, id: "bulk-supplier-ids" %>
+            <button type="button" class="btn btn-sm btn-success" onclick="submitBulkAction('verify')">
+              <i class="fas fa-check me-1"></i>Verify
+            </button>
+            <button type="button" class="btn btn-sm btn-warning" onclick="submitBulkAction('unverify')">
+              <i class="fas fa-times me-1"></i>Unverify
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="submitBulkAction('delete')">
+              <i class="fas fa-trash me-1"></i>Delete
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+              <i class="fas fa-times me-1"></i>Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <%= render 'admin/shared/filters', records: @suppliers %>
+
+    <!-- Suppliers Table -->
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th width="40">
+              <input type="checkbox" id="select-all" class="form-check-input" onchange="toggleSelectAll(this)">
+            </th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Company</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Products</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @suppliers.any? %>
+            <% @suppliers.each do |supplier| %>
+              <tr data-id="<%= supplier.id %>" data-name="<%= supplier.full_name %>">
+                <td>
+                  <input type="checkbox" name="selected_ids[]" value="<%= supplier.id %>" class="form-check-input row-checkbox" onchange="updateBulkActions()">
+                </td>
+                <td><%= supplier.id %></td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-circle bg-primary text-white me-2">
+                      <%= supplier.first_name.first.upcase %><%= supplier.last_name.first.upcase if supplier.last_name.present? %>
+                    </div>
+                    <strong><%= supplier.full_name %></strong>
+                  </div>
+                </td>
+                <td><%= supplier.email %></td>
+                <td><%= supplier.supplier_profile&.company_name || '<span class="text-muted">N/A</span>'.html_safe %></td>
+                <td><%= supplier.phone_number || '<span class="text-muted">N/A</span>'.html_safe %></td>
+                <td>
+                  <% if supplier.supplier_profile&.verified %>
+                    <span class="badge bg-success">Verified</span>
+                  <% else %>
+                    <span class="badge bg-warning">Unverified</span>
+                  <% end %>
+                  <% unless supplier.is_active %>
+                    <span class="badge bg-secondary ms-1">Inactive</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% product_count = (supplier.primary_supplier_profile || supplier.supplier_profile)&.products&.count || 0 %>
+                  <span class="badge bg-info"><%= product_count %></span>
+                </td>
+                <td><%= supplier.created_at.strftime('%b %d, %Y') %></td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <%= link_to admin_supplier_path(supplier), class: "btn btn-outline-primary", title: "View" do %>
+                      <i class="fas fa-eye"></i>
+                    <% end %>
+                    <%= link_to edit_admin_supplier_path(supplier), class: "btn btn-outline-info", title: "Edit" do %>
+                      <i class="fas fa-edit"></i>
+                    <% end %>
+                    <%= link_to admin_supplier_path(supplier), method: :delete, 
+                                class: "btn btn-outline-danger", title: "Delete",
+                                data: { confirm: "Are you sure you want to delete #{supplier.full_name}?" } do %>
+                      <i class="fas fa-trash"></i>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="10" class="text-center text-muted py-4">
+                <i class="fas fa-store fa-3x mb-3 d-block"></i>
+                No suppliers found.
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <div class="text-muted">
+        <% if @suppliers.respond_to?(:current_page) && @suppliers.respond_to?(:total_count) %>
+          Showing <%= (@suppliers.current_page - 1) * @suppliers.limit_value + 1 %> to 
+          <%= [@suppliers.current_page * @suppliers.limit_value, @suppliers.total_count].min %> of 
+          <%= @suppliers.total_count %> entries
+        <% end %>
+      </div>
+      <div>
+        <% if @suppliers.respond_to?(:current_page) %>
+          <%= paginate @suppliers if defined?(Kaminari) %>
+        <% end %>
+      </div>
     </div>
   </div>
+<% end %>
 
-  <div class="table-container">
-    <table class="supplier-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Company</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Products</th>
-          <th>Created</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @suppliers.each do |supplier| %>
-          <tr>
-            <td><%= supplier.full_name %></td>
-            <td><%= supplier.email %></td>
-            <td><%= supplier.supplier_profile&.company_name || 'N/A' %></td>
-            <td>
-              <span class="role-badge role-<%= supplier.role %>">
-                <%= supplier.role.humanize %>
-              </span>
-            </td>
-            <td>
-              <% if supplier.supplier_profile&.verified %>
-                <span class="status-badge status-verified">Verified</span>
-              <% else %>
-                <span class="status-badge status-unverified">Unverified</span>
-              <% end %>
-            </td>
-            <td><%= supplier.products.count %></td>
-            <td><%= supplier.created_at.strftime("%B %d, %Y") %></td>
-            <td>
-              <div class="action-buttons">
-                <%= link_to "View", admin_supplier_path(supplier), class: "btn btn-sm btn-primary" %>
-                <%= link_to "Edit", edit_admin_supplier_path(supplier), class: "btn btn-sm btn-warning" %>
-                <%= link_to "Delete", admin_supplier_path(supplier), method: :delete, 
-                    confirm: "Are you sure?", class: "btn btn-sm btn-danger" %>
-              </div>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
-</div>
+<script>
+  function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateBulkActions();
+  }
+
+  function updateBulkActions() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const bulkBar = document.getElementById('bulk-actions-bar');
+    const selectedCount = document.getElementById('selected-count');
+    const selectAll = document.getElementById('select-all');
+    
+    if (checked.length > 0) {
+      bulkBar.style.display = 'block';
+      selectedCount.textContent = checked.length;
+      if (selectAll) {
+        selectAll.indeterminate = checked.length < document.querySelectorAll('.row-checkbox').length;
+      }
+    } else {
+      bulkBar.style.display = 'none';
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      }
+    }
+  }
+
+  function submitBulkAction(action) {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) {
+      alert('Please select at least one item');
+      return;
+    }
+    
+    const ids = Array.from(checked).map(cb => cb.value);
+    document.getElementById('bulk-action-type').value = action;
+    document.getElementById('bulk-supplier-ids').value = ids.join(',');
+    
+    const actionText = action === 'verify' ? 'verify' : action === 'unverify' ? 'unverify' : 'delete';
+    if (confirm(`Are you sure you want to ${actionText} ${ids.length} item(s)?`)) {
+      document.getElementById('bulk-action-form').submit();
+    }
+  }
+
+  function clearSelection() {
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+    }
+    updateBulkActions();
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    updateBulkActions();
+  });
+</script>
+
+<style>
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  #bulk-actions-bar {
+    background-color: #e7f1ff;
+    border: 1px solid #b3d7ff;
+  }
+</style>

@@ -1,0 +1,126 @@
+<% content_for :title, "New Promotion" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-plus me-2"></i>Create New Promotion
+    </h1>
+    <%= link_to "Back to Promotions", admin_promotions_path, class: "btn btn-outline-secondary" %>
+  </div>
+  
+  <%= form_with model: [:admin, @promotion], local: true do |f| %>
+    <% if @promotion.errors.any? %>
+      <div class="alert alert-danger">
+        <h5>Please fix the following errors:</h5>
+        <ul class="mb-0">
+          <% @promotion.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :name, class: "form-label" %>
+          <%= f.text_field :name, class: "form-control", required: true %>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :promotion_type, class: "form-label" %>
+          <%= f.select :promotion_type, 
+              [['Flash Sale', 'flash_sale'], ['Buy X Get Y', 'buy_x_get_y'], 
+               ['Bundle Deal', 'bundle_deal'], ['Seasonal Sale', 'seasonal_sale']],
+              {}, { class: "form-select", required: true } %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :description, class: "form-label" %>
+      <%= f.text_area :description, rows: 4, class: "form-control" %>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :start_date, class: "form-label" %>
+          <%= f.datetime_local_field :start_date, class: "form-control", required: true %>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :end_date, class: "form-label" %>
+          <%= f.datetime_local_field :end_date, class: "form-control", required: true %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :discount_percentage, "Discount Percentage (%)", class: "form-label" %>
+          <%= f.number_field :discount_percentage, step: 0.01, class: "form-control" %>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :discount_amount, "Discount Amount (₹)", class: "form-label" %>
+          <%= f.number_field :discount_amount, step: 0.01, class: "form-control" %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :min_order_amount, "Minimum Order Amount (₹)", class: "form-label" %>
+          <%= f.number_field :min_order_amount, step: 0.01, class: "form-control" %>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :max_discount_amount, "Maximum Discount (₹)", class: "form-label" %>
+          <%= f.number_field :max_discount_amount, step: 0.01, class: "form-control" %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :banner_image_url, "Banner Image URL", class: "form-label" %>
+      <%= f.url_field :banner_image_url, class: "form-control" %>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <div class="form-check">
+            <%= f.check_box :is_active, class: "form-check-input", checked: true %>
+            <%= f.label :is_active, "Active", class: "form-check-label" %>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <div class="form-check">
+            <%= f.check_box :is_featured, class: "form-check-input" %>
+            <%= f.label :is_featured, "Featured", class: "form-check-label" %>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="d-flex gap-2">
+      <%= f.submit "Create Promotion", class: "btn btn-primary" %>
+      <%= link_to "Cancel", admin_promotions_path, class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+</div>
+

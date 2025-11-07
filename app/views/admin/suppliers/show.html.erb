@@ -81,18 +81,34 @@
 
     <div class="info-card">
       <h3>Business Statistics</h3>
-      <div class="stat-item">
-        <span class="stat-label">Total Products:</span>
-        <span class="stat-value"><%= @supplier.products.count %></span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Active Products:</span>
-        <span class="stat-value"><%= @supplier.products.where(status: 'active').count %></span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Pending Products:</span>
-        <span class="stat-value"><%= @supplier.products.where(status: 'pending').count %></span>
-      </div>
+      <% if @supplier_profile %>
+        <% supplier_products = @supplier_profile.products %>
+        <div class="stat-item">
+          <span class="stat-label">Total Products:</span>
+          <span class="stat-value"><%= supplier_products.count %></span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Active Products:</span>
+          <span class="stat-value"><%= supplier_products.where(status: 'active').count %></span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Pending Products:</span>
+          <span class="stat-value"><%= supplier_products.where(status: 'pending').count %></span>
+        </div>
+      <% else %>
+        <div class="stat-item">
+          <span class="stat-label">Total Products:</span>
+          <span class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Active Products:</span>
+          <span class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Pending Products:</span>
+          <span class="stat-value">0</span>
+        </div>
+      <% end %>
     </div>
   </div>
 

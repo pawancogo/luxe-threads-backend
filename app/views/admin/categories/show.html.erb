@@ -1,0 +1,89 @@
+<% content_for :title, "Category - #{@category.name}" %>
+
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-tag me-2"></i><%= @category.name %>
+    </h1>
+    <div>
+      <%= link_to "Back to Categories", admin_categories_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_category_path(@category), class: "btn btn-primary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Category Details</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">ID</th>
+              <td><%= @category.id %></td>
+            </tr>
+            <tr>
+              <th>Name</th>
+              <td><%= @category.name %></td>
+            </tr>
+            <tr>
+              <th>Short Description</th>
+              <td><%= simple_format(@category.short_description || 'N/A') %></td>
+            </tr>
+            <tr>
+              <th>Parent Category</th>
+              <td><%= @category.parent&.name || 'None (Root Category)' %></td>
+            </tr>
+            <tr>
+              <th>Level</th>
+              <td><span class="badge bg-info"><%= @category.level || 0 %></span></td>
+            </tr>
+            <tr>
+              <th>Products Count</th>
+              <td><%= @category.products_count || 0 %></td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                <% if @category.featured? %>
+                  <span class="badge bg-success">Featured</span>
+                <% else %>
+                  <span class="badge bg-secondary">Regular</span>
+                <% end %>
+              </td>
+            </tr>
+            <% if @category.image_url.present? %>
+              <tr>
+                <th>Image</th>
+                <td><%= image_tag @category.image_url, class: "img-thumbnail", style: "max-width: 200px;" %></td>
+              </tr>
+            <% end %>
+            <tr>
+              <th>Created At</th>
+              <td><%= @category.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "Edit Category", edit_admin_category_path(@category), class: "btn btn-primary" %>
+            <%= link_to "Delete Category", admin_category_path(@category), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

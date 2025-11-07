@@ -1,5 +1,4 @@
-module Admin
-  class SessionsController < ApplicationController
+class Admin::SessionsController < BaseController
     skip_before_action :authenticate_request, only: [:new, :create, :destroy]
     
     def new
@@ -54,6 +53,5 @@ module Admin
       redirect_to '/admin/login'
     end
   end
-end
 
 

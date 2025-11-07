@@ -1,0 +1,83 @@
+<% content_for :title, "Email Templates" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-envelope me-2"></i>Email Templates
+    </h1>
+    <div>
+      <%= link_to "New Template", new_admin_email_template_path, class: "btn btn-primary" %>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Email Templates Table -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Template Type</th>
+          <th>Subject</th>
+          <th>Status</th>
+          <th>From Email</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @templates.any? %>
+          <% @templates.each do |template| %>
+            <tr>
+              <td>
+                <strong><%= template.template_type.humanize.gsub('_', ' ') %></strong>
+              </td>
+              <td><%= truncate(template.subject, length: 50) %></td>
+              <td>
+                <% if template.is_active? %>
+                  <span class="badge bg-success">Active</span>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+              <td><%= template.from_email || 'N/A' %></td>
+              <td><%= template.created_at.strftime('%b %d, %Y') %></td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to admin_email_template_path(template), class: "btn btn-outline-primary", title: "View" do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_email_template_path(template), class: "btn btn-outline-info", title: "Edit" do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <%= link_to preview_admin_email_template_path(template), method: :post, 
+                              class: "btn btn-outline-success", title: "Preview" do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to admin_email_template_path(template), method: :delete, 
+                              class: "btn btn-outline-danger", title: "Delete",
+                              data: { confirm: "Are you sure?" } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No email templates found</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Pagination -->
+  <% if @templates.respond_to?(:current_page) %>
+    <div class="d-flex justify-content-center mt-4">
+      <%= paginate @templates if defined?(Kaminari) %>
+    </div>
+  <% end %>
+</div>
+

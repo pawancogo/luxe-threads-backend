@@ -1,8 +1,12 @@
+# Admin model class
+# Note: Admin is also a module (for controller namespacing) defined in config/initializers/admin_namespace.rb
+# We use ::Admin in controllers to reference this class when inside the Admin module namespace
 class Admin < ApplicationRecord
   # Include concerns for shared behavior
   include Passwordable
   include Verifiable
   include Auditable
+  include RbacAuthorizable
 
   # Define admin roles using an enum
   enum :role, {
@@ -39,6 +43,44 @@ class Admin < ApplicationRecord
 
   def can_manage_suppliers?
     super_admin? || supplier_admin?
+  end
+
+  # Phase 4: Enhanced admin features
+  has_many :admin_activities, dependent: :destroy
+  
+  # RBAC: Role-based access control
+  has_many :admin_role_assignments, dependent: :destroy
+  has_many :rbac_roles, through: :admin_role_assignments
+  
+  # Parse permissions JSON
+  def permissions_hash
+    return {} if permissions.blank?
+    JSON.parse(permissions) rescue {}
+  end
+  
+  def permissions_hash=(hash)
+    self.permissions = hash.to_json
+  end
+  
+  # Check permission (delegates to RbacAuthorizable concern)
+  # This method is kept for backward compatibility
+  def has_permission?(permission)
+    super # Uses RbacAuthorizable concern
+  end
+  
+  # Update last login
+  def update_last_login!
+    update_column(:last_login_at, Time.current)
+  end
+  
+  # Block admin
+  def block!
+    update(is_blocked: true, is_active: false)
+  end
+  
+  # Unblock admin
+  def unblock!
+    update(is_blocked: false, is_active: true)
   end
 
   def full_name

@@ -1,72 +1,144 @@
-<% content_for :page_title, "Admin Management" %>
+<% content_for :title, "Admin Management" %>
 
-<div class="container-fluid">
-  <div class="row mb-4">
-    <div class="col">
-      <h1 class="h3 mb-0">Admin Management</h1>
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-user-shield me-2"></i>Admin Management
+      </h1>
+      <p class="text-muted mb-0 mt-2">Manage admin users and their permissions</p>
     </div>
-    <div class="col-auto">
-      <%= link_to "Add New Admin", new_admin_admin_path, class: "btn btn-admin" %>
+    <div>
+      <%= link_to new_admin_admin_path, class: "btn btn-primary" do %>
+        <i class="fas fa-plus me-2"></i>Add New Admin
+      <% end %>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
     </div>
   </div>
 
-  <div class="card card-admin">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-admin">
-          <thead class="table-header">
-            <tr>
-              <th data-sortable>Name</th>
-              <th data-sortable>Email</th>
-              <th data-sortable>Phone</th>
-              <th>Role</th>
-              <th data-sortable>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @admins.each do |admin| %>
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="avatar-sm bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center">
-                      <%= admin.first_name.first.upcase %>
-                    </div>
-                    <%= admin.full_name %>
-                  </div>
-                </td>
-                <td><%= admin.email %></td>
-                <td><%= admin.phone_number %></td>
-                <td>
-                  <span class="badge badge-admin badge-<%= admin.role.gsub('_', '-') %>">
-                    <%= admin.role.humanize %>
-                  </span>
-                </td>
-                <td><%= admin.created_at.strftime("%B %d, %Y") %></td>
-                <td>
-                  <div class="btn-group" role="group">
-                    <%= link_to admin_admin_path(admin), class: "btn btn-sm btn-outline-primary", 
-                        data: { bs_toggle: "tooltip", bs_placement: "top" }, title: "View Details" do %>
-                      <i class="bi bi-eye"></i>
-                    <% end %>
-                    <%= link_to edit_admin_admin_path(admin), class: "btn btn-sm btn-outline-warning",
-                        data: { bs_toggle: "tooltip", bs_placement: "top" }, title: "Edit Admin" do %>
-                      <i class="bi bi-pencil"></i>
-                    <% end %>
-                    <% unless admin == current_admin %>
-                      <%= link_to admin_admin_path(admin), method: :delete, 
-                          data: { confirm: "Are you sure?", bs_toggle: "tooltip", bs_placement: "top" }, 
-                          title: "Delete Admin", class: "btn btn-sm btn-outline-danger btn-delete" do %>
-                        <i class="bi bi-trash"></i>
-                      <% end %>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+  <!-- Admin Roles Info -->
+  <div class="alert alert-info mb-4">
+    <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Admin Roles</h6>
+    <div class="row mt-2">
+      <div class="col-md-6">
+        <ul class="mb-0">
+          <li><strong>Super Admin:</strong> Full access to all features</li>
+          <li><strong>Product Admin:</strong> Can manage products and categories</li>
+          <li><strong>Order Admin:</strong> Can manage orders and fulfillments</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <ul class="mb-0">
+          <li><strong>User Admin:</strong> Can manage customers and users</li>
+          <li><strong>Supplier Admin:</strong> Can manage suppliers and approvals</li>
+        </ul>
       </div>
     </div>
   </div>
+
+  <!-- Admins Table -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @admins.any? %>
+          <% @admins.each do |admin| %>
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="avatar-circle bg-primary text-white me-2">
+                    <%= admin.first_name.first.upcase %><%= admin.last_name.first.upcase if admin.last_name.present? %>
+                  </div>
+                  <div>
+                    <strong><%= admin.full_name %></strong>
+                    <% if admin == current_admin %>
+                      <span class="badge bg-info ms-2">You</span>
+                    <% end %>
+                  </div>
+                </div>
+              </td>
+              <td><%= admin.email %></td>
+              <td><%= admin.phone_number %></td>
+              <td>
+                <% role_colors = {
+                  'super_admin' => 'danger',
+                  'product_admin' => 'primary',
+                  'order_admin' => 'success',
+                  'user_admin' => 'info',
+                  'supplier_admin' => 'warning'
+                } %>
+                <span class="badge bg-<%= role_colors[admin.role] || 'secondary' %>">
+                  <%= admin.role.humanize %>
+                </span>
+              </td>
+              <td>
+                <% if admin.is_active && !admin.is_blocked %>
+                  <span class="badge bg-success">Active</span>
+                <% elsif admin.is_blocked %>
+                  <span class="badge bg-danger">Blocked</span>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+              <td><%= admin.created_at.strftime('%b %d, %Y') %></td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to admin_admin_path(admin), class: "btn btn-outline-primary", title: "View Details" do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_admin_path(admin), class: "btn btn-outline-info", title: "Edit Admin" do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <% unless admin == current_admin %>
+                    <%= link_to admin_admin_path(admin), method: :delete, 
+                        class: "btn btn-outline-danger", 
+                        title: "Delete Admin",
+                        data: { confirm: "Are you sure you want to delete #{admin.full_name}? This action cannot be undone." } do %>
+                      <i class="fas fa-trash"></i>
+                    <% end %>
+                  <% else %>
+                    <button class="btn btn-outline-secondary" disabled title="Cannot delete your own account">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              <i class="fas fa-users fa-3x mb-3 d-block"></i>
+              No admins found. <%= link_to "Create the first admin", new_admin_admin_path, class: "text-decoration-none" %>.
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>
+
+<style>
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+</style>

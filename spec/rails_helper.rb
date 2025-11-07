@@ -1,4 +1,5 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
+# SimpleCov must be loaded first (already loaded in spec_helper)
 require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
@@ -78,4 +79,7 @@ RSpec.configure do |config|
       with.library :rails
     end
   end
+  
+  # Load performance matchers
+  require_relative 'support/performance_matchers'
 end

@@ -37,6 +37,6 @@ class Api::V1::AddressesController < ApplicationController
   end
 
   def address_params
-    params.require(:address).permit(:address_type, :full_name, :phone_number, :line1, :line2, :city, :state, :postal_code, :country)
+    params.require(:address).permit(:address_type, :full_name, :phone_number, :line1, :line2, :city, :state, :postal_code, :country, :is_default_shipping, :is_default_billing, :label, :alternate_phone, :landmark, :delivery_instructions)
   end
 end

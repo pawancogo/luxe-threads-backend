@@ -1,58 +1,57 @@
 # frozen_string_literal: true
 
 # Service for creating products with variants
-# Orchestrates product and variant creation
-class ProductCreationService
-  attr_reader :product, :errors
+# Follows Single Responsibility Principle - only handles product creation orchestration
+class ProductCreationService < BaseService
+  attr_reader :product
 
-  def initialize(supplier_profile, product_params)
+  def initialize(supplier_profile, product_params, form_class: ProductForm)
+    super()
     @supplier_profile = supplier_profile
-    @product_params = product_params
-    @variants_params = product_params.delete(:variants_attributes) || []
-    @errors = []
+    @product_params = product_params.dup
+    @variants_params = @product_params.delete(:variants_attributes) || []
+    @form_class = form_class
   end
 
   def call
-    ActiveRecord::Base.transaction do
+    with_transaction do
       create_product
-      create_variants if success?
+      set_result(@product)
     end
 
     self
   rescue StandardError => e
-    @errors << e.message
-    Rails.logger.error "ProductCreationService failed: #{e.message}"
+    handle_error(e)
     self
   end
 
-  def success?
-    @product&.persisted? && @errors.empty?
+  # Alias for backward compatibility
+  def result
+    @product || super
   end
 
   private
 
   def create_product
-    # Merge variants into product params
-    product_form_params = @product_params.merge(
-      supplier_profile_id: @supplier_profile.id
-    )
-    
-    # Add variants if present
-    product_form_params[:variants_attributes] = @variants_params if @variants_params.present?
-    
-    form = ProductForm.new(product_form_params)
+    log_execution('create_product', supplier_profile_id: @supplier_profile.id)
+
+    form = build_form
 
     unless form.save
-      @errors.concat(form.errors.full_messages)
+      add_errors(form.errors.full_messages)
       raise ActiveRecord::RecordInvalid, form.product
     end
 
     @product = form.product
   end
 
-  def create_variants
-    # Variants are created by ProductForm
-    # Additional variant processing can be added here if needed
+  def build_form
+    form_params = @product_params.merge(
+      supplier_profile_id: @supplier_profile.id
+    )
+    form_params[:variants_attributes] = @variants_params if @variants_params.present?
+    
+    @form_class.new(form_params)
   end
 end
 

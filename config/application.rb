@@ -42,7 +42,8 @@ module LuxeThreads
     # SECURITY CONFIGURATION
     # ===========================================
     # Enable CSRF protection for non-API requests
-    config.force_ssl = Rails.env.production?
+    # SSL will be enforced in production.rb
+    # config.force_ssl = Rails.env.production?
 
     # ===========================================
     # CORS CONFIGURATION
@@ -69,8 +70,9 @@ module LuxeThreads
     # ===========================================
     # ASSET CONFIGURATION
     # ===========================================
-    # Disable asset pipeline for API-only app
-    config.assets.enabled = false
+    # Enable asset pipeline for RailsAdmin
+    # Note: This is needed even for API-only apps when using RailsAdmin
+    config.assets.enabled = true
 
     # ===========================================
     # SESSION CONFIGURATION
@@ -118,6 +120,9 @@ module LuxeThreads
     config.middleware.use ActionDispatch::Flash
     config.middleware.use Rack::MethodOverride
     config.middleware.use ActionDispatch::Session::CookieStore, {key: "_luxe_threads_session", secure: false, httponly: true, same_site: :lax}
+    
+    # Rate limiting middleware
+    config.middleware.use Rack::Attack
 
     # ===========================================
     # RAILS ADMIN CONFIGURATION

@@ -2,12 +2,18 @@
 
 # Query object for complex product queries
 # Extracts query logic from controllers and models
-class ProductQuery
-  attr_reader :scope
-
-  def initialize(scope = Product.all)
-    @scope = scope
+class ProductQuery < BaseQuery
+  def initialize(scope = nil)
+    super(scope)
   end
+
+  protected
+
+  def default_scope
+    Product.all
+  end
+
+  public
 
   # Chainable query methods
   def for_supplier_profile(profile_id)
@@ -62,30 +68,48 @@ class ProductQuery
 
   def search(term)
     return self if term.blank?
+    # Phase 2: Enhanced search including slug, search_keywords, and tags
     @scope = scope.where(
-      'name ILIKE ? OR description ILIKE ?',
+      'name ILIKE ? OR description ILIKE ? OR short_description ILIKE ? OR slug ILIKE ?',
+      "%#{term}%",
+      "%#{term}%",
       "%#{term}%",
       "%#{term}%"
     )
     self
   end
 
-  def order_by(column, direction = :asc)
-    @scope = scope.order("#{column} #{direction.to_s.upcase}")
+  # Phase 2: Add Phase 2 scopes
+  def featured
+    @scope = scope.featured
     self
   end
 
-  def paginate(page: 1, per_page: 20)
-    @scope = scope.page(page).per(per_page)
+  def bestsellers
+    @scope = scope.bestsellers
     self
   end
 
-  # Return the final scope
-  def result
-    @scope
+  def new_arrivals
+    @scope = scope.new_arrivals
+    self
   end
 
-  # Delegate common methods
-  delegate :to_a, :each, :map, :count, :exists?, :find, :find_by, to: :result
+  def trending
+    @scope = scope.trending
+    self
+  end
+
+  def published
+    @scope = scope.published
+    self
+  end
+
+  def by_slug(slug)
+    @scope = scope.where(slug: slug) if slug.present?
+    self
+  end
+
+  # Additional product-specific query methods below
 end
 

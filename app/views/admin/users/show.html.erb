@@ -1,0 +1,80 @@
+<% content_for :title, "User Details - #{@user.email}" %>
+
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-user me-2"></i>User Details
+    </h1>
+    <div>
+      <%= link_to "Back to Users", admin_users_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_user_path(@user), class: "btn btn-primary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-6">
+      <table class="table table-bordered">
+        <tr>
+          <th width="30%">ID</th>
+          <td><%= @user.id %></td>
+        </tr>
+        <tr>
+          <th>Name</th>
+          <td><%= @user.full_name %></td>
+        </tr>
+        <tr>
+          <th>Email</th>
+          <td><%= @user.email %></td>
+        </tr>
+        <tr>
+          <th>Phone</th>
+          <td><%= @user.phone_number || 'N/A' %></td>
+        </tr>
+        <tr>
+          <th>Status</th>
+          <td>
+            <% if @user.is_active && @user.deleted_at.nil? %>
+              <span class="badge bg-success">Active</span>
+            <% else %>
+              <span class="badge bg-secondary">Inactive</span>
+            <% end %>
+          </td>
+        </tr>
+        <tr>
+          <th>Created At</th>
+          <td><%= @user.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+        </tr>
+        <tr>
+          <th>Last Updated</th>
+          <td><%= @user.updated_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+        </tr>
+      </table>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "View Orders", orders_admin_user_path(@user), class: "btn btn-outline-primary" %>
+            <%= link_to "View Activity", activity_admin_user_path(@user), class: "btn btn-outline-info" %>
+            <% if @user.is_active %>
+              <%= link_to "Deactivate User", deactivate_admin_user_path(@user), method: :patch, 
+                          class: "btn btn-outline-warning",
+                          data: { confirm: "Are you sure you want to deactivate this user?" } %>
+            <% else %>
+              <%= link_to "Activate User", activate_admin_user_path(@user), method: :patch, 
+                          class: "btn btn-outline-success" %>
+            <% end %>
+            <%= link_to "Delete User", admin_user_path(@user), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

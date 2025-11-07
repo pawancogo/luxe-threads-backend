@@ -1,0 +1,118 @@
+<% content_for :title, "Users Report" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-users me-2"></i>Users Report
+    </h1>
+    <div>
+      <%= link_to "Export CSV", admin_reports_export_path(report_type: 'users', start_date: params[:start_date], end_date: params[:end_date]), 
+          class: "btn btn-sm btn-outline-success" %>
+      <%= link_to "Back to Reports", admin_reports_path, class: "btn btn-sm btn-outline-secondary" %>
+    </div>
+  </div>
+  
+  <% if @report_data.present? %>
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="card border-primary">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Total Users</h6>
+            <h3 class="mb-0 text-primary"><%= @report_data[:summary][:total_users] || 0 %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-info">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Customers</h6>
+            <h3 class="mb-0 text-info"><%= @report_data[:summary][:customers] || 0 %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-success">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Suppliers</h6>
+            <h3 class="mb-0 text-success"><%= @report_data[:summary][:suppliers] || 0 %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-warning">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Active Users</h6>
+            <h3 class="mb-0 text-warning"><%= @report_data[:summary][:active_users] || 0 %></h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Users by Role -->
+    <% if @report_data[:users_by_role].present? %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Users by Role</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Count</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:users_by_role].each do |stat| %>
+                  <tr>
+                    <td><%= stat[:role] %></td>
+                    <td><%= stat[:count] %></td>
+                    <td><%= stat[:percentage] %>%</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    
+    <!-- New Users Daily -->
+    <% if @report_data[:new_users_daily].present? %>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">New Users Daily</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>New Users</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:new_users_daily].each do |stat| %>
+                  <tr>
+                    <td><%= Date.parse(stat[:date]).strftime('%b %d, %Y') %></td>
+                    <td><%= stat[:count] %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      No users data available for the selected date range.
+    </div>
+  <% end %>
+</div>
+

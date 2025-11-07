@@ -1,0 +1,227 @@
+<% content_for :title, "Customer Management" %>
+
+<%= form_with url: bulk_action_admin_users_path, method: :post, local: true, id: "bulk-action-form" do |f| %>
+  <div class="admin-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="card-title mb-0">
+          <i class="fas fa-users me-2"></i>Customer Management
+        </h1>
+        <p class="text-muted mb-0 mt-2">Manage customer accounts and profiles</p>
+      </div>
+      <div>
+        <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+          <i class="fas fa-database me-2"></i>View in RailsAdmin
+        <% end %>
+      </div>
+    </div>
+    
+    <!-- Bulk Actions Bar -->
+    <div id="bulk-actions-bar" class="card mb-3" style="display: none;">
+      <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span id="selected-count" class="badge bg-primary me-2">0</span>
+            <span class="text-muted">item(s) selected</span>
+          </div>
+          <div class="btn-group">
+            <%= f.hidden_field :bulk_action, id: "bulk-action-type" %>
+            <%= f.hidden_field :user_ids, id: "bulk-user-ids" %>
+            <button type="button" class="btn btn-sm btn-success" onclick="submitBulkAction('activate')">
+              <i class="fas fa-check me-1"></i>Activate
+            </button>
+            <button type="button" class="btn btn-sm btn-warning" onclick="submitBulkAction('deactivate')">
+              <i class="fas fa-ban me-1"></i>Deactivate
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="submitBulkAction('delete')">
+              <i class="fas fa-trash me-1"></i>Delete
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+              <i class="fas fa-times me-1"></i>Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Search & Filters -->
+    <%= render 'admin/shared/filters', records: @users %>
+    
+    <!-- Customers Table -->
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th width="40">
+              <input type="checkbox" id="select-all" class="form-check-input" onchange="toggleSelectAll(this)">
+            </th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @users.any? %>
+            <% @users.each do |user| %>
+              <tr data-id="<%= user.id %>" data-name="<%= user.full_name %>">
+                <td>
+                  <input type="checkbox" name="selected_ids[]" value="<%= user.id %>" class="form-check-input row-checkbox" onchange="updateBulkActions()">
+                </td>
+                <td><%= user.id %></td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-circle bg-primary text-white me-2">
+                      <%= user.first_name.first.upcase %><%= user.last_name.first.upcase if user.last_name.present? %>
+                    </div>
+                    <strong><%= user.full_name %></strong>
+                  </div>
+                </td>
+                <td><%= user.email %></td>
+                <td><%= user.phone_number || '<span class="text-muted">N/A</span>'.html_safe %></td>
+                <td>
+                  <% if user.is_active && user.deleted_at.nil? %>
+                    <span class="badge bg-success">Active</span>
+                  <% else %>
+                    <span class="badge bg-secondary">Inactive</span>
+                  <% end %>
+                  <% if user.email_verified? %>
+                    <span class="badge bg-info ms-1">Verified</span>
+                  <% end %>
+                </td>
+                <td><%= user.created_at.strftime('%b %d, %Y') %></td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <%= link_to admin_user_path(user), class: "btn btn-outline-primary", title: "View" do %>
+                      <i class="fas fa-eye"></i>
+                    <% end %>
+                    <%= link_to edit_admin_user_path(user), class: "btn btn-outline-info", title: "Edit" do %>
+                      <i class="fas fa-edit"></i>
+                    <% end %>
+                    <% if user.is_active %>
+                      <%= link_to deactivate_admin_user_path(user), method: :patch, 
+                                  class: "btn btn-outline-warning", title: "Deactivate",
+                                  data: { confirm: "Are you sure you want to deactivate this user?" } do %>
+                        <i class="fas fa-ban"></i>
+                      <% end %>
+                    <% else %>
+                      <%= link_to activate_admin_user_path(user), method: :patch, 
+                                  class: "btn btn-outline-success", title: "Activate" do %>
+                        <i class="fas fa-check"></i>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">
+                <i class="fas fa-users fa-3x mb-3 d-block"></i>
+                No customers found.
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <div class="text-muted">
+        <% if @users.respond_to?(:current_page) && @users.respond_to?(:total_count) %>
+          Showing <%= (@users.current_page - 1) * @users.limit_value + 1 %> to 
+          <%= [@users.current_page * @users.limit_value, @users.total_count].min %> of 
+          <%= @users.total_count %> entries
+        <% end %>
+      </div>
+      <div>
+        <% if @users.respond_to?(:current_page) %>
+          <%= paginate @users if defined?(Kaminari) %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<script>
+  function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateBulkActions();
+  }
+
+  function updateBulkActions() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const bulkBar = document.getElementById('bulk-actions-bar');
+    const selectedCount = document.getElementById('selected-count');
+    const selectAll = document.getElementById('select-all');
+    
+    if (checked.length > 0) {
+      bulkBar.style.display = 'block';
+      selectedCount.textContent = checked.length;
+      if (selectAll) {
+        selectAll.indeterminate = checked.length < document.querySelectorAll('.row-checkbox').length;
+      }
+    } else {
+      bulkBar.style.display = 'none';
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      }
+    }
+  }
+
+  function submitBulkAction(action) {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) {
+      alert('Please select at least one item');
+      return;
+    }
+    
+    const ids = Array.from(checked).map(cb => cb.value);
+    document.getElementById('bulk-action-type').value = action;
+    document.getElementById('bulk-user-ids').value = ids.join(',');
+    
+    const actionText = action === 'activate' ? 'activate' : action === 'deactivate' ? 'deactivate' : 'delete';
+    if (confirm(`Are you sure you want to ${actionText} ${ids.length} item(s)?`)) {
+      document.getElementById('bulk-action-form').submit();
+    }
+  }
+
+  function clearSelection() {
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+    }
+    updateBulkActions();
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    updateBulkActions();
+  });
+</script>
+
+<style>
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  #bulk-actions-bar {
+    background-color: #e7f1ff;
+    border: 1px solid #b3d7ff;
+  }
+</style>

@@ -1,0 +1,101 @@
+<% content_for :title, "System Settings" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-cog me-2"></i>System Settings
+    </h1>
+    <div>
+      <%= link_to "New Setting", new_admin_setting_path, class: "btn btn-primary" %>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Category Tabs -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <%= link_to "All", admin_settings_path, 
+          class: "nav-link #{'active' unless params[:category].present?}" %>
+    </li>
+    <% %w[general payment shipping email feature_flags].each do |category| %>
+      <li class="nav-item">
+        <%= link_to category.humanize, admin_settings_path(category: category), 
+            class: "nav-link #{'active' if params[:category] == category}" %>
+      </li>
+    <% end %>
+  </ul>
+  
+  <!-- Settings Table -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Public</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @settings.any? %>
+          <% @settings.each do |setting| %>
+            <tr>
+              <td><strong><%= setting.key %></strong></td>
+              <td>
+                <% if setting.value_type == 'boolean' %>
+                  <span class="badge bg-<%= setting.cast_value ? 'success' : 'secondary' %>">
+                    <%= setting.cast_value ? 'Yes' : 'No' %>
+                  </span>
+                <% else %>
+                  <%= truncate(setting.value.to_s, length: 50) %>
+                <% end %>
+              </td>
+              <td><span class="badge bg-info"><%= setting.value_type %></span></td>
+              <td><span class="badge bg-secondary"><%= setting.category %></span></td>
+              <td><%= truncate(setting.description || 'N/A', length: 50) %></td>
+              <td>
+                <% if setting.is_public? %>
+                  <span class="badge bg-success">Yes</span>
+                <% else %>
+                  <span class="badge bg-secondary">No</span>
+                <% end %>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to admin_setting_path(setting), class: "btn btn-outline-primary", title: "View" do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_setting_path(setting), class: "btn btn-outline-info", title: "Edit" do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <%= link_to admin_setting_path(setting), method: :delete, 
+                              class: "btn btn-outline-danger", title: "Delete",
+                              data: { confirm: "Are you sure?" } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">No settings found</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Pagination -->
+  <% if @settings.respond_to?(:current_page) %>
+    <div class="d-flex justify-content-center mt-4">
+      <%= paginate @settings if defined?(Kaminari) %>
+    </div>
+  <% end %>
+</div>
+

@@ -1,20 +1,30 @@
 # frozen_string_literal: true
 
 # Service for creating carts
-# Extracted from User model callback
-class CartCreationService
-  attr_reader :user
+# Follows Single Responsibility Principle
+class CartCreationService < BaseService
+  attr_reader :cart
 
   def initialize(user)
+    super()
     @user = user
   end
 
   def call
-    return user.cart if user.cart.present?
-    user.create_cart!
+    return existing_cart if existing_cart.present?
+
+    @cart = @user.create_cart!
+    set_result(@cart)
+    self
   rescue StandardError => e
-    Rails.logger.error "CartCreationService failed for user #{user.id}: #{e.message}"
-    nil
+    handle_error(e)
+    self
+  end
+
+  private
+
+  def existing_cart
+    @existing_cart ||= @user.cart
   end
 end
 

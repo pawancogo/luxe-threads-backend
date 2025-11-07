@@ -1,83 +1,213 @@
-<% content_for :page_title, "Admin Details" %>
+<% content_for :title, "Admin - #{@admin.full_name}" %>
 
-<div class="admin-details">
-  <div class="page-header">
-    <h1>Admin Details: <%= @admin.full_name %></h1>
-    <div class="breadcrumb">
-      <%= link_to "Dashboard", admin_root_path %> > 
-      <%= link_to "Admin Management", admin_admins_path %> > 
-      Admin Details
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-user-shield me-2"></i><%= @admin.full_name %>
+      </h1>
+      <p class="text-muted mb-0 mt-2">Admin Details & Permissions</p>
+    </div>
+    <div>
+      <%= link_to "Back to Admins", admin_admins_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_admin_path(@admin), class: "btn btn-primary" %>
     </div>
   </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Personal Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">ID</th>
+              <td><%= @admin.id %></td>
+            </tr>
+            <tr>
+              <th>Full Name</th>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="avatar-circle bg-primary text-white me-2">
+                    <%= @admin.first_name.first.upcase %><%= @admin.last_name.first.upcase if @admin.last_name.present? %>
+                  </div>
+                  <strong><%= @admin.full_name %></strong>
+                  <% if @admin == current_admin %>
+                    <span class="badge bg-info ms-2">You</span>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <th>Email</th>
+              <td><%= @admin.email %></td>
+            </tr>
+            <tr>
+              <th>Phone Number</th>
+              <td><%= @admin.phone_number %></td>
+            </tr>
+            <tr>
+              <th>Role</th>
+              <td>
+                <% role_colors = {
+                  'super_admin' => 'danger',
+                  'product_admin' => 'primary',
+                  'order_admin' => 'success',
+                  'user_admin' => 'info',
+                  'supplier_admin' => 'warning'
+                } %>
+                <span class="badge bg-<%= role_colors[@admin.role] || 'secondary' %> fs-6">
+                  <%= @admin.role.humanize %>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                <% if @admin.is_active && !@admin.is_blocked %>
+                  <span class="badge bg-success">Active</span>
+                <% elsif @admin.is_blocked %>
+                  <span class="badge bg-danger">Blocked</span>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Email Verified</th>
+              <td>
+                <% if @admin.email_verified? %>
+                  <span class="badge bg-success"><i class="fas fa-check me-1"></i>Verified</span>
+                <% else %>
+                  <span class="badge bg-warning"><i class="fas fa-times me-1"></i>Not Verified</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Member Since</th>
+              <td><%= @admin.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+            <% if @admin.last_login_at.present? %>
+              <tr>
+                <th>Last Login</th>
+                <td><%= @admin.last_login_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+              </tr>
+            <% end %>
+          </table>
+        </div>
+      </div>
 
-  <div class="admin-info-grid">
-    <div class="info-card">
-      <h3>Personal Information</h3>
-      <div class="info-row">
-        <span class="label">Name:</span>
-        <span class="value"><%= @admin.full_name %></span>
-      </div>
-      <div class="info-row">
-        <span class="label">Email:</span>
-        <span class="value"><%= @admin.email %></span>
-      </div>
-      <div class="info-row">
-        <span class="label">Phone:</span>
-        <span class="value"><%= @admin.phone_number %></span>
-      </div>
-      <div class="info-row">
-        <span class="label">Role:</span>
-        <span class="value">
-          <span class="role-badge role-<%= @admin.role %>">
-            <%= @admin.role.humanize %>
-          </span>
-        </span>
-      </div>
-      <div class="info-row">
-        <span class="label">Member Since:</span>
-        <span class="value"><%= @admin.created_at.strftime("%B %d, %Y") %></span>
+      <!-- Permissions -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-key me-2"></i>Permissions & Access</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="permission-item mb-3 p-3 border rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong><i class="fas fa-box me-2"></i>Manage Products</strong>
+                    <p class="text-muted mb-0 small">Create, edit, approve, and manage products</p>
+                  </div>
+                  <span class="badge bg-<%= @admin.can_manage_products? ? 'success' : 'secondary' %>">
+                    <%= @admin.can_manage_products? ? '✓ Allowed' : '✗ Denied' %>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="permission-item mb-3 p-3 border rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong><i class="fas fa-shopping-cart me-2"></i>Manage Orders</strong>
+                    <p class="text-muted mb-0 small">View, update, and process orders</p>
+                  </div>
+                  <span class="badge bg-<%= @admin.can_manage_orders? ? 'success' : 'secondary' %>">
+                    <%= @admin.can_manage_orders? ? '✓ Allowed' : '✗ Denied' %>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="permission-item mb-3 p-3 border rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong><i class="fas fa-users me-2"></i>Manage Users</strong>
+                    <p class="text-muted mb-0 small">View, edit, and manage customer accounts</p>
+                  </div>
+                  <span class="badge bg-<%= @admin.can_manage_users? ? 'success' : 'secondary' %>">
+                    <%= @admin.can_manage_users? ? '✓ Allowed' : '✗ Denied' %>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="permission-item mb-3 p-3 border rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong><i class="fas fa-store me-2"></i>Manage Suppliers</strong>
+                    <p class="text-muted mb-0 small">Approve, manage, and monitor suppliers</p>
+                  </div>
+                  <span class="badge bg-<%= @admin.can_manage_suppliers? ? 'success' : 'secondary' %>">
+                    <%= @admin.can_manage_suppliers? ? '✓ Allowed' : '✗ Denied' %>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="info-card">
-      <h3>Permissions</h3>
-      <div class="permissions">
-        <div class="permission-item">
-          <span class="permission-name">Manage Products:</span>
-          <span class="permission-status <%= @admin.can_manage_products? ? 'allowed' : 'denied' %>">
-            <%= @admin.can_manage_products? ? '✓ Allowed' : '✗ Denied' %>
-          </span>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
         </div>
-        <div class="permission-item">
-          <span class="permission-name">Manage Orders:</span>
-          <span class="permission-status <%= @admin.can_manage_orders? ? 'allowed' : 'denied' %>">
-            <%= @admin.can_manage_orders? ? '✓ Allowed' : '✗ Denied' %>
-          </span>
-        </div>
-        <div class="permission-item">
-          <span class="permission-name">Manage Users:</span>
-          <span class="permission-status <%= @admin.can_manage_users? ? 'allowed' : 'denied' %>">
-            <%= @admin.can_manage_users? ? '✓ Allowed' : '✗ Denied' %>
-          </span>
-        </div>
-        <div class="permission-item">
-          <span class="permission-name">Manage Suppliers:</span>
-          <span class="permission-status <%= @admin.can_manage_suppliers? ? 'allowed' : 'denied' %>">
-            <%= @admin.can_manage_suppliers? ? '✓ Allowed' : '✗ Denied' %>
-          </span>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "Edit Admin", edit_admin_admin_path(@admin), class: "btn btn-primary" %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+            <% unless @admin == current_admin %>
+              <hr>
+              <%= link_to "Delete Admin", admin_admin_path(@admin), method: :delete, 
+                  class: "btn btn-outline-danger",
+                  data: { confirm: "Are you sure you want to delete #{@admin.full_name}? This action cannot be undone." } %>
+            <% else %>
+              <hr>
+              <button class="btn btn-outline-secondary" disabled>
+                <i class="fas fa-info-circle me-2"></i>Cannot delete your own account
+              </button>
+            <% end %>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="action-buttons">
-    <%= link_to "Edit Admin", edit_admin_admin_path(@admin), class: "btn btn-warning" %>
-    <%= link_to "Back to Admin Management", admin_admins_path, class: "btn btn-secondary" %>
-    <% unless @admin == current_admin %>
-      <%= link_to "Delete Admin", admin_admin_path(@admin), method: :delete, 
-          confirm: "Are you sure? This action cannot be undone.", 
-          class: "btn btn-danger" %>
-    <% end %>
   </div>
 </div>
 
+<style>
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .permission-item {
+    transition: all 0.2s;
+  }
+  
+  .permission-item:hover {
+    background-color: #f8f9fa;
+  }
+</style>

@@ -1,0 +1,134 @@
+<% content_for :title, "Coupons Management" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-ticket-alt me-2"></i>Coupons Management
+    </h1>
+    <div>
+      <%= link_to "New Coupon", new_admin_coupon_path, class: "btn btn-primary" %>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <%= form_with url: admin_coupons_path, method: :get, local: true, class: "row g-3" do |f| %>
+        <div class="col-md-4">
+          <%= f.select :is_active, [["All", ""], ["Active", "true"], ["Inactive", "false"]], 
+                       { selected: params[:is_active] }, { class: "form-select" } %>
+        </div>
+        <div class="col-md-4">
+          <%= f.select :coupon_type, 
+              [["All Types", ""], ["Percentage", "percentage"], ["Fixed Amount", "fixed_amount"]],
+              { selected: params[:coupon_type] }, { class: "form-select" } %>
+        </div>
+        <div class="col-md-4">
+          <%= f.submit "Filter", class: "btn btn-primary" %>
+          <%= link_to "Clear", admin_coupons_path, class: "btn btn-outline-secondary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Coupons Grid -->
+  <div class="row g-4">
+    <% if @coupons.any? %>
+      <% @coupons.each do |coupon| %>
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 font-mono"><%= coupon.code %></h5>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-link" type="button" data-bs-toggle="dropdown">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><%= link_to "View", admin_coupon_path(coupon), class: "dropdown-item" %></li>
+                  <li><%= link_to "Edit", edit_admin_coupon_path(coupon), class: "dropdown-item" %></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><%= link_to "Delete", admin_coupon_path(coupon), method: :delete, 
+                              class: "dropdown-item text-danger",
+                              data: { confirm: "Are you sure?" } %></li>
+                </ul>
+              </div>
+            </div>
+            <div class="card-body">
+              <h6 class="card-title"><%= coupon.name %></h6>
+              <p class="text-muted small"><%= truncate(coupon.description, length: 100) %></p>
+              
+              <div class="mb-2">
+                <% if coupon.coupon_type == 'percentage' %>
+                  <strong class="text-success"><%= coupon.discount_value %>% OFF</strong>
+                <% else %>
+                  <strong class="text-success">₹<%= number_with_delimiter(coupon.discount_value) %> OFF</strong>
+                <% end %>
+              </div>
+              
+              <% if coupon.min_order_amount > 0 %>
+                <div class="small text-muted mb-2">
+                  Min order: ₹<%= number_with_delimiter(coupon.min_order_amount) %>
+                </div>
+              <% end %>
+              
+              <div class="mb-2">
+                <span class="badge bg-info"><%= coupon.coupon_type.humanize %></span>
+                <% if coupon.is_new_user_only? %>
+                  <span class="badge bg-primary">New Users Only</span>
+                <% end %>
+                <% if coupon.is_first_order_only? %>
+                  <span class="badge bg-warning">First Order Only</span>
+                <% end %>
+                <% if coupon.is_active? %>
+                  <% if coupon.valid_from > Date.current %>
+                    <span class="badge bg-secondary">Upcoming</span>
+                  <% elsif coupon.valid_until < Date.current %>
+                    <span class="badge bg-secondary">Expired</span>
+                  <% else %>
+                    <span class="badge bg-success">Active</span>
+                  <% end %>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </div>
+              
+              <div class="small text-muted">
+                <i class="fas fa-calendar me-1"></i>
+                <%= coupon.valid_from.strftime('%b %d, %Y') %> - <%= coupon.valid_until.strftime('%b %d, %Y') %>
+              </div>
+              
+              <% if coupon.max_uses || coupon.usage_count %>
+                <div class="small text-muted mt-1">
+                  Used: <%= coupon.usage_count || 0 %> 
+                  <% if coupon.max_uses %>/<%= coupon.max_uses %><% end %> times
+                </div>
+              <% end %>
+            </div>
+            <div class="card-footer">
+              <%= link_to "View Details", admin_coupon_path(coupon), class: "btn btn-sm btn-outline-primary w-100" %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="col-12">
+        <div class="alert alert-info text-center">
+          <i class="fas fa-info-circle me-2"></i>
+          No coupons found.
+          <%= link_to "Create your first coupon", new_admin_coupon_path, class: "alert-link" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+  
+  <!-- Pagination -->
+  <% if @coupons.respond_to?(:current_page) %>
+    <div class="d-flex justify-content-center mt-4">
+      <%= paginate @coupons if defined?(Kaminari) %>
+    </div>
+  <% end %>
+</div>
+

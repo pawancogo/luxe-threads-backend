@@ -6,12 +6,14 @@
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    origins '*'
+    # Restrict origins in production, allow all in development
+    origins Rails.env.production? ? ENV.fetch('FRONTEND_URL', 'https://yourdomain.com').split(',') : '*'
     
     resource '*',
       headers: :any,
       methods: [:get, :post, :put, :patch, :delete, :options, :head],
-      expose: ['Authorization']
+      expose: ['Authorization'],
+      credentials: Rails.env.production? # Enable credentials in production
   end
 end
 

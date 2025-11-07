@@ -1,0 +1,126 @@
+<% content_for :title, "Promotions Management" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-bullhorn me-2"></i>Promotions Management
+    </h1>
+    <div>
+      <%= link_to "New Promotion", new_admin_promotion_path, class: "btn btn-primary" %>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <%= form_with url: admin_promotions_path, method: :get, local: true, class: "row g-3" do |f| %>
+        <div class="col-md-4">
+          <%= f.select :is_active, [["All", ""], ["Active", "true"], ["Inactive", "false"]], 
+                       { selected: params[:is_active] }, { class: "form-select" } %>
+        </div>
+        <div class="col-md-4">
+          <%= f.select :promotion_type, 
+              [["All Types", ""], ["Flash Sale", "flash_sale"], ["Buy X Get Y", "buy_x_get_y"], 
+               ["Bundle Deal", "bundle_deal"], ["Seasonal Sale", "seasonal_sale"]],
+              { selected: params[:promotion_type] }, { class: "form-select" } %>
+        </div>
+        <div class="col-md-4">
+          <%= f.submit "Filter", class: "btn btn-primary" %>
+          <%= link_to "Clear", admin_promotions_path, class: "btn btn-outline-secondary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Promotions Grid -->
+  <div class="row g-4">
+    <% if @promotions.any? %>
+      <% @promotions.each do |promotion| %>
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><%= promotion.name %></h5>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-link" type="button" data-bs-toggle="dropdown">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><%= link_to "View", admin_promotion_path(promotion), class: "dropdown-item" %></li>
+                  <li><%= link_to "Edit", edit_admin_promotion_path(promotion), class: "dropdown-item" %></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><%= link_to "Delete", admin_promotion_path(promotion), method: :delete, 
+                              class: "dropdown-item text-danger",
+                              data: { confirm: "Are you sure?" } %></li>
+                </ul>
+              </div>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small"><%= truncate(promotion.description, length: 100) %></p>
+              
+              <div class="mb-2">
+                <span class="badge bg-info"><%= promotion.promotion_type.humanize %></span>
+                <% if promotion.is_featured? %>
+                  <span class="badge bg-warning">Featured</span>
+                <% end %>
+                <% if promotion.is_active? %>
+                  <% if promotion.start_date > Date.current %>
+                    <span class="badge bg-secondary">Upcoming</span>
+                  <% elsif promotion.end_date < Date.current %>
+                    <span class="badge bg-secondary">Expired</span>
+                  <% else %>
+                    <span class="badge bg-success">Active</span>
+                  <% end %>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </div>
+              
+              <% if promotion.discount_percentage %>
+                <div class="mb-2">
+                  <strong class="text-success"><%= promotion.discount_percentage %>% OFF</strong>
+                </div>
+              <% elsif promotion.discount_amount %>
+                <div class="mb-2">
+                  <strong class="text-success">₹<%= number_with_delimiter(promotion.discount_amount) %> OFF</strong>
+                </div>
+              <% end %>
+              
+              <div class="small text-muted">
+                <i class="fas fa-calendar me-1"></i>
+                <%= promotion.start_date.strftime('%b %d, %Y') %> - <%= promotion.end_date.strftime('%b %d, %Y') %>
+              </div>
+              
+              <% if promotion.min_order_amount %>
+                <div class="small text-muted mt-1">
+                  Min order: ₹<%= number_with_delimiter(promotion.min_order_amount) %>
+                </div>
+              <% end %>
+            </div>
+            <div class="card-footer">
+              <%= link_to "View Details", admin_promotion_path(promotion), class: "btn btn-sm btn-outline-primary w-100" %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="col-12">
+        <div class="alert alert-info text-center">
+          <i class="fas fa-info-circle me-2"></i>
+          No promotions found.
+          <%= link_to "Create your first promotion", new_admin_promotion_path, class: "alert-link" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+  
+  <!-- Pagination -->
+  <% if @promotions.respond_to?(:current_page) %>
+    <div class="d-flex justify-content-center mt-4">
+      <%= paginate @promotions if defined?(Kaminari) %>
+    </div>
+  <% end %>
+</div>
+

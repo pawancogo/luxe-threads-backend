@@ -13,4 +13,13 @@ class AttributeValue < ApplicationRecord
   def predefined?
     attribute_type&.predefined? && attribute_type.predefined_values.include?(value)
   end
+
+  # Phase 2: JSON field helpers
+  def metadata_hash
+    return {} if metadata.blank?
+    JSON.parse(metadata) rescue {}
+  end
+
+  # Phase 2: Scopes
+  scope :sorted, -> { order(:display_order, :value) }
 end

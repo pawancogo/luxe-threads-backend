@@ -1,35 +1,75 @@
-// RailsAdmin Custom Styles for Logout Button
-.navbar-right {
+// RailsAdmin Custom Navigation Styles
+.root_links {
   display: flex !important;
   align-items: center !important;
-  margin-right: 15px !important;
+  flex-wrap: nowrap !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+  justify-content: flex-end !important;
+  
+  .nav-item {
+    display: flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+  }
+  
+  .navbar-text {
+    color: #333 !important;
+    margin: 0 !important;
+    padding: 0.25rem 0.5rem !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+  }
+  
+  .btn {
+    margin: 0 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    
+    &.btn-danger {
+      background-color: #dc3545 !important;
+      border-color: #dc3545 !important;
+      color: white !important;
+      
+      &:hover {
+        background-color: #bb2d3b !important;
+        border-color: #b02a37 !important;
+        color: white !important;
+      }
+    }
+    
+    &.btn-outline-secondary {
+      border-color: #6c757d !important;
+      color: #6c757d !important;
+      
+      &:hover {
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+        color: white !important;
+      }
+    }
+  }
+  
+  .fa-user,
+  .fa-tachometer-alt,
+  .fa-sign-out {
+    margin-right: 0.25rem !important;
+  }
 }
 
-.navbar-right .navbar-text {
-  color: #333 !important;
-  margin-right: 10px !important;
-  display: inline-block !important;
-  vertical-align: middle !important;
+// Hide all logout buttons except our custom one
+a[href*="logout"]:not(.rails-admin-logout-only),
+.badge.bg-danger,
+.nav-link[href*="logout"],
+.root_links li.nav-item:has(a[href*="logout"]:not(.rails-admin-logout-only)) {
+  display: none !important;
 }
 
-.navbar-right .btn {
-  margin-left: 10px !important;
-}
-
-.navbar-right .btn-danger {
-  background-color: #d9534f !important;
-  border-color: #d43f3a !important;
-  color: white !important;
-}
-
-.navbar-right .btn-danger:hover {
-  background-color: #c9302c !important;
-  border-color: #ac2925 !important;
-  color: white !important;
-}
-
-.navbar-right .fa-power-off {
-  margin-right: 5px !important;
+// Ensure our custom logout button is visible
+.rails-admin-logout-only {
+  display: inline-flex !important;
+  visibility: visible !important;
 }
 
 

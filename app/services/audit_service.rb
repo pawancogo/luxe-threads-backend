@@ -4,9 +4,9 @@ class AuditService
     if user.is_a?(Admin)
       PaperTrail.request.whodunnit = "Admin:#{user.id}"
     elsif user.is_a?(User)
-      PaperTrail.request.whodunnit = "User:#{user.id}"
-    elsif user.is_a?(Supplier)
-      PaperTrail.request.whodunnit = "Supplier:#{user.id}"
+      # Suppliers are now Users with role='supplier'
+      whodunnit_prefix = user.role == 'supplier' ? "Supplier" : "User"
+      PaperTrail.request.whodunnit = "#{whodunnit_prefix}:#{user.id}"
     else
       PaperTrail.request.whodunnit = "System:Unknown"
     end
@@ -125,7 +125,8 @@ class AuditService
     when 'User'
       User.find_by(id: id)
     when 'Supplier'
-      Supplier.find_by(id: id)
+      # Suppliers are now Users with role='supplier'
+      User.where(role: 'supplier').find_by(id: id)
     else
       nil
     end

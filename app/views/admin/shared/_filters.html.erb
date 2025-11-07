@@ -1,0 +1,212 @@
+<% if @filters&.any? { |e| e.last.length != 0 } %>
+<form id="search" action="<%= request.path %>" method="get">
+  <div class="row mb-3 align-items-end">
+    <% if local_assigns[:pagination].nil? || local_assigns[:pagination] %>
+    <div class="col-sm-1">
+      <div class="form-group mb-0">
+        <label for="per_page" class="form-label small text-muted mb-1">Per Page</label>
+        <%= select_tag :per_page, options_for_select([15, 25, 50, 100, 200], params[:per_page] || 15), { class: 'form-control form-control-sm', id: 'per_page', onchange: 'this.form.submit()' } %>
+      </div>
+    </div>
+    <% end %>
+    
+    <% @filters.each do |key, value| %>
+      <% if key == :search || key == 'search' %>
+        <div class="col-sm-2">
+          <div class="form-group mb-0">
+            <label for="search" class="form-label small text-muted mb-1">Search</label>
+            <%= text_field_tag :search, get_value(params[:search]), class: "form-control form-control-sm", id: "search", placeholder: "Search..." %>
+          </div>
+        </div>
+      <% elsif key == :range_term || key == 'range_term' %>
+        <% if value.present? && value.is_a?(Array) && value.length > 0 %>
+          <div class="col-sm-4">
+            <div class="form-group mb-0">
+              <label class="form-label small text-muted mb-1">Price Range</label>
+              <div class="d-flex gap-2">
+                <%= select_tag "range_term", options_for_select(value, params[:range_term]), { include_blank: "Select field", class: 'form-control form-control-sm', style: 'flex: 1;' } %>
+                <%= number_field_tag :min, get_value(params[:min]), placeholder: 'Min', min: 0, step: 0.01, class: "form-control form-control-sm", style: 'width: 100px;' %>
+                <%= number_field_tag :max, get_value(params[:max]), placeholder: 'Max', min: 0, step: 0.01, class: "form-control form-control-sm", style: 'width: 100px;' %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      <% elsif key == :date_range || key == 'date_range' %>
+        <% if value.present? %>
+          <div class="col-sm-3">
+            <div class="form-group mb-0">
+              <label for="date-range-picker" class="form-label small text-muted mb-1">Date Range</label>
+              <div id="daterangepicker" class="date-picker-container" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                <i class="fas fa-calendar me-2"></i>
+                <input
+                  name="date_range"
+                  type="text"
+                  class="date-range form-control form-control-sm d-inline-block"
+                  value="<%= params[:date_range] %>"
+                  placeholder="Select date range"
+                  style="display: inline; width: 75%; border: 0; background: transparent;"
+                  autocomplete="off"
+                  readonly
+                  id="date-range-picker"
+                >
+                <i class="fas fa-caret-down"></i>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      <% elsif key == :date_range_overlap || key == 'date_range_overlap' %>
+        <% if value.present? %>
+          <div class="col-sm-3">
+            <div class="form-group mb-0">
+              <label for="date-range-overlap-picker" class="form-label small text-muted mb-1">Date Range Overlap</label>
+              <div id="daterangeoverlappicker" class="date-picker-container" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ced4da; border-radius: 0.25rem;">
+                <i class="fas fa-calendar me-2"></i>
+                <input
+                  name="date_range_overlap"
+                  type="text"
+                  class="date-range-overlap form-control form-control-sm d-inline-block"
+                  value="<%= params[:date_range_overlap] %>"
+                  placeholder="Select date range"
+                  style="display: inline; width: 75%; border: 0; background: transparent;"
+                  autocomplete="off"
+                  readonly
+                  id="date-range-overlap-picker"
+                >
+                <i class="fas fa-caret-down"></i>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <% next if value.length == 0 %>
+        <% 
+          # Determine model class from controller
+          model_class = begin
+            controller_name = controller.controller_name.singularize.camelize
+            controller_name.constantize rescue nil
+          end
+        %>
+        <div class="col-sm-3">
+          <div class="form-group mb-0">
+            <label for="<%= key %>" class="form-label small text-muted mb-1">
+              <%= filter_label_for(key, model_class) %>
+            </label>
+            <%= select_tag key, options_for_select(format_filter(value, key), params[key]), { include_blank: include_blank_by(key), class: 'form-control form-control-sm', id: key.to_s } %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+
+    <% if params[:status].present? %>
+      <%= hidden_field_tag :status, params[:status] %>
+    <% end %>
+
+    <div class="col-sm-3">
+      <div class="form-group mb-0">
+        <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
+        <div>
+          <button type="submit" class="btn btn-primary btn-sm">Search</button>
+          <%= link_to 'Clear', request.path, class: 'btn btn-sm btn-secondary' %>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<% if @filters && (@filters[:date_range] || @filters['date_range'] || @filters[:date_range_overlap] || @filters['date_range_overlap']) %>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Date Range Picker
+    <% if @filters[:date_range] || @filters['date_range'] %>
+    if (typeof $ !== 'undefined' && $.fn.daterangepicker) {
+      var range = $('#daterangepicker .date-range').val();
+      var start, end;
+      
+      if (range) {
+        var parts = range.split(' - ');
+        start = moment(parts[0], 'MM/DD/YYYY');
+        end = moment(parts[1], 'MM/DD/YYYY');
+      } else {
+        start = moment().startOf('month');
+        end = moment().endOf('month');
+      }
+      
+      function cb(start, end) {
+        $('#daterangepicker .date-range').val(start.format('MM/DD/YYYY') + ' - ' + end.format('MM/DD/YYYY'));
+      }
+      
+      $('#daterangepicker').daterangepicker({
+        startDate: start,
+        endDate: end,
+        ranges: {
+          'Today': [moment(), moment()],
+          'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+          'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+          'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+          'This Month': [moment().startOf('month'), moment().endOf('month')],
+          'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        },
+        autoUpdateInput: false,
+        locale: { cancelLabel: 'Clear' }
+      }, cb);
+      
+      $('#daterangepicker').on('apply.daterangepicker', function(ev, picker) {
+        $('#daterangepicker .date-range').val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+        document.getElementById('search').submit();
+      });
+      
+      $('#daterangepicker').on('cancel.daterangepicker', function(ev, picker) {
+        $('#daterangepicker .date-range').val('');
+        document.getElementById('search').submit();
+      });
+    }
+    <% end %>
+    
+    // Date Range Overlap Picker
+    <% if @filters[:date_range_overlap] || @filters['date_range_overlap'] %>
+    if (typeof $ !== 'undefined' && $.fn.daterangepicker) {
+      var range = $('#daterangeoverlappicker .date-range-overlap').val();
+      var start, end;
+      
+      if (range) {
+        var parts = range.split(' - ');
+        start = moment(parts[0], 'MM/DD/YYYY');
+        end = moment(parts[1], 'MM/DD/YYYY');
+      } else {
+        start = moment().startOf('month');
+        end = moment().endOf('month');
+      }
+      
+      function cb(start, end) {
+        $('#daterangeoverlappicker .date-range-overlap').val(start.format('MM/DD/YYYY') + ' - ' + end.format('MM/DD/YYYY'));
+      }
+      
+      $('#daterangeoverlappicker').daterangepicker({
+        startDate: start,
+        endDate: end,
+        ranges: {
+          'Today': [moment(), moment()],
+          'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+          'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+          'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+          'This Month': [moment().startOf('month'), moment().endOf('month')],
+          'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        },
+        autoUpdateInput: false,
+        locale: { cancelLabel: 'Clear' }
+      }, cb);
+      
+      $('#daterangeoverlappicker').on('apply.daterangepicker', function(ev, picker) {
+        $('#daterangeoverlappicker .date-range-overlap').val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+        document.getElementById('search').submit();
+      });
+      
+      $('#daterangeoverlappicker').on('cancel.daterangepicker', function(ev, picker) {
+        $('#daterangeoverlappicker .date-range-overlap').val('');
+        document.getElementById('search').submit();
+      });
+    }
+    <% end %>
+  });
+</script>
+<% end %>

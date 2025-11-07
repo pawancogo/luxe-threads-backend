@@ -29,6 +29,9 @@ gem "argon2", "~> 2.2"
 gem "rack-cors"
 gem "jwt"
 
+# For rate limiting
+gem "rack-attack"
+
 # For Admin Interface and Authorization
 gem "rails_admin"
 gem "pundit"
@@ -101,7 +104,12 @@ gem 'cloudinary'
 
 gem 'stripe'
 gem "sassc-rails"
+gem 'prawn', '~> 2.4'
+gem 'prawn-table', '~> 0.2'
 
 # Bootstrap and jQuery for admin panel
 gem 'bootstrap', '~> 5.3'
 gem 'jquery-rails'
+
+# Pagination for admin views
+gem 'kaminari'

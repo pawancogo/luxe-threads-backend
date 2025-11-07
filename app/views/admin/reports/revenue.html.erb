@@ -1,0 +1,141 @@
+<% content_for :title, "Revenue Report" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-dollar-sign me-2"></i>Revenue Report
+    </h1>
+    <div>
+      <%= link_to "Export CSV", admin_reports_export_path(report_type: 'revenue', start_date: params[:start_date], end_date: params[:end_date]), 
+          class: "btn btn-sm btn-outline-success" %>
+      <%= link_to "Back to Reports", admin_reports_path, class: "btn btn-sm btn-outline-secondary" %>
+    </div>
+  </div>
+  
+  <% if @report_data.present? %>
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-4">
+        <div class="card border-success">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Total Revenue</h6>
+            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@report_data[:summary][:total_revenue] || 0) %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-info">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Total Orders</h6>
+            <h3 class="mb-0 text-info"><%= @report_data[:summary][:total_orders] || 0 %></h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-primary">
+          <div class="card-body">
+            <h6 class="text-muted mb-1">Avg Order Value</h6>
+            <h3 class="mb-0 text-primary">₹<%= number_with_delimiter(@report_data[:summary][:average_order_value] || 0) %></h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Daily Revenue -->
+    <% if @report_data[:daily_revenue].present? %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Daily Revenue Trend</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Revenue</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:daily_revenue].each do |stat| %>
+                  <tr>
+                    <td><%= Date.parse(stat[:date]).strftime('%b %d, %Y') %></td>
+                    <td>₹<%= number_with_delimiter(stat[:revenue]) %></td>
+                    <td><%= stat[:orders_count] %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    
+    <!-- Revenue by Category -->
+    <% if @report_data[:revenue_by_category].present? %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Revenue by Category</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:revenue_by_category].each do |cat| %>
+                  <tr>
+                    <td><%= cat[:category_name] %></td>
+                    <td>₹<%= number_with_delimiter(cat[:revenue]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    
+    <!-- Revenue by Payment Method -->
+    <% if @report_data[:revenue_by_payment_method].present? %>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Revenue by Payment Method</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Payment Method</th>
+                  <th>Revenue</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:revenue_by_payment_method].each do |method| %>
+                  <tr>
+                    <td><%= method[:payment_method] %></td>
+                    <td>₹<%= number_with_delimiter(method[:revenue]) %></td>
+                    <td><%= method[:orders_count] %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      No revenue data available for the selected date range.
+    </div>
+  <% end %>
+</div>
+

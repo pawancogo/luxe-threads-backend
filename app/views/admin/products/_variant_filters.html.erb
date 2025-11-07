@@ -1,0 +1,19 @@
+<!-- Variant Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <%= form_with url: admin_product_path(@product), method: :get, local: true, class: "row g-2" do |f| %>
+      <div class="col-md-5">
+        <%= f.text_field :variant_search, placeholder: "Search by SKU...", value: params[:variant_search], class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-md-3">
+        <%= f.select :variant_status, [["All", ""], ["Available", "available"], ["Unavailable", "unavailable"], ["Low Stock", "low_stock"], ["Out of Stock", "out_of_stock"]], 
+                     { selected: params[:variant_status] }, { class: "form-select form-select-sm" } %>
+      </div>
+      <div class="col-md-4">
+        <%= f.submit "Filter", class: "btn btn-primary btn-sm" %>
+        <%= link_to "Clear", admin_product_path(@product), class: "btn btn-outline-secondary btn-sm" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+

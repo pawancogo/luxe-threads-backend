@@ -25,4 +25,25 @@ class AttributeType < ApplicationRecord
       attribute_values.find_or_create_by!(value: value_name)
     end
   end
+
+  # Phase 2: JSON field helpers
+  def applicable_product_types_array
+    return [] if applicable_product_types.blank?
+    JSON.parse(applicable_product_types) rescue []
+  end
+
+  def applicable_categories_array
+    return [] if applicable_categories.blank?
+    JSON.parse(applicable_categories) rescue []
+  end
+
+  def validation_rules_hash
+    return {} if validation_rules.blank?
+    JSON.parse(validation_rules) rescue {}
+  end
+
+  # Phase 2: Scopes
+  scope :variant_attributes, -> { where(is_variant_attribute: true) }
+  scope :product_attributes, -> { where(is_variant_attribute: false) }
+  scope :by_data_type, ->(type) { where(data_type: type) }
 end

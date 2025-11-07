@@ -1,0 +1,123 @@
+<% content_for :title, "Promotion - #{@promotion.name}" %>
+
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-bullhorn me-2"></i><%= @promotion.name %>
+    </h1>
+    <div>
+      <%= link_to "Back to Promotions", admin_promotions_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_promotion_path(@promotion), class: "btn btn-primary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Promotion Details</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">Name</th>
+              <td><%= @promotion.name %></td>
+            </tr>
+            <tr>
+              <th>Description</th>
+              <td><%= simple_format(@promotion.description) %></td>
+            </tr>
+            <tr>
+              <th>Promotion Type</th>
+              <td><%= @promotion.promotion_type.humanize %></td>
+            </tr>
+            <tr>
+              <th>Start Date</th>
+              <td><%= @promotion.start_date.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+            <tr>
+              <th>End Date</th>
+              <td><%= @promotion.end_date.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                <% if @promotion.is_active? %>
+                  <% if @promotion.start_date > Date.current %>
+                    <span class="badge bg-secondary">Upcoming</span>
+                  <% elsif @promotion.end_date < Date.current %>
+                    <span class="badge bg-secondary">Expired</span>
+                  <% else %>
+                    <span class="badge bg-success">Active</span>
+                  <% end %>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Featured</th>
+              <td>
+                <% if @promotion.is_featured? %>
+                  <span class="badge bg-warning">Yes</span>
+                <% else %>
+                  <span class="badge bg-secondary">No</span>
+                <% end %>
+              </td>
+            </tr>
+            <% if @promotion.discount_percentage %>
+              <tr>
+                <th>Discount</th>
+                <td><strong class="text-success"><%= @promotion.discount_percentage %>% OFF</strong></td>
+              </tr>
+            <% end %>
+            <% if @promotion.discount_amount %>
+              <tr>
+                <th>Discount Amount</th>
+                <td><strong class="text-success">₹<%= number_with_delimiter(@promotion.discount_amount) %> OFF</strong></td>
+              </tr>
+            <% end %>
+            <% if @promotion.min_order_amount %>
+              <tr>
+                <th>Minimum Order Amount</th>
+                <td>₹<%= number_with_delimiter(@promotion.min_order_amount) %></td>
+              </tr>
+            <% end %>
+            <% if @promotion.max_discount_amount %>
+              <tr>
+                <th>Maximum Discount</th>
+                <td>₹<%= number_with_delimiter(@promotion.max_discount_amount) %></td>
+              </tr>
+            <% end %>
+            <tr>
+              <th>Created By</th>
+              <td><%= @promotion.created_by&.full_name || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th>Created At</th>
+              <td><%= @promotion.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "Edit Promotion", edit_admin_promotion_path(@promotion), class: "btn btn-primary" %>
+            <%= link_to "Delete Promotion", admin_promotion_path(@promotion), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
