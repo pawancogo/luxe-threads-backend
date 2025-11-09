@@ -38,7 +38,7 @@ gem "rails_admin"
 gem "pundit"
 
 # For audit logging and versioning
-gem "paper_trail", "~> 14.0"
+gem "paper_trail", "~> 17.0"
 
 # For soft deletes
 gem "paranoia", "~> 2.6"
