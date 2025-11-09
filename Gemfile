@@ -6,7 +6,7 @@ ruby "3.3.6"
 gem "rails", "~> 7.1.6"
 
 # Environment variables
-gem "dotenv-rails", "~> 2.8"
+gem "dotenv-rails", "~> 3.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use SQLite for development, PostgreSQL for production
