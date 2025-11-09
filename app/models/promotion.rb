@@ -52,3 +52,4 @@ class Promotion < ApplicationRecord
 end
 
 
+

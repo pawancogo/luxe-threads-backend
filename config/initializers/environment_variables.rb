@@ -1,6 +1,12 @@
 # Environment Variables Configuration
 # This file loads and validates all environment variables
 
+# Debug: Check if env vars are loaded when initializer runs
+if defined?(Rails) && Rails.logger
+  Rails.logger.info "🔍 Initializer - SMTP_USERNAME: #{ENV['SMTP_USERNAME'].present? ? 'SET (' + ENV['SMTP_USERNAME'] + ')' : 'NOT SET'}"
+  Rails.logger.info "🔍 Initializer - SMTP_PASSWORD: #{ENV['SMTP_PASSWORD'].present? ? 'SET (' + ENV['SMTP_PASSWORD'].length.to_s + ' chars)' : 'NOT SET'}"
+end
+
 Rails.application.configure do
   # ===========================================
   # REQUIRED ENVIRONMENT VARIABLES
@@ -27,6 +33,9 @@ Rails.application.configure do
   # ===========================================
   config.host = ENV.fetch('HOST', 'localhost')
   config.port = ENV.fetch('PORT', 3000).to_i
+  
+  # Frontend URL (for supplier/customer facing links)
+  config.frontend_url = ENV.fetch('FRONTEND_URL', 'http://localhost:8080')
 
   # ===========================================
   # JWT CONFIGURATION

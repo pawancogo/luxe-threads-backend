@@ -9,7 +9,7 @@ module SmtpConfigurable
 
       config.action_mailer.delivery_method = :smtp
       config.action_mailer.perform_deliveries = true
-      config.action_mailer.raise_delivery_errors = environment == :production
+      config.action_mailer.raise_delivery_errors = true
       config.action_mailer.smtp_settings = build_smtp_settings
 
       log_smtp_configuration if environment == :development
@@ -18,7 +18,7 @@ module SmtpConfigurable
     private
 
     def build_smtp_settings
-      {
+      settings = {
         address: smtp_address,
         port: smtp_port,
         domain: smtp_domain,
@@ -28,6 +28,14 @@ module SmtpConfigurable
         enable_starttls_auto: starttls_enabled?,
         openssl_verify_mode: ssl_verify_mode
       }
+      
+      # For Gmail, ensure we're using the correct settings
+      if smtp_address.include?('gmail.com')
+        settings[:enable_starttls_auto] = true
+        settings[:openssl_verify_mode] = 'peer'
+      end
+      
+      settings
     end
 
     def smtp_credentials_present?
@@ -95,6 +103,9 @@ module SmtpConfigurable
       Rails.logger.info "  Password: #{smtp_password.present? ? "[SET - #{normalize_password(smtp_password).length} chars]" : '[NOT SET]'}"
       Rails.logger.info "  Authentication: #{smtp_authentication}"
       Rails.logger.info "  STARTTLS: #{starttls_enabled?}"
+      Rails.logger.info "  Credentials Present: #{smtp_credentials_present?}"
+      Rails.logger.info "  Perform Deliveries: #{Rails.application.config.action_mailer.perform_deliveries}"
+      Rails.logger.info "  Delivery Method: #{Rails.application.config.action_mailer.delivery_method}"
       Rails.logger.info '=' * 60
     end
   end

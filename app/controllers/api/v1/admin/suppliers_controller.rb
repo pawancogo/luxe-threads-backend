@@ -4,8 +4,8 @@ module Api::V1::Admin
   class SuppliersController < BaseController
     include AdminApiAuthorization
     
-    before_action :require_supplier_admin_role!, only: [:index, :show, :update, :destroy, :activate, :deactivate, :suspend]
-    before_action :set_supplier, only: [:show, :update, :destroy, :activate, :deactivate, :suspend, :stats]
+    before_action :require_supplier_admin_role!, only: [:index, :show, :update, :destroy, :activate, :deactivate, :suspend, :invite, :resend_invitation]
+    before_action :set_supplier, only: [:show, :update, :destroy, :activate, :deactivate, :suspend, :stats, :resend_invitation]
     
     # GET /api/v1/admin/suppliers
     def index
@@ -124,6 +124,63 @@ module Api::V1::Admin
       end
     end
     
+    # POST /api/v1/admin/suppliers/invite
+    def invite
+      supplier_params_data = params[:supplier] || {}
+      email = supplier_params_data[:email]
+      invitation_role = supplier_params_data[:invitation_role] || 'supplier'
+      supplier_profile_id = supplier_params_data[:supplier_profile_id]
+      account_role = supplier_params_data[:account_role] || 'staff'
+      
+      unless email.present?
+        render_validation_errors(['Email is required'], 'Invitation failed')
+        return
+      end
+      
+      @supplier = User.find_or_initialize_by(email: email)
+      @supplier.role = 'supplier' if @supplier.new_record?
+      
+      # Build options for child supplier invitation
+      options = {}
+      if supplier_profile_id.present?
+        # Prevent assigning owner role via invitation
+        if account_role == 'owner'
+          render_validation_errors(['Owner role cannot be assigned via invitation. The parent supplier is automatically the owner.'], 'Invitation failed')
+          return
+        end
+        
+        options[:supplier_profile_id] = supplier_profile_id
+        options[:account_role] = account_role
+        options[:permissions] = {
+          can_manage_products: supplier_params_data[:can_manage_products] || false,
+          can_manage_orders: supplier_params_data[:can_manage_orders] || false,
+          can_view_financials: supplier_params_data[:can_view_financials] || false,
+          can_manage_users: supplier_params_data[:can_manage_users] || false,
+          can_manage_settings: supplier_params_data[:can_manage_settings] || false,
+          can_view_analytics: supplier_params_data[:can_view_analytics] || false
+        }
+      end
+      
+      service = InvitationService.new(@supplier, @current_admin)
+      
+      if service.send_supplier_invitation(invitation_role, options)
+        render_created(format_supplier_detail_data(@supplier), "Invitation sent to #{@supplier.email} successfully")
+      else
+        render_validation_errors(service.errors, 'Failed to send invitation')
+      end
+    end
+
+    # POST /api/v1/admin/suppliers/:id/resend_invitation
+    def resend_invitation
+      service = InvitationService.new(@supplier, @current_admin)
+      
+      if service.resend_invitation
+        render_success(format_supplier_detail_data(@supplier), "Invitation resent to #{@supplier.email}")
+      else
+        render_validation_errors(service.errors, 'Failed to resend invitation')
+      end
+    end
+
     # GET /api/v1/admin/suppliers/:id/stats
     def stats
       profile = @supplier.primary_supplier_profile || @supplier.supplier_profile

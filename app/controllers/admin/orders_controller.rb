@@ -6,7 +6,9 @@ class Admin::OrdersController < Admin::BaseController
     before_action :set_order, only: [:show, :edit, :update, :destroy, :cancel, :update_status, :notes, :audit_log, :refund]
 
     def index
-      @orders = Order.includes(:user)._search(params, date_range_column: :created_at).order(created_at: :desc)
+      search_options = { date_range_column: :created_at }
+      search_options[:range_field] = @filters[:range_field] if @filters[:range_field].present?
+      @orders = Order.includes(:user)._search(params, **search_options).order(created_at: :desc)
       @filters.merge!(@orders.filter_with_aggs)
     end
 
@@ -71,7 +73,17 @@ class Admin::OrdersController < Admin::BaseController
     end
 
     def require_order_admin_role!
-      unless current_admin&.super_admin? || current_admin&.order_admin?
+      # Check if admin has permission to view orders (dynamic RBAC check)
+      has_permission = if current_admin
+        current_admin.super_admin? || 
+        current_admin.order_admin? || 
+        current_admin.has_permission?('orders:view') ||
+        current_admin.has_permission?('orders:read')
+      else
+        false
+      end
+      
+      unless has_permission
         redirect_to admin_root_path, alert: 'You do not have permission to access this page.'
       end
     end

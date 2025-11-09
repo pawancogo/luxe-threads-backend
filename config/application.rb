@@ -35,8 +35,10 @@ module LuxeThreads
     # ===========================================
     # API CONFIGURATION
     # ===========================================
-    # Only return JSON responses for API controllers
-    config.api_only = true
+    # Note: api_only is set to false because we use RailsAdmin (needs views)
+    # and ActiveStorage (needs full Rails stack) for file uploads
+    # API controllers can still return JSON-only responses
+    # config.api_only = true
 
     # ===========================================
     # SECURITY CONFIGURATION

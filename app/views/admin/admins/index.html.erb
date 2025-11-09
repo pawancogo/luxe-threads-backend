@@ -9,8 +9,11 @@
       <p class="text-muted mb-0 mt-2">Manage admin users and their permissions</p>
     </div>
     <div>
-      <%= link_to new_admin_admin_path, class: "btn btn-primary" do %>
-        <i class="fas fa-plus me-2"></i>Add New Admin
+      <%= link_to invite_admin_admins_path, class: "btn btn-success me-2" do %>
+        <i class="fas fa-envelope me-2"></i>Invite Admin
+      <% end %>
+      <%= link_to new_admin_admin_path, class: "btn btn-primary me-2" do %>
+        <i class="fas fa-plus me-2"></i>Create Admin
       <% end %>
       <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
         <i class="fas fa-database me-2"></i>View in RailsAdmin
@@ -38,39 +41,51 @@
     </div>
   </div>
 
+  <!-- Search & Filters -->
+  <%= render 'admin/shared/filters', records: @admins %>
+
   <!-- Admins Table -->
   <div class="table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover table-sticky">
       <thead>
         <tr>
-          <th>Name</th>
+          <th class="sticky-col sticky-start sticky-header">Name</th>
           <th>Email</th>
           <th>Phone</th>
           <th>Role</th>
           <th>Status</th>
           <th>Created</th>
-          <th>Actions</th>
+          <th class="sticky-col sticky-end sticky-header">Actions</th>
         </tr>
       </thead>
       <tbody>
         <% if @admins.any? %>
           <% @admins.each do |admin| %>
             <tr>
-              <td>
+              <td class="sticky-col sticky-start sticky-cell">
                 <div class="d-flex align-items-center">
                   <div class="avatar-circle bg-primary text-white me-2">
-                    <%= admin.first_name.first.upcase %><%= admin.last_name.first.upcase if admin.last_name.present? %>
+                    <% if admin.first_name.present? %>
+                      <%= admin.first_name.first.upcase %><%= admin.last_name.first.upcase if admin.last_name.present? %>
+                    <% else %>
+                      <%= admin.email.first.upcase %>
+                    <% end %>
                   </div>
                   <div>
-                    <strong><%= admin.full_name %></strong>
+                    <strong><%= admin.first_name.present? ? admin.full_name : admin.email %></strong>
                     <% if admin == current_admin %>
                       <span class="badge bg-info ms-2">You</span>
+                    <% end %>
+                    <% if admin.pending_invitation? %>
+                      <span class="badge bg-warning text-dark ms-2">
+                        <i class="fas fa-envelope me-1"></i>Invited
+                      </span>
                     <% end %>
                   </div>
                 </div>
               </td>
               <td><%= admin.email %></td>
-              <td><%= admin.phone_number %></td>
+              <td><%= admin.phone_number || '<span class="text-muted">Not set</span>'.html_safe %></td>
               <td>
                 <% role_colors = {
                   'super_admin' => 'danger',
@@ -84,7 +99,13 @@
                 </span>
               </td>
               <td>
-                <% if admin.is_active && !admin.is_blocked %>
+                <% if admin.pending_invitation? %>
+                  <span class="badge bg-warning text-dark">
+                  <i class="fas fa-envelope me-1"></i>Pending Invitation
+                </span>
+                <% elsif admin.invitation_expired? %>
+                  <span class="badge bg-danger">Invitation Expired</span>
+                <% elsif admin.is_active && !admin.is_blocked %>
                   <span class="badge bg-success">Active</span>
                 <% elsif admin.is_blocked %>
                   <span class="badge bg-danger">Blocked</span>
@@ -93,7 +114,7 @@
                 <% end %>
               </td>
               <td><%= admin.created_at.strftime('%b %d, %Y') %></td>
-              <td>
+              <td class="sticky-col sticky-end sticky-cell">
                 <div class="btn-group btn-group-sm">
                   <%= link_to admin_admin_path(admin), class: "btn btn-outline-primary", title: "View Details" do %>
                     <i class="fas fa-eye"></i>
@@ -102,6 +123,52 @@
                     <i class="fas fa-edit"></i>
                   <% end %>
                   <% unless admin == current_admin %>
+                    <% if admin.pending_invitation? %>
+                      <%= form_with url: resend_invitation_admin_admin_path(admin), method: :post, 
+                          local: true,
+                          style: "display: inline-block;",
+                          data: { confirm: "Resend invitation email to #{admin.email}?" } do |f| %>
+                        <%= f.button type: :submit, class: "btn btn-outline-info btn-sm", title: "Resend Invitation" do %>
+                          <i class="fas fa-paper-plane"></i>
+                        <% end %>
+                      <% end %>
+                    <% elsif admin.is_blocked %>
+                      <%= form_with url: unblock_admin_admin_path(admin), method: :patch, 
+                          local: true,
+                          style: "display: inline-block;",
+                          data: { confirm: "Are you sure you want to unblock #{admin.full_name}?" } do |f| %>
+                        <%= f.button type: :submit, class: "btn btn-outline-success btn-sm", title: "Unblock Admin" do %>
+                          <i class="fas fa-unlock"></i>
+                        <% end %>
+                      <% end %>
+                    <% elsif admin.is_active %>
+                      <%= form_with url: block_admin_admin_path(admin), method: :patch, 
+                          local: true,
+                          style: "display: inline-block;",
+                          data: { confirm: "Are you sure you want to block #{admin.full_name}?" } do |f| %>
+                        <%= f.button type: :submit, class: "btn btn-outline-warning btn-sm", title: "Block Admin" do %>
+                          <i class="fas fa-ban"></i>
+                        <% end %>
+                      <% end %>
+                      <%= form_with url: status_admin_admin_path(admin), method: :patch, 
+                          local: true,
+                          style: "display: inline-block;",
+                          data: { confirm: "Are you sure you want to deactivate #{admin.full_name}?" } do |f| %>
+                        <%= f.hidden_field :status_action, value: 'deactivate' %>
+                        <%= f.button type: :submit, class: "btn btn-outline-secondary btn-sm", title: "Deactivate Admin" do %>
+                          <i class="fas fa-pause"></i>
+                        <% end %>
+                      <% end %>
+                    <% else %>
+                      <%= form_with url: status_admin_admin_path(admin), method: :patch, 
+                          local: true,
+                          style: "display: inline-block;" do |f| %>
+                        <%= f.hidden_field :status_action, value: 'activate' %>
+                        <%= f.button type: :submit, class: "btn btn-outline-success btn-sm", title: "Activate Admin" do %>
+                          <i class="fas fa-check-circle"></i>
+                        <% end %>
+                      <% end %>
+                    <% end %>
                     <%= link_to admin_admin_path(admin), method: :delete, 
                         class: "btn btn-outline-danger", 
                         title: "Delete Admin",
@@ -109,8 +176,8 @@
                       <i class="fas fa-trash"></i>
                     <% end %>
                   <% else %>
-                    <button class="btn btn-outline-secondary" disabled title="Cannot delete your own account">
-                      <i class="fas fa-trash"></i>
+                    <button class="btn btn-outline-secondary" disabled title="Cannot modify your own account">
+                      <i class="fas fa-info-circle"></i>
                     </button>
                   <% end %>
                 </div>
@@ -125,9 +192,11 @@
             </td>
           </tr>
         <% end %>
-      </tbody>
-    </table>
-  </div>
+    </tbody>
+  </table>
+</div>
+
+<%= render 'admin/shared/pagination', collection: @admins %>
 </div>
 
 <style>
@@ -140,5 +209,39 @@
     justify-content: center;
     font-weight: 600;
     font-size: 0.875rem;
+  }
+
+  .table-sticky thead th,
+  .table-sticky tbody td {
+    white-space: nowrap;
+  }
+
+  .table-sticky .sticky-col {
+    position: sticky;
+    z-index: 3;
+  }
+
+  .table-sticky .sticky-header {
+    background-color: #f8f9fa !important;
+  }
+
+  .table-sticky .sticky-start {
+    left: 0;
+  }
+
+  .table-sticky tbody .sticky-start {
+    z-index: 2;
+  }
+
+  .table-sticky .sticky-cell {
+    background-color: #fff !important;
+  }
+
+  .table-sticky .sticky-end {
+    right: 0;
+  }
+
+  .table-sticky tbody .sticky-end {
+    z-index: 2;
   }
 </style>

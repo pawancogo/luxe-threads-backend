@@ -2,34 +2,33 @@ require 'rails_helper'
 
 RSpec.describe Api::V1::CartsController, type: :controller do
   let(:user) { create(:user) }
-  let(:cart) { user.cart }
-  let(:product) { create(:product) }
-  let(:product_variant) { create(:product_variant, product: product) }
-  let(:cart_item) { create(:cart_item, cart: cart, product_variant: product_variant) }
+  let(:token) { JsonWebToken.encode(user_id: user.id) }
+  let(:headers) { { 'Authorization' => "Bearer #{token}" } }
 
   before do
-    allow(controller).to receive(:current_user).and_return(user)
-    allow(controller).to receive(:authenticate_request)
-  end
-
-  describe 'inheritance' do
-    it 'inherits from ApplicationController' do
-      expect(Api::V1::CartsController.superclass).to eq(ApplicationController)
-    end
+    request.headers.merge!(headers)
   end
 
   describe 'GET #show' do
-    it 'returns cart items with product and brand info' do
-      cart_item
+    it 'returns user cart' do
+      cart = create(:cart, user: user)
       get :show
-      expect(response).to have_http_status(:ok)
-      expect(JSON.parse(response.body)).to be_an(Array)
+      
+      expect(response).to have_http_status(:success)
+      json_response = JSON.parse(response.body)
+      expect(json_response['data']).to be_a(Hash)
     end
+  end
 
-    it 'returns empty array for empty cart' do
-      get :show
-      expect(response).to have_http_status(:ok)
-      expect(JSON.parse(response.body)).to eq([])
+  describe 'DELETE #destroy' do
+    it 'clears cart items' do
+      cart = create(:cart, user: user)
+      create(:cart_item, cart: cart)
+      
+      delete :destroy
+      
+      expect(response).to have_http_status(:success)
+      expect(cart.cart_items.count).to eq(0)
     end
   end
 end

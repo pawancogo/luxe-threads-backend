@@ -4,53 +4,35 @@ RSpec.describe Cart, type: :model do
   describe 'associations' do
     it { should belong_to(:user) }
     it { should have_many(:cart_items).dependent(:destroy) }
+    it { should have_many(:product_variants).through(:cart_items) }
   end
 
   describe 'factory' do
     it 'has a valid factory' do
-      cart = build(:cart)
-      expect(cart).to be_valid
+      expect(build(:cart)).to be_valid
     end
   end
 
-  describe 'methods' do
-    let(:cart) { create(:cart) }
-    let(:product) { create(:product) }
-    let(:product_variant) { create(:product_variant, product: product) }
-
-    describe '#total_items' do
-      it 'returns 0 for empty cart' do
-        expect(cart.total_items).to eq(0)
-      end
-
-      it 'returns total quantity of items' do
-        create(:cart_item, cart: cart, product_variant: product_variant, quantity: 2)
-        create(:cart_item, cart: cart, product_variant: product_variant, quantity: 3)
-        expect(cart.total_items).to eq(5)
-      end
+  describe '#total' do
+    it 'calculates total from cart items' do
+      cart = create(:cart)
+      variant1 = create(:product_variant, price: 100)
+      variant2 = create(:product_variant, price: 200)
+      
+      create(:cart_item, cart: cart, product_variant: variant1, quantity: 2)
+      create(:cart_item, cart: cart, product_variant: variant2, quantity: 1)
+      
+      expect(cart.total).to eq(400.0)
     end
+  end
 
-    describe '#total_amount' do
-      it 'returns 0 for empty cart' do
-        expect(cart.total_amount).to eq(0)
-      end
-
-      it 'calculates total amount based on current prices' do
-        product_variant.update(price: 100.0, discounted_price: 80.0)
-        create(:cart_item, cart: cart, product_variant: product_variant, quantity: 2)
-        expect(cart.total_amount).to eq(160.0) # 2 * 80.0
-      end
-    end
-
-    describe '#empty?' do
-      it 'returns true for empty cart' do
-        expect(cart.empty?).to be true
-      end
-
-      it 'returns false for cart with items' do
-        create(:cart_item, cart: cart, product_variant: product_variant)
-        expect(cart.empty?).to be false
-      end
+  describe '#item_count' do
+    it 'returns total quantity of items' do
+      cart = create(:cart)
+      create(:cart_item, cart: cart, quantity: 2)
+      create(:cart_item, cart: cart, quantity: 3)
+      
+      expect(cart.item_count).to eq(5)
     end
   end
 end

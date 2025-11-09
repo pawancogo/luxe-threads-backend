@@ -19,3 +19,4 @@ class CouponUsage < ApplicationRecord
 end
 
 
+

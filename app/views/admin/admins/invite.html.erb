@@ -1,0 +1,77 @@
+<% content_for :title, "Invite Admin" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-envelope me-2"></i>Invite Admin
+      </h1>
+      <p class="text-muted mb-0 mt-2">Send an invitation email to a new admin. They will set up their own account.</p>
+    </div>
+    <%= link_to "Back to Admins", admin_admins_path, class: "btn btn-outline-secondary" %>
+  </div>
+
+  <div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Invitation Flow:</strong> Enter the email address and select a role. An invitation email will be sent with a secure link. The admin will complete their registration by setting a password and filling in their details.
+  </div>
+
+  <%= form_with url: send_invitation_admin_admins_path, local: true do |form| %>
+    <% if @errors.present? %>
+      <div class="alert alert-danger">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>Please fix the following errors:</h5>
+        <ul class="mb-0">
+          <% @errors.each do |error| %>
+            <li><%= error %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="mb-3">
+          <%= form.label :email, "Email Address", class: "form-label" %>
+          <%= form.email_field "admin[email]", class: "form-control", required: true, placeholder: "admin@example.com" %>
+          <small class="form-text text-muted">The admin will receive an invitation email at this address</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="mb-3">
+          <%= form.label :role, "Admin Role", class: "form-label" %>
+          <%= form.select "admin[role]", 
+              options_for_select([
+                ['Super Admin - Full access to all features', 'super_admin'],
+                ['Product Admin - Manage products and categories', 'product_admin'],
+                ['Order Admin - Manage orders and fulfillments', 'order_admin'],
+                ['User Admin - Manage customers and users', 'user_admin'],
+                ['Supplier Admin - Manage suppliers and approvals', 'supplier_admin']
+              ]), 
+              { prompt: 'Select a role' }, 
+              { class: "form-select", required: true } %>
+          <small class="form-text text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Each role has specific permissions. Super Admin has access to everything.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= form.submit "Send Invitation", class: "btn btn-primary" %>
+      <%= link_to "Cancel", admin_admins_path, class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+
+  <hr class="my-4">
+
+  <div class="mt-4">
+    <h5><i class="fas fa-question-circle me-2"></i>Need to create an admin directly?</h5>
+    <p class="text-muted">If you need to create an admin account with all details upfront, use the direct creation flow instead.</p>
+    <%= link_to "Create Admin Directly", new_admin_admin_path, class: "btn btn-outline-primary" %>
+  </div>
+</div>
+

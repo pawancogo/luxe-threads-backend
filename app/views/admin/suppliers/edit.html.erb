@@ -2,7 +2,7 @@
 
 <div class="supplier-form-page">
   <div class="page-header">
-    <h1>Edit Supplier: <%= @supplier.full_name %></h1>
+    <h1>Edit Supplier: <%= @supplier.full_name.presence || @supplier.email %></h1>
     <div class="breadcrumb">
       <%= link_to "Dashboard", admin_root_path %> > 
       <%= link_to "Supplier Management", admin_suppliers_path %> > 

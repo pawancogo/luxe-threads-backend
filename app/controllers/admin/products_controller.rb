@@ -6,25 +6,30 @@ class Admin::ProductsController < Admin::BaseController
 
     def index
       @status = params[:status] || 'pending'
+      
+      # Build base query
       @products = Product.includes(:supplier_profile, :category, :brand, :product_variants, verified_by_admin: [])
-                         ._search(params, date_range_column: :created_at)
-                         .order(created_at: :desc)
       
-      # Override status filter if 'all' is selected
-      @products = @products.where.not(status: nil) if @status == 'all'
+      # Apply status filter before search (for tabs)
+      # When 'all' is selected, show all products regardless of status
+      if @status != 'all'
+        @products = @products.where(status: @status)
+      end
       
-      @filters.merge!(@products.filter_with_aggs)
-    end
-
-    private
-
-    def set_range_filter_options
-      # Enable price range filter for products
-      enable_range_filter([
-        ['Base Price', 'base_price'],
-        ['Min Price', 'min_price'],
-        ['Max Price', 'max_price']
-      ])
+      # Apply search and other filters (exclude status from search params to avoid double filtering)
+      search_params = params.except(:status).permit!
+      @products = @products._search(search_params, date_range_column: :created_at, range_field: @filters[:range_field])
+                          .order(created_at: :desc)
+      
+      # Merge filters (this will include status aggregations)
+      begin
+        filter_aggs = @products.filter_with_aggs if @products.respond_to?(:filter_with_aggs)
+        @filters.merge!(filter_aggs) if filter_aggs.present?
+      rescue => e
+        Rails.logger.error "Error merging filters: #{e.message}"
+        # Ensure @filters is at least initialized
+        @filters ||= { search: [nil] }
+      end
     end
 
     def edit
@@ -145,6 +150,11 @@ class Admin::ProductsController < Admin::BaseController
     end
 
     private
+
+    def set_range_filter_options
+      # Enable price range filter for products (using base_price field)
+      enable_range_filter(:base_price)
+    end
 
     def set_product
       @product = Product.find(params[:id])

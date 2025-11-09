@@ -1,4 +1,9 @@
 class Version < PaperTrail::Version
+  extend SearchManager
+  
+  # Search manager configuration
+  search_manager on: [:item_type, :event, :whodunnit], aggs_on: [:item_type, :event, :whodunnit]
+  
   # Add scopes for common queries
   scope :by_user, ->(user_id) { where(whodunnit: "User:#{user_id}") }
   scope :by_admin, ->(admin_id) { where(whodunnit: "Admin:#{admin_id}") }
@@ -23,23 +28,99 @@ class Version < PaperTrail::Version
   end
   
   def ip_address
-    return meta['ip_address'] if meta.is_a?(Hash)
+    return self[:ip_address] if self[:ip_address].present?
+    # Try to get from meta if available
+    begin
+      meta_data = meta
+      return meta_data['ip_address'] if meta_data.is_a?(Hash) && meta_data['ip_address']
+    rescue
+      # meta column might not exist
+    end
     nil
   end
   
   def user_agent
-    return meta['user_agent'] if meta.is_a?(Hash)
+    return self[:user_agent] if self[:user_agent].present?
+    # Try to get from meta if available
+    begin
+      meta_data = meta
+      return meta_data['user_agent'] if meta_data.is_a?(Hash) && meta_data['user_agent']
+    rescue
+      # meta column might not exist
+    end
     nil
   end
   
   def controller_action
-    return "#{meta['controller']}##{meta['action']}" if meta.is_a?(Hash) && meta['controller'] && meta['action']
+    begin
+      meta_data = meta
+      return "#{meta_data['controller']}##{meta_data['action']}" if meta_data.is_a?(Hash) && meta_data['controller'] && meta_data['action']
+    rescue
+      # meta column might not exist
+    end
     nil
   end
   
   def request_id
-    return meta['request_id'] if meta.is_a?(Hash)
+    begin
+      meta_data = meta
+      return meta_data['request_id'] if meta_data.is_a?(Hash) && meta_data['request_id']
+    rescue
+      # meta column might not exist
+    end
     nil
+  end
+  
+  def source
+    begin
+      meta_data = meta
+      return meta_data['source'] if meta_data.is_a?(Hash) && meta_data['source']
+    rescue
+      # meta column might not exist
+    end
+    
+    # Infer from controller_action
+    if controller_action
+      if controller_action.include?('Admin::')
+        'Admin Panel'
+      elsif controller_action.include?('Api::')
+        'API'
+      else
+        'Web'
+      end
+    elsif whodunnit.blank? || whodunnit == 'System:Console'
+      'Console/Rails Console'
+    else
+      'Unknown'
+    end
+  end
+  
+  def actioned_by_name
+    user_obj = user_object
+    return user_obj.full_name if user_obj.respond_to?(:full_name)
+    return user_obj.email if user_obj.respond_to?(:email)
+    return user_obj.name if user_obj.respond_to?(:name)
+    return "#{user_type} ##{user_id}" if user_id
+    whodunnit || 'System'
+  end
+  
+  def actioned_by_email
+    user_obj = user_object
+    return user_obj.email if user_obj.respond_to?(:email)
+    nil
+  end
+  
+  def actioned_on_name
+    item_obj = item_object
+    return item_obj.name if item_obj.respond_to?(:name)
+    return item_obj.full_name if item_obj.respond_to?(:full_name)
+    return item_obj.email if item_obj.respond_to?(:email)
+    return item_obj.title if item_obj.respond_to?(:title)
+    "#{item_type} ##{item_id}"
+  end
+  
+  def actioned_at
+    created_at.strftime('%B %d, %Y at %I:%M %p')
   end
   
   # Get the actual user object

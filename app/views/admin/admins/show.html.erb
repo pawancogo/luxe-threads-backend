@@ -9,8 +9,9 @@
       <p class="text-muted mb-0 mt-2">Admin Details & Permissions</p>
     </div>
     <div>
-      <%= link_to "Back to Admins", admin_admins_path, class: "btn btn-outline-secondary" %>
-      <%= link_to "Edit", edit_admin_admin_path(@admin), class: "btn btn-primary" %>
+      <% if @admin != current_admin %>
+        <%= link_to "Back to Admins", admin_admins_path, class: "btn btn-outline-secondary" %>
+      <% end %>
     </div>
   </div>
   
@@ -32,9 +33,15 @@
               <td>
                 <div class="d-flex align-items-center">
                   <div class="avatar-circle bg-primary text-white me-2">
-                    <%= @admin.first_name.first.upcase %><%= @admin.last_name.first.upcase if @admin.last_name.present? %>
+                    <% if @admin.first_name.present? %>
+                      <%= @admin.first_name.first.upcase %><%= @admin.last_name.first.upcase if @admin.last_name.present? %>
+                    <% elsif @admin.email.present? %>
+                      <%= @admin.email.first.upcase %>
+                    <% else %>
+                      A
+                    <% end %>
                   </div>
-                  <strong><%= @admin.full_name %></strong>
+                  <strong><%= @admin.full_name || @admin.email || "Admin" %></strong>
                   <% if @admin == current_admin %>
                     <span class="badge bg-info ms-2">You</span>
                   <% end %>
@@ -100,68 +107,70 @@
         </div>
       </div>
 
-      <!-- Permissions -->
-      <div class="card">
-        <div class="card-header">
-          <h5 class="mb-0"><i class="fas fa-key me-2"></i>Permissions & Access</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="permission-item mb-3 p-3 border rounded">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong><i class="fas fa-box me-2"></i>Manage Products</strong>
-                    <p class="text-muted mb-0 small">Create, edit, approve, and manage products</p>
+      <!-- Permissions - Only show for other admins, not own profile -->
+      <% unless @admin == current_admin %>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-key me-2"></i>Permissions & Access</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="permission-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-box me-2"></i>Manage Products</strong>
+                      <p class="text-muted mb-0 small">Create, edit, approve, and manage products</p>
+                    </div>
+                    <span class="badge bg-<%= @admin.can_manage_products? ? 'success' : 'secondary' %>">
+                      <%= @admin.can_manage_products? ? '✓ Allowed' : '✗ Denied' %>
+                    </span>
                   </div>
-                  <span class="badge bg-<%= @admin.can_manage_products? ? 'success' : 'secondary' %>">
-                    <%= @admin.can_manage_products? ? '✓ Allowed' : '✗ Denied' %>
-                  </span>
                 </div>
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="permission-item mb-3 p-3 border rounded">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong><i class="fas fa-shopping-cart me-2"></i>Manage Orders</strong>
-                    <p class="text-muted mb-0 small">View, update, and process orders</p>
+              <div class="col-md-6">
+                <div class="permission-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-shopping-cart me-2"></i>Manage Orders</strong>
+                      <p class="text-muted mb-0 small">View, update, and process orders</p>
+                    </div>
+                    <span class="badge bg-<%= @admin.can_manage_orders? ? 'success' : 'secondary' %>">
+                      <%= @admin.can_manage_orders? ? '✓ Allowed' : '✗ Denied' %>
+                    </span>
                   </div>
-                  <span class="badge bg-<%= @admin.can_manage_orders? ? 'success' : 'secondary' %>">
-                    <%= @admin.can_manage_orders? ? '✓ Allowed' : '✗ Denied' %>
-                  </span>
                 </div>
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="permission-item mb-3 p-3 border rounded">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong><i class="fas fa-users me-2"></i>Manage Users</strong>
-                    <p class="text-muted mb-0 small">View, edit, and manage customer accounts</p>
+              <div class="col-md-6">
+                <div class="permission-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-users me-2"></i>Manage Users</strong>
+                      <p class="text-muted mb-0 small">View, edit, and manage customer accounts</p>
+                    </div>
+                    <span class="badge bg-<%= @admin.can_manage_users? ? 'success' : 'secondary' %>">
+                      <%= @admin.can_manage_users? ? '✓ Allowed' : '✗ Denied' %>
+                    </span>
                   </div>
-                  <span class="badge bg-<%= @admin.can_manage_users? ? 'success' : 'secondary' %>">
-                    <%= @admin.can_manage_users? ? '✓ Allowed' : '✗ Denied' %>
-                  </span>
                 </div>
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="permission-item mb-3 p-3 border rounded">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong><i class="fas fa-store me-2"></i>Manage Suppliers</strong>
-                    <p class="text-muted mb-0 small">Approve, manage, and monitor suppliers</p>
+              <div class="col-md-6">
+                <div class="permission-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-store me-2"></i>Manage Suppliers</strong>
+                      <p class="text-muted mb-0 small">Approve, manage, and monitor suppliers</p>
+                    </div>
+                    <span class="badge bg-<%= @admin.can_manage_suppliers? ? 'success' : 'secondary' %>">
+                      <%= @admin.can_manage_suppliers? ? '✓ Allowed' : '✗ Denied' %>
+                    </span>
                   </div>
-                  <span class="badge bg-<%= @admin.can_manage_suppliers? ? 'success' : 'secondary' %>">
-                    <%= @admin.can_manage_suppliers? ? '✓ Allowed' : '✗ Denied' %>
-                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      <% end %>
     </div>
     
     <div class="col-md-4">
@@ -171,18 +180,65 @@
         </div>
         <div class="card-body">
           <div class="d-grid gap-2">
-            <%= link_to "Edit Admin", edit_admin_admin_path(@admin), class: "btn btn-primary" %>
-            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
-            <% unless @admin == current_admin %>
-              <hr>
-              <%= link_to "Delete Admin", admin_admin_path(@admin), method: :delete, 
-                  class: "btn btn-outline-danger",
-                  data: { confirm: "Are you sure you want to delete #{@admin.full_name}? This action cannot be undone." } %>
-            <% else %>
+            <%= link_to edit_admin_admin_path(@admin), class: "btn btn-primary" do %>
+              <i class="fas fa-edit me-2"></i>Edit Profile & Password
+            <% end %>
+            <% if @admin == current_admin %>
+              <!-- User can only edit their own profile - no admin management actions -->
               <hr>
               <button class="btn btn-outline-secondary" disabled>
-                <i class="fas fa-info-circle me-2"></i>Cannot delete your own account
+                <i class="fas fa-info-circle me-2"></i>Cannot modify your own account
               </button>
+            <% else %>
+              <!-- Admin management actions only for other admins -->
+              <% if current_admin&.super_admin? %>
+                <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+              <% end %>
+              
+              <hr>
+              
+              <!-- Status Management Buttons -->
+              <div class="d-grid gap-2">
+                <% if @admin.is_blocked %>
+                  <%= form_with url: unblock_admin_admin_path(@admin), method: :patch, 
+                      local: true,
+                      data: { confirm: "Are you sure you want to unblock #{@admin.full_name}?" } do |f| %>
+                    <%= f.button type: :submit, class: "btn btn-success w-100" do %>
+                      <i class="fas fa-unlock me-2"></i>Unblock Admin
+                    <% end %>
+                  <% end %>
+                <% elsif @admin.is_active %>
+                  <%= form_with url: block_admin_admin_path(@admin), method: :patch, 
+                      local: true,
+                      data: { confirm: "Are you sure you want to block #{@admin.full_name}?" } do |f| %>
+                    <%= f.button type: :submit, class: "btn btn-warning w-100" do %>
+                      <i class="fas fa-ban me-2"></i>Block Admin
+                    <% end %>
+                  <% end %>
+                  <%= form_with url: status_admin_admin_path(@admin), method: :patch, 
+                      local: true,
+                      data: { confirm: "Are you sure you want to deactivate #{@admin.full_name}?" } do |f| %>
+                    <%= f.hidden_field :status_action, value: 'deactivate' %>
+                    <%= f.button type: :submit, class: "btn btn-outline-secondary w-100" do %>
+                      <i class="fas fa-pause me-2"></i>Deactivate Admin
+                    <% end %>
+                  <% end %>
+                <% else %>
+                  <%= form_with url: status_admin_admin_path(@admin), method: :patch, 
+                      local: true do |f| %>
+                    <%= f.hidden_field :status_action, value: 'activate' %>
+                    <%= f.button type: :submit, class: "btn btn-success w-100" do %>
+                      <i class="fas fa-check-circle me-2"></i>Activate Admin
+                    <% end %>
+                  <% end %>
+                <% end %>
+              </div>
+              
+              <hr>
+              
+              <%= link_to "Delete Admin", admin_admin_path(@admin), method: :delete, 
+                  class: "btn btn-outline-danger w-100",
+                  data: { confirm: "Are you sure you want to delete #{@admin.full_name}? This action cannot be undone." } %>
             <% end %>
           </div>
         </div>

@@ -1,0 +1,139 @@
+<% content_for :title, "System Configuration - #{@system_configuration.key}" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-cog me-2"></i>System Configuration Details
+    </h1>
+    <div>
+      <%= link_to "Edit", edit_admin_system_configuration_path(@system_configuration), class: "btn btn-primary" %>
+      <%= link_to "Back to List", admin_system_configurations_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-4">Configuration Information</h5>
+          
+          <table class="table table-borderless">
+            <tr>
+              <th width="200">Key:</th>
+              <td><code><%= @system_configuration.key %></code></td>
+            </tr>
+            <tr>
+              <th>Value:</th>
+              <td>
+                <% if @system_configuration.value_type == 'boolean' %>
+                  <span class="badge bg-<%= @system_configuration.cast_value ? 'success' : 'secondary' %> fs-6">
+                    <%= @system_configuration.cast_value ? 'True' : 'False' %>
+                  </span>
+                <% elsif @system_configuration.value_type == 'json' %>
+                  <pre class="bg-light p-3 rounded"><code><%= JSON.pretty_generate(@system_configuration.cast_value) rescue @system_configuration.value %></code></pre>
+                <% else %>
+                  <strong class="fs-5"><%= @system_configuration.value %></strong>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Type:</th>
+              <td><span class="badge bg-info"><%= @system_configuration.value_type %></span></td>
+            </tr>
+            <tr>
+              <th>Category:</th>
+              <td><span class="badge bg-secondary"><%= @system_configuration.category.humanize %></span></td>
+            </tr>
+            <tr>
+              <th>Status:</th>
+              <td>
+                <% if @system_configuration.is_active? %>
+                  <span class="badge bg-success">Active</span>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Description:</th>
+              <td><%= @system_configuration.description || '<span class="text-muted">No description</span>'.html_safe %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-4">Metadata</h5>
+          
+          <table class="table table-borderless table-sm">
+            <tr>
+              <th>Created By:</th>
+              <td>
+                <% if @system_configuration.created_by %>
+                  <div>
+                    <strong><%= @system_configuration.creator_name %></strong>
+                    <br>
+                    <small class="text-muted"><%= @system_configuration.created_by_type %></small>
+                    <% if @system_configuration.created_by.respond_to?(:email) %>
+                      <br>
+                      <small class="text-muted"><%= @system_configuration.created_by.email %></small>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <span class="text-muted">System</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Created At:</th>
+              <td><%= @system_configuration.created_at.strftime('%B %d, %Y') %><br>
+                  <small class="text-muted"><%= @system_configuration.created_at.strftime('%I:%M %p') %></small>
+              </td>
+            </tr>
+            <tr>
+              <th>Updated At:</th>
+              <td><%= @system_configuration.updated_at.strftime('%B %d, %Y') %><br>
+                  <small class="text-muted"><%= @system_configuration.updated_at.strftime('%I:%M %p') %></small>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <div class="card mt-3">
+        <div class="card-body">
+          <h5 class="card-title mb-4">Actions</h5>
+          
+          <div class="d-grid gap-2">
+            <% if @system_configuration.is_active? %>
+              <%= link_to deactivate_admin_system_configuration_path(@system_configuration), 
+                          method: :patch,
+                          class: "btn btn-outline-warning",
+                          data: { confirm: "Are you sure you want to deactivate this configuration?" } do %>
+                <i class="fas fa-pause me-2"></i>Deactivate
+              <% end %>
+            <% else %>
+              <%= link_to activate_admin_system_configuration_path(@system_configuration), 
+                          method: :patch,
+                          class: "btn btn-outline-success",
+                          data: { confirm: "Are you sure you want to activate this configuration?" } do %>
+                <i class="fas fa-play me-2"></i>Activate
+              <% end %>
+            <% end %>
+            
+            <%= link_to admin_system_configuration_path(@system_configuration), 
+                        method: :delete,
+                        class: "btn btn-outline-danger",
+                        data: { confirm: "Are you sure? This action cannot be undone." } do %>
+              <i class="fas fa-trash me-2"></i>Delete
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

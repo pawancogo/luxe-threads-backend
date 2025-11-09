@@ -1,22 +1,24 @@
 <% content_for :title, "Customer Management" %>
 
-<%= form_with url: bulk_action_admin_users_path, method: :post, local: true, id: "bulk-action-form" do |f| %>
-  <div class="admin-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h1 class="card-title mb-0">
-          <i class="fas fa-users me-2"></i>Customer Management
-        </h1>
-        <p class="text-muted mb-0 mt-2">Manage customer accounts and profiles</p>
-      </div>
-      <div>
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-users me-2"></i>Customer Management
+      </h1>
+      <p class="text-muted mb-0 mt-2">Manage customer accounts and profiles</p>
+    </div>
+    <div>
+      <% if current_admin&.super_admin? %>
         <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
           <i class="fas fa-database me-2"></i>View in RailsAdmin
         <% end %>
-      </div>
+      <% end %>
     </div>
-    
-    <!-- Bulk Actions Bar -->
+  </div>
+  
+  <!-- Bulk Actions Bar -->
+  <%= form_with url: bulk_action_admin_users_path, method: :post, local: true, id: "bulk-action-form", data: { turbo: false } do |f| %>
     <div id="bulk-actions-bar" class="card mb-3" style="display: none;">
       <div class="card-body py-2">
         <div class="d-flex align-items-center justify-content-between">
@@ -43,32 +45,38 @@
         </div>
       </div>
     </div>
-    
-    <!-- Search & Filters -->
-    <%= render 'admin/shared/filters', records: @users %>
-    
-    <!-- Customers Table -->
+  <% end %>
+  
+  <!-- Search & Filters -->
+  <%= render 'admin/shared/filters', records: @users %>
+  
+  <!-- Customers Table -->
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover table-sticky">
         <thead>
           <tr>
-            <th width="40">
+            <th width="40" class="sticky-col sticky-start sticky-header">
               <input type="checkbox" id="select-all" class="form-check-input" onchange="toggleSelectAll(this)">
             </th>
             <th>ID</th>
             <th>Name</th>
             <th>Email</th>
             <th>Phone</th>
+            <th>Role</th>
+            <th>Email Verified</th>
+            <th>Last Login</th>
+            <th>Orders</th>
+            <th>Spending</th>
             <th>Status</th>
             <th>Created</th>
-            <th>Actions</th>
+            <th class="sticky-col sticky-end sticky-header">Actions</th>
           </tr>
         </thead>
         <tbody>
           <% if @users.any? %>
             <% @users.each do |user| %>
               <tr data-id="<%= user.id %>" data-name="<%= user.full_name %>">
-                <td>
+                <td class="sticky-col sticky-start sticky-cell">
                   <input type="checkbox" name="selected_ids[]" value="<%= user.id %>" class="form-check-input row-checkbox" onchange="updateBulkActions()">
                 </td>
                 <td><%= user.id %></td>
@@ -82,6 +90,31 @@
                 </td>
                 <td><%= user.email %></td>
                 <td><%= user.phone_number || '<span class="text-muted">N/A</span>'.html_safe %></td>
+                <td><span class="badge bg-light text-dark"><%= user.role.titleize %></span></td>
+                <td>
+                  <% if user.email_verified? %>
+                    <span class="badge bg-success">Yes</span>
+                  <% else %>
+                    <span class="badge bg-secondary">No</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if user.respond_to?(:last_login_at) && user.last_login_at.present? %>
+                    <%= user.last_login_at.strftime('%b %d, %Y %H:%M') %>
+                  <% else %>
+                    <span class="text-muted">Never</span>
+                  <% end %>
+                </td>
+                <td>
+                  <span class="badge bg-info"><%= user.orders_count || user.orders.size %></span>
+                </td>
+                <td>
+                  <% if user.respond_to?(:total_spent) && user.total_spent.present? %>
+                    ₹<%= number_with_delimiter(user.total_spent) %>
+                  <% else %>
+                    <span class="text-muted">₹0</span>
+                  <% end %>
+                </td>
                 <td>
                   <% if user.is_active && user.deleted_at.nil? %>
                     <span class="badge bg-success">Active</span>
@@ -93,7 +126,7 @@
                   <% end %>
                 </td>
                 <td><%= user.created_at.strftime('%b %d, %Y') %></td>
-                <td>
+                <td class="sticky-col sticky-end sticky-cell">
                   <div class="btn-group btn-group-sm">
                     <%= link_to admin_user_path(user), class: "btn btn-outline-primary", title: "View" do %>
                       <i class="fas fa-eye"></i>
@@ -101,16 +134,24 @@
                     <%= link_to edit_admin_user_path(user), class: "btn btn-outline-info", title: "Edit" do %>
                       <i class="fas fa-edit"></i>
                     <% end %>
-                    <% if user.is_active %>
-                      <%= link_to deactivate_admin_user_path(user), method: :patch, 
-                                  class: "btn btn-outline-warning", title: "Deactivate",
-                                  data: { confirm: "Are you sure you want to deactivate this user?" } do %>
-                        <i class="fas fa-ban"></i>
+                    <% if user.is_active && user.deleted_at.nil? %>
+                      <%= form_with url: status_admin_user_path(user), method: :patch, 
+                          local: true,
+                          style: "display: inline-block;",
+                          data: { confirm: "Are you sure you want to deactivate this user? They will need to verify their email to reactivate." } do |f| %>
+                        <%= f.hidden_field :status_action, value: 'deactivate' %>
+                        <%= f.button type: :submit, class: "btn btn-outline-warning btn-sm", title: "Deactivate" do %>
+                          <i class="fas fa-ban"></i>
+                        <% end %>
                       <% end %>
                     <% else %>
-                      <%= link_to activate_admin_user_path(user), method: :patch, 
-                                  class: "btn btn-outline-success", title: "Activate" do %>
-                        <i class="fas fa-check"></i>
+                      <%= form_with url: status_admin_user_path(user), method: :patch, 
+                          local: true,
+                          style: "display: inline-block;" do |f| %>
+                        <%= f.hidden_field :status_action, value: 'activate' %>
+                        <%= f.button type: :submit, class: "btn btn-outline-success btn-sm", title: "Activate" do %>
+                          <i class="fas fa-check"></i>
+                        <% end %>
                       <% end %>
                     <% end %>
                   </div>
@@ -129,23 +170,8 @@
       </table>
     </div>
     
-    <!-- Pagination -->
-    <div class="d-flex justify-content-between align-items-center mt-4">
-      <div class="text-muted">
-        <% if @users.respond_to?(:current_page) && @users.respond_to?(:total_count) %>
-          Showing <%= (@users.current_page - 1) * @users.limit_value + 1 %> to 
-          <%= [@users.current_page * @users.limit_value, @users.total_count].min %> of 
-          <%= @users.total_count %> entries
-        <% end %>
-      </div>
-      <div>
-        <% if @users.respond_to?(:current_page) %>
-          <%= paginate @users if defined?(Kaminari) %>
-        <% end %>
-      </div>
-    </div>
-  </div>
-<% end %>
+    <%= render 'admin/shared/pagination', collection: @users %>
+</div>
 
 <script>
   function toggleSelectAll(checkbox) {
@@ -182,9 +208,26 @@
       return;
     }
     
-    const ids = Array.from(checked).map(cb => cb.value);
+    const ids = Array.from(checked).map(cb => cb.value).filter(id => id);
+    if (ids.length === 0) {
+      alert('Please select at least one item');
+      return;
+    }
+    
     document.getElementById('bulk-action-type').value = action;
     document.getElementById('bulk-user-ids').value = ids.join(',');
+    
+    // Preserve current URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.forEach((value, key) => {
+      if (key !== 'user_ids' && key !== 'bulk_action') {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = key;
+        hiddenInput.value = value;
+        document.getElementById('bulk-action-form').appendChild(hiddenInput);
+      }
+    });
     
     const actionText = action === 'activate' ? 'activate' : action === 'deactivate' ? 'deactivate' : 'delete';
     if (confirm(`Are you sure you want to ${actionText} ${ids.length} item(s)?`)) {
@@ -223,5 +266,39 @@
   #bulk-actions-bar {
     background-color: #e7f1ff;
     border: 1px solid #b3d7ff;
+  }
+
+  .table-sticky thead th,
+  .table-sticky tbody td {
+    white-space: nowrap;
+  }
+
+  .table-sticky .sticky-col {
+    position: sticky;
+    z-index: 3;
+  }
+
+  .table-sticky .sticky-header {
+    background-color: #f8f9fa !important;
+  }
+
+  .table-sticky .sticky-start {
+    left: 0;
+  }
+
+  .table-sticky tbody .sticky-start {
+    z-index: 2;
+  }
+
+  .table-sticky .sticky-cell {
+    background-color: #fff !important;
+  }
+
+  .table-sticky .sticky-end {
+    right: 0;
+  }
+
+  .table-sticky tbody .sticky-end {
+    z-index: 2;
   }
 </style>

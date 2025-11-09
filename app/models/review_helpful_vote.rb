@@ -18,3 +18,4 @@ class ReviewHelpfulVote < ApplicationRecord
 end
 
 
+

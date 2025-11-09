@@ -21,8 +21,9 @@ class ApplicationController < ActionController::API
   private
 
   def authenticate_request
-    header = request.headers['Authorization']
-    token = header&.split(' ')&.last
+    # Try cookie first (httpOnly, more secure), then Authorization header (backward compatibility)
+    token = cookies.signed[:auth_token] || cookies[:auth_token]
+    token ||= request.headers['Authorization']&.split(' ')&.last
     
     unless token
       render_unauthorized('Authentication token missing')
@@ -32,6 +33,32 @@ class ApplicationController < ActionController::API
     begin
       @decoded = jwt_decode(token)
       @current_user = User.find(@decoded[:user_id])
+      
+      # Check if user is inactive (soft deleted)
+      if @current_user.deleted_at.present?
+        # Clear token cookie
+        cookies.delete(:auth_token, domain: :all)
+        
+        # Return specific error for inactive account
+        render json: {
+          success: false,
+          message: 'Your account has been deactivated. Please verify your account to reactivate.',
+          error_code: 'ACCOUNT_INACTIVE',
+          requires_verification: true
+        }, status: :unauthorized
+        return
+      end
+      
+      # Check if email is not verified
+      unless @current_user.email_verified?
+        render json: {
+          success: false,
+          message: 'Please verify your email address to continue.',
+          error_code: 'EMAIL_NOT_VERIFIED',
+          requires_verification: true
+        }, status: :unauthorized
+        return
+      end
     rescue ActiveRecord::RecordNotFound => e
       # User might be soft deleted or doesn't exist
       if e.message.include?('deleted_at')

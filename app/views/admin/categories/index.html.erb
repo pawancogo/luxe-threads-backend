@@ -1,23 +1,25 @@
 <% content_for :title, "Category Management" %>
 
-<%= form_with url: bulk_action_admin_categories_path, method: :post, local: true, id: "bulk-action-form" do |f| %>
-  <div class="admin-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h1 class="card-title mb-0">
-          <i class="fas fa-tags me-2"></i>Category Management
-        </h1>
-        <p class="text-muted mb-0 mt-2">Organize products with categories and subcategories</p>
-      </div>
-      <div>
-        <%= link_to "New Category", new_admin_category_path, class: "btn btn-primary" %>
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-tags me-2"></i>Category Management
+      </h1>
+      <p class="text-muted mb-0 mt-2">Organize products with categories and subcategories</p>
+    </div>
+    <div>
+      <%= link_to "New Category", new_admin_category_path, class: "btn btn-primary" %>
+      <% if super_admin? %>
         <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
           <i class="fas fa-database me-2"></i>View in RailsAdmin
         <% end %>
-      </div>
+      <% end %>
     </div>
-    
-    <!-- Bulk Actions Bar -->
+  </div>
+  
+  <!-- Bulk Actions Bar -->
+  <%= form_with url: bulk_action_admin_categories_path, method: :post, local: true, id: "bulk-action-form", data: { turbo: false } do |f| %>
     <div id="bulk-actions-bar" class="card mb-3" style="display: none;">
       <div class="card-body py-2">
         <div class="d-flex align-items-center justify-content-between">
@@ -44,16 +46,17 @@
         </div>
       </div>
     </div>
-    
-    <!-- Search & Filters -->
-    <%= render 'admin/shared/filters', records: @categories %>
-
-    <!-- Categories Table -->
+  <% end %>
+  
+  <!-- Search & Filters -->
+  <%= render 'admin/shared/filters', records: @categories %>
+  
+  <!-- Categories Table -->
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover table-sticky">
         <thead>
           <tr>
-            <th width="40">
+            <th width="40" class="sticky-col sticky-start sticky-header">
               <input type="checkbox" id="select-all" class="form-check-input" onchange="toggleSelectAll(this)">
             </th>
             <th>ID</th>
@@ -63,14 +66,14 @@
             <th>Products</th>
             <th>Status</th>
             <th>Created</th>
-            <th>Actions</th>
+            <th class="sticky-col sticky-end sticky-header">Actions</th>
           </tr>
         </thead>
         <tbody>
           <% if @categories.any? %>
             <% @categories.each do |category| %>
               <tr data-id="<%= category.id %>" data-name="<%= category.name %>">
-                <td>
+                <td class="sticky-col sticky-start sticky-cell">
                   <input type="checkbox" name="selected_ids[]" value="<%= category.id %>" class="form-check-input row-checkbox" onchange="updateBulkActions()">
                 </td>
                 <td><%= category.id %></td>
@@ -92,7 +95,7 @@
                   <% end %>
                 </td>
                 <td><%= category.created_at.strftime('%b %d, %Y') %></td>
-                <td>
+                <td class="sticky-col sticky-end sticky-cell">
                   <div class="btn-group btn-group-sm">
                     <%= link_to admin_category_path(category), class: "btn btn-outline-primary", title: "View" do %>
                       <i class="fas fa-eye"></i>
@@ -121,23 +124,8 @@
       </table>
     </div>
     
-    <!-- Pagination -->
-    <div class="d-flex justify-content-between align-items-center mt-4">
-      <div class="text-muted">
-        <% if @categories.respond_to?(:current_page) && @categories.respond_to?(:total_count) %>
-          Showing <%= (@categories.current_page - 1) * @categories.limit_value + 1 %> to 
-          <%= [@categories.current_page * @categories.limit_value, @categories.total_count].min %> of 
-          <%= @categories.total_count %> entries
-        <% end %>
-      </div>
-      <div>
-        <% if @categories.respond_to?(:current_page) %>
-          <%= paginate @categories if defined?(Kaminari) %>
-        <% end %>
-      </div>
-    </div>
-  </div>
-<% end %>
+    <%= render 'admin/shared/pagination', collection: @categories %>
+</div>
 
 <script>
   function toggleSelectAll(checkbox) {
@@ -204,5 +192,39 @@
   #bulk-actions-bar {
     background-color: #e7f1ff;
     border: 1px solid #b3d7ff;
+  }
+
+  .table-sticky thead th,
+  .table-sticky tbody td {
+    white-space: nowrap;
+  }
+
+  .table-sticky .sticky-col {
+    position: sticky;
+    z-index: 3;
+  }
+
+  .table-sticky .sticky-header {
+    background-color: #f8f9fa !important;
+  }
+
+  .table-sticky .sticky-start {
+    left: 0;
+  }
+
+  .table-sticky tbody .sticky-start {
+    z-index: 2;
+  }
+
+  .table-sticky .sticky-cell {
+    background-color: #fff !important;
+  }
+
+  .table-sticky .sticky-end {
+    right: 0;
+  }
+
+  .table-sticky tbody .sticky-end {
+    z-index: 2;
   }
 </style>

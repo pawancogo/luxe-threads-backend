@@ -5,7 +5,7 @@ class Product < ApplicationRecord
   include Auditable
   
   # Search manager configuration
-  search_manager on: [:name, :description, :sku], aggs_on: [:status, :is_featured, :category_id]
+  search_manager on: [:name, :description], aggs_on: [:status, :is_featured, :category_id, :supplier_profile_id], range_on: :base_price
 
   # Associations - only associations
   belongs_to :supplier_profile

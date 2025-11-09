@@ -1,0 +1,293 @@
+<% content_for :title, "Activity History - #{@version.event.titleize}" %>
+
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-history me-2"></i>Activity Details
+      </h1>
+      <p class="text-muted mb-0 mt-2">Detailed information about this change</p>
+    </div>
+    <div>
+      <%= link_to "Back to History", admin_audit_logs_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Event Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Event Information</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">Event Type</th>
+              <td>
+                <span class="badge bg-<%= @version.event == 'create' ? 'success' : @version.event == 'update' ? 'primary' : 'danger' %> fs-6">
+                  <%= @version.event.titleize %>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th>Item Type</th>
+              <td><strong><%= @version.item_type %></strong></td>
+            </tr>
+            <tr>
+              <th>Item ID</th>
+              <td><%= @version.item_id %></td>
+            </tr>
+            <tr>
+              <th>Item Name</th>
+              <td>
+                <% if @item %>
+                  <strong><%= @version.actioned_on_name %></strong>
+                  <%= link_to "View Item", polymorphic_path([:admin, @item]), class: "btn btn-sm btn-outline-primary ms-2" if @item.respond_to?(:persisted?) && @item.persisted? %>
+                <% else %>
+                  <span class="text-muted"><%= @version.actioned_on_name %></span>
+                  <span class="badge bg-warning ms-2">Item Deleted</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Timestamp</th>
+              <td><%= @version.actioned_at %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Changes -->
+      <% if @version.object_changes.present? %>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Changes Made</h5>
+          </div>
+          <div class="card-body">
+            <% 
+              begin
+                if @version.object_changes.is_a?(Hash) || @version.object_changes.is_a?(ActiveSupport::HashWithIndifferentAccess)
+                  changes = @version.object_changes
+                elsif @version.object_changes.is_a?(String)
+                  # Handle YAML format (starts with '---')
+                  if @version.object_changes.strip.start_with?('---')
+                    changes = YAML.load(@version.object_changes) rescue {}
+                  else
+                    # Try JSON first, fallback to YAML
+                    changes = JSON.parse(@version.object_changes) rescue YAML.load(@version.object_changes) rescue {}
+                  end
+                else
+                  changes = {}
+                end
+                # Ensure changes is a hash and not nil
+                changes = {} if changes.nil? || !changes.is_a?(Hash)
+              rescue => e
+                Rails.logger.error "Error parsing object_changes: #{e.message}"
+                changes = {}
+              end
+            %>
+            <% if changes.present? && changes.is_a?(Hash) %>
+              <% if @version.event == 'create' %>
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>This is a creation event. All initial values are shown below.
+                </div>
+                <% changes.each do |key, value| %>
+                  <div class="mb-3 p-3 border rounded">
+                    <strong><%= key.humanize %>:</strong>
+                    <div class="mt-1">
+                      <span class="badge bg-success"><%= value.is_a?(Array) ? (value[1] || value[0] || value) : value %></span>
+                    </div>
+                  </div>
+                <% end %>
+              <% elsif @version.event == 'destroy' %>
+                <div class="alert alert-danger">
+                  <i class="fas fa-exclamation-triangle me-2"></i>This is a deletion event. Final values before deletion are shown below.
+                </div>
+                <% changes.each do |key, value| %>
+                  <div class="mb-3 p-3 border rounded">
+                    <strong><%= key.humanize %>:</strong>
+                    <div class="mt-1">
+                      <span class="badge bg-danger"><%= value.is_a?(Array) ? (value[0] || value[1] || value) : value %></span>
+                    </div>
+                  </div>
+                <% end %>
+              <% else %>
+                <% changes.each do |key, value| %>
+                  <div class="mb-3 p-3 border rounded">
+                    <strong><%= key.humanize %>:</strong>
+                    <div class="mt-2 d-flex align-items-center">
+                      <div class="flex-grow-1">
+                        <div class="text-muted small mb-1">From:</div>
+                        <span class="badge bg-secondary"><%= value.is_a?(Array) && value.length >= 2 ? (value[0] || 'N/A') : (value.is_a?(Array) ? value.first : value) %></span>
+                      </div>
+                      <div class="mx-3">
+                        <i class="fas fa-arrow-right text-primary"></i>
+                      </div>
+                      <div class="flex-grow-1">
+                        <div class="text-muted small mb-1">To:</div>
+                        <span class="badge bg-primary"><%= value.is_a?(Array) && value.length >= 2 ? (value[1] || 'N/A') : (value.is_a?(Array) ? value.last : 'N/A') %></span>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
+            <% else %>
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>No changes data available or unable to parse changes.
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Full Object State (for create events) -->
+      <% if @version.event == 'create' && @version.object.present? %>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-database me-2"></i>Initial Object State</h5>
+          </div>
+          <div class="card-body">
+            <% 
+              begin
+                if @version.object.is_a?(Hash) || @version.object.is_a?(ActiveSupport::HashWithIndifferentAccess)
+                  object_data = @version.object
+                elsif @version.object.is_a?(String)
+                  # Handle YAML format (starts with '---')
+                  if @version.object.strip.start_with?('---')
+                    object_data = YAML.load(@version.object) rescue {}
+                  else
+                    # Try JSON first, fallback to YAML
+                    object_data = JSON.parse(@version.object) rescue YAML.load(@version.object) rescue {}
+                  end
+                else
+                  object_data = @version.object
+                end
+                object_data = {} if object_data.nil?
+              rescue => e
+                Rails.logger.error "Error parsing object: #{e.message}"
+                object_data = { error: "Unable to parse object data" }
+              end
+            %>
+            <pre class="bg-light p-3 rounded"><%= JSON.pretty_generate(object_data) %></pre>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="col-md-4">
+      <!-- Actioned By -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-user me-2"></i>Actioned By</h5>
+        </div>
+        <div class="card-body">
+          <% if @user %>
+            <div class="text-center mb-3">
+              <div class="avatar-circle bg-primary text-white mx-auto mb-2" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                <%= @user.respond_to?(:first_name) ? @user.first_name.first.upcase : @user.email.first.upcase %>
+              </div>
+              <h6 class="mb-0"><%= @version.actioned_by_name %></h6>
+              <% if @version.actioned_by_email.present? %>
+                <div class="text-muted small"><%= @version.actioned_by_email %></div>
+              <% end %>
+            </div>
+            <table class="table table-sm">
+              <tr>
+                <th>Type</th>
+                <td><span class="badge bg-info"><%= @version.user_type %></span></td>
+              </tr>
+              <tr>
+                <th>ID</th>
+                <td><%= @version.user_id %></td>
+              </tr>
+            </table>
+            <% if @user.is_a?(Admin) %>
+              <%= link_to "View Admin", admin_admin_path(@user), class: "btn btn-sm btn-outline-primary w-100" %>
+            <% elsif @user.is_a?(User) %>
+              <%= link_to "View User", admin_user_path(@user), class: "btn btn-sm btn-outline-primary w-100" %>
+            <% end %>
+          <% else %>
+            <div class="text-center text-muted">
+              <i class="fas fa-user-slash fa-3x mb-3 d-block"></i>
+              <p><%= @version.actioned_by_name %></p>
+              <span class="badge bg-warning">User may have been deleted</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Source Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-laptop me-2"></i>Source Information</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <tr>
+              <th>Source</th>
+              <td>
+                <span class="badge bg-info"><%= @version.source %></span>
+              </td>
+            </tr>
+            <% if @version.controller_action.present? %>
+              <tr>
+                <th>Controller</th>
+                <td><code class="small"><%= @version.controller_action %></code></td>
+              </tr>
+            <% end %>
+            <% if @version.ip_address.present? %>
+              <tr>
+                <th>IP Address</th>
+                <td><%= @version.ip_address %></td>
+              </tr>
+            <% end %>
+            <% if @version.user_agent.present? %>
+              <tr>
+                <th>User Agent</th>
+                <td><small class="text-muted"><%= truncate(@version.user_agent, length: 50) %></small></td>
+              </tr>
+            <% end %>
+            <% if @version.request_id.present? %>
+              <tr>
+                <th>Request ID</th>
+                <td><code class="small"><%= @version.request_id %></code></td>
+              </tr>
+            <% end %>
+          </table>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-link me-2"></i>Navigation</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "Back to History", admin_audit_logs_path, class: "btn btn-outline-secondary" %>
+            <% if @item && @item.respond_to?(:persisted?) && @item.persisted? %>
+              <%= link_to "View Item", polymorphic_path([:admin, @item]), class: "btn btn-outline-primary" %>
+            <% end %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+</style>
+
+

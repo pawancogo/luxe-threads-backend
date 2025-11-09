@@ -32,20 +32,6 @@ class Api::V1::PublicProductsController < ApplicationController
   private
   
   def fetch_products_data
-      filter_service = ProductFilterService.new(Product.active)
-      
-      # Build filters hash from params
-      filters = build_filters_from_params
-      
-      # Apply filters
-      filter_service.apply(filters).results(
-        page: (params[:page] || 1).to_i,
-        per_page: (params[:per_page] || 20).to_i
-      )
-    end
-  end
-  
-  def fetch_products_data
     filter_service = ProductFilterService.new(Product.active)
     filters = build_filters_from_params
     filter_service.apply(filters).results(

@@ -1,11 +1,56 @@
-<% if @filters&.any? { |e| e.last.length != 0 } %>
-<form id="search" action="<%= request.path %>" method="get">
-  <div class="row mb-3 align-items-end">
+<% 
+  # Always show filters if:
+  # 1. @filters is present (even if empty, we want to show search and per_page)
+  # 2. Records have aggs_on configured (for filter dropdowns)
+  show_filters = @filters.present? || (records.respond_to?(:aggs_on) && records.aggs_on.present?)
+%>
+<% if show_filters %>
+<form id="search" action="<%= request.path %>" method="get" data-turbo="false" onsubmit="event.preventDefault(); cleanFormParamsAndSubmit(this); return false;">
+  <div class="row mb-3 align-items-end filters-row" style="row-gap: 1rem;">
     <% if local_assigns[:pagination].nil? || local_assigns[:pagination] %>
-    <div class="col-sm-1">
+    <div class="col-sm-3 col-md-2">
       <div class="form-group mb-0">
-        <label for="per_page" class="form-label small text-muted mb-1">Per Page</label>
-        <%= select_tag :per_page, options_for_select([15, 25, 50, 100, 200], params[:per_page] || 15), { class: 'form-control form-control-sm', id: 'per_page', onchange: 'this.form.submit()' } %>
+        <label for="per_page_select" class="form-label small text-muted mb-1 fw-bold">Per Page</label>
+        <% per_page_options = [15, 25, 50, 100, 200] %>
+        <% current_per_page = (params[:per_page].presence || 15).to_i %>
+        <% custom_per_page = !per_page_options.include?(current_per_page) %>
+        <%= hidden_field_tag :per_page, current_per_page, id: 'per_page_hidden' %>
+        <div class="input-group input-group-sm">
+          <select id="per_page_select"
+                  class="form-select <%= 'd-none' if custom_per_page %>"
+                  aria-label="Per page"
+                  onchange="setPerPageValue(this.value)">
+            <% per_page_options.each do |option| %>
+              <option value="<%= option %>" <%= 'selected' if option == current_per_page %>><%= option %></option>
+            <% end %>
+          </select>
+          <input type="number"
+                 id="per_page_input"
+                 class="form-control <%= 'd-none' unless custom_per_page %>"
+                 value="<%= custom_per_page ? current_per_page : '' %>"
+                 min="5"
+                 max="200"
+                 step="5"
+                 placeholder="Custom"
+                 oninput="updatePerPageHidden(this.value)"
+                 onchange="setPerPageValue(this.value)"
+                 onblur="if(this.value) { setPerPageValue(this.value); }"
+                 onkeydown="if(event.key === 'Enter'){ event.preventDefault(); setPerPageValue(this.value); }">
+          <button type="button"
+                  id="per_page_custom_btn"
+                  class="btn btn-outline-secondary <%= 'd-none' if custom_per_page %>"
+                  title="Custom per page"
+                  onclick="showPerPageCustom()">
+            <i class="fas fa-pencil-alt"></i>
+          </button>
+          <button type="button"
+                  id="per_page_reset_btn"
+                  class="btn btn-outline-secondary <%= 'd-none' unless custom_per_page %>"
+                  title="Reset per page"
+                  onclick="resetPerPageSelect()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       </div>
     </div>
     <% end %>
@@ -14,71 +59,115 @@
       <% if key == :search || key == 'search' %>
         <div class="col-sm-2">
           <div class="form-group mb-0">
-            <label for="search" class="form-label small text-muted mb-1">Search</label>
-            <%= text_field_tag :search, get_value(params[:search]), class: "form-control form-control-sm", id: "search", placeholder: "Search..." %>
-          </div>
-        </div>
-      <% elsif key == :range_term || key == 'range_term' %>
-        <% if value.present? && value.is_a?(Array) && value.length > 0 %>
-          <div class="col-sm-4">
-            <div class="form-group mb-0">
-              <label class="form-label small text-muted mb-1">Price Range</label>
-              <div class="d-flex gap-2">
-                <%= select_tag "range_term", options_for_select(value, params[:range_term]), { include_blank: "Select field", class: 'form-control form-control-sm', style: 'flex: 1;' } %>
-                <%= number_field_tag :min, get_value(params[:min]), placeholder: 'Min', min: 0, step: 0.01, class: "form-control form-control-sm", style: 'width: 100px;' %>
-                <%= number_field_tag :max, get_value(params[:max]), placeholder: 'Max', min: 0, step: 0.01, class: "form-control form-control-sm", style: 'width: 100px;' %>
-              </div>
+            <label for="search-input" class="form-label small text-muted mb-1 fw-bold">Search</label>
+            <div class="input-group input-group-sm">
+              <%= text_field_tag :search, get_value(params[:search]), class: "form-control", id: "search-input", name: "search", placeholder: "Search...", onkeydown: "if(event.key === 'Enter'){ event.preventDefault(); cleanFormParamsAndSubmit(document.getElementById('search')); }" %>
+              <% if params[:search].present? %>
+                <button type="button" class="btn btn-outline-secondary" title="Clear search" onclick="clearFilter('search')">
+                  <i class="fas fa-times"></i>
+                </button>
+              <% end %>
             </div>
           </div>
+        </div>
+      <% elsif key == :range_field || key == 'range_field' %>
+        <% if value.present? %>
+          <% 
+            # Get field label from model and check if it's a numeric column
+            model_class = begin
+              controller_name = controller.controller_name.singularize.camelize
+              controller_name.constantize rescue nil
+            end
+            
+            # Check if the column is numeric (integer, float, decimal)
+            is_numeric = false
+            if model_class
+              column = model_class.columns.find { |c| c.name == value.to_s }
+              is_numeric = column && [:integer, :float, :decimal, :bigint].include?(column.type)
+            end
+            
+            field_label = model_class ? model_class.human_attribute_name(value.to_s) : 'Range'
+          %>
+          <% if is_numeric %>
+            <div class="col-sm-4">
+              <div class="form-group mb-0">
+                <label class="form-label small text-muted mb-1 fw-bold"><%= field_label %> Range</label>
+                <div class="input-group input-group-sm">
+                  <%= number_field_tag :min, get_value(params[:min]), placeholder: 'Min', min: 0, step: 0.01, class: "form-control", style: 'flex: 1;', onchange: 'cleanFormParamsAndSubmit(document.getElementById("search"))' %>
+                  <span class="input-group-text" style="padding: 0.25rem 0.5rem;">to</span>
+                  <%= number_field_tag :max, get_value(params[:max]), placeholder: 'Max', min: 0, step: 0.01, class: "form-control", style: 'flex: 1;', onchange: 'cleanFormParamsAndSubmit(document.getElementById("search"))' %>
+                  <% if params[:min].present? || params[:max].present? %>
+                    <button type="button" class="btn btn-outline-secondary" title="Clear range" onclick="clearPriceRange()">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
         <% end %>
       <% elsif key == :date_range || key == 'date_range' %>
         <% if value.present? %>
-          <div class="col-sm-3">
-            <div class="form-group mb-0">
-              <label for="date-range-picker" class="form-label small text-muted mb-1">Date Range</label>
-              <div id="daterangepicker" class="date-picker-container" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ced4da; border-radius: 0.25rem;">
-                <i class="fas fa-calendar me-2"></i>
+        <div class="col-sm-3">
+          <div class="form-group mb-0">
+            <label for="date-range-picker" class="form-label small text-muted mb-1 fw-bold">Date Range</label>
+            <div class="input-group input-group-sm">
+              <div id="daterangepicker" class="date-picker-container flex-grow-1" style="background: #fff; cursor: pointer; border: 1px solid #ced4da; border-radius: 0.25rem; display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem; height: calc(1.75rem);">
+                <i class="fas fa-calendar text-muted"></i>
                 <input
                   name="date_range"
                   type="text"
                   class="date-range form-control form-control-sm d-inline-block"
                   value="<%= params[:date_range] %>"
                   placeholder="Select date range"
-                  style="display: inline; width: 75%; border: 0; background: transparent;"
+                  style="flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; height: 100%;"
                   autocomplete="off"
                   readonly
                   id="date-range-picker"
                 >
-                <i class="fas fa-caret-down"></i>
+                <i class="fas fa-caret-down text-muted"></i>
               </div>
+              <% if params[:date_range].present? %>
+                <button type="button" class="btn btn-outline-secondary" title="Clear date range" onclick="clearFilter('date_range')">
+                  <i class="fas fa-times"></i>
+                </button>
+              <% end %>
             </div>
           </div>
+        </div>
         <% end %>
       <% elsif key == :date_range_overlap || key == 'date_range_overlap' %>
         <% if value.present? %>
-          <div class="col-sm-3">
-            <div class="form-group mb-0">
-              <label for="date-range-overlap-picker" class="form-label small text-muted mb-1">Date Range Overlap</label>
-              <div id="daterangeoverlappicker" class="date-picker-container" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ced4da; border-radius: 0.25rem;">
-                <i class="fas fa-calendar me-2"></i>
+        <div class="col-sm-3">
+          <div class="form-group mb-0">
+            <label for="date-range-overlap-picker" class="form-label small text-muted mb-1 fw-bold">Date Range Overlap</label>
+            <div class="input-group input-group-sm">
+              <div id="daterangeoverlappicker" class="date-picker-container flex-grow-1" style="background: #fff; cursor: pointer; border: 1px solid #ced4da; border-radius: 0.25rem; display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem; height: calc(1.75rem);">
+                <i class="fas fa-calendar text-muted"></i>
                 <input
                   name="date_range_overlap"
                   type="text"
                   class="date-range-overlap form-control form-control-sm d-inline-block"
                   value="<%= params[:date_range_overlap] %>"
                   placeholder="Select date range"
-                  style="display: inline; width: 75%; border: 0; background: transparent;"
+                  style="flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; height: 100%;"
                   autocomplete="off"
                   readonly
                   id="date-range-overlap-picker"
                 >
-                <i class="fas fa-caret-down"></i>
+                <i class="fas fa-caret-down text-muted"></i>
               </div>
+              <% if params[:date_range_overlap].present? %>
+                <button type="button" class="btn btn-outline-secondary" title="Clear date range" onclick="clearFilter('date_range_overlap')">
+                  <i class="fas fa-times"></i>
+                </button>
+              <% end %>
             </div>
           </div>
+        </div>
         <% end %>
       <% else %>
-        <% next if value.length == 0 %>
+        <% next if value.blank? || (value.is_a?(Array) && value.length == 0) %>
         <% 
           # Determine model class from controller
           model_class = begin
@@ -88,10 +177,17 @@
         %>
         <div class="col-sm-3">
           <div class="form-group mb-0">
-            <label for="<%= key %>" class="form-label small text-muted mb-1">
+            <label for="<%= key %>" class="form-label small text-muted mb-1 fw-bold">
               <%= filter_label_for(key, model_class) %>
             </label>
-            <%= select_tag key, options_for_select(format_filter(value, key), params[key]), { include_blank: include_blank_by(key), class: 'form-control form-control-sm', id: key.to_s } %>
+            <div class="input-group input-group-sm">
+              <%= select_tag key, options_for_select(format_filter(value, key), params[key]), { include_blank: include_blank_by(key), class: 'form-control', id: key.to_s, onchange: 'cleanFormParamsAndSubmit(document.getElementById("search"))' } %>
+              <% if params[key].present? %>
+                <button type="button" class="btn btn-outline-secondary" title="Clear filter" onclick="clearFilter('<%= key %>')">
+                  <i class="fas fa-times"></i>
+                </button>
+              <% end %>
+            </div>
           </div>
         </div>
       <% end %>
@@ -105,7 +201,7 @@
       <div class="form-group mb-0">
         <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
         <div>
-          <button type="submit" class="btn btn-primary btn-sm">Search</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="cleanFormParamsAndSubmit(document.getElementById('search'))">Search</button>
           <%= link_to 'Clear', request.path, class: 'btn btn-sm btn-secondary' %>
         </div>
       </div>
@@ -152,12 +248,12 @@
       
       $('#daterangepicker').on('apply.daterangepicker', function(ev, picker) {
         $('#daterangepicker .date-range').val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
-        document.getElementById('search').submit();
+        cleanFormParamsAndSubmit(document.getElementById('search'));
       });
       
       $('#daterangepicker').on('cancel.daterangepicker', function(ev, picker) {
         $('#daterangepicker .date-range').val('');
-        document.getElementById('search').submit();
+        cleanFormParamsAndSubmit(document.getElementById('search'));
       });
     }
     <% end %>
@@ -198,15 +294,236 @@
       
       $('#daterangeoverlappicker').on('apply.daterangepicker', function(ev, picker) {
         $('#daterangeoverlappicker .date-range-overlap').val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
-        document.getElementById('search').submit();
+        cleanFormParamsAndSubmit(document.getElementById('search'));
       });
       
       $('#daterangeoverlappicker').on('cancel.daterangepicker', function(ev, picker) {
         $('#daterangeoverlappicker .date-range-overlap').val('');
-        document.getElementById('search').submit();
+        cleanFormParamsAndSubmit(document.getElementById('search'));
       });
     }
     <% end %>
   });
 </script>
+
+<script>
+  // Clean form params and submit - only include selected filters in URL
+  function cleanFormParamsAndSubmit(form) {
+    if (!form) {
+      form = document.getElementById('search');
+    }
+    if (!form) { return; }
+    const formData = new FormData(form);
+    const urlParams = new URLSearchParams();
+    
+    // Always include page if present
+    const page = formData.get('page');
+    if (page && page.trim() !== '') {
+      urlParams.set('page', page.trim());
+    }
+    
+    // Include per_page if present and not default
+    const perPage = formData.get('per_page');
+    if (perPage && perPage.trim() !== '') {
+      const perPageValue = Math.max(5, Math.min(200, parseInt(perPage.trim(), 10) || 15));
+      if (perPageValue !== 15) {
+        urlParams.set('per_page', perPageValue);
+      }
+    }
+    
+    // Include search if not empty
+    const search = formData.get('search');
+    if (search && search.trim() !== '') {
+      urlParams.set('search', search.trim());
+    }
+    
+    // Include date_range if not empty
+    const dateRange = formData.get('date_range');
+    if (dateRange && dateRange.trim() !== '') {
+      urlParams.set('date_range', dateRange.trim());
+    }
+    
+    // Include date_range_overlap if not empty
+    const dateRangeOverlap = formData.get('date_range_overlap');
+    if (dateRangeOverlap && dateRangeOverlap.trim() !== '') {
+      urlParams.set('date_range_overlap', dateRangeOverlap.trim());
+    }
+    
+    // Include min, max if present (range field is configured in model/controller)
+    const min = formData.get('min');
+    const max = formData.get('max');
+    if (min && min.trim() !== '' && parseFloat(min) > 0) {
+      urlParams.set('min', min.trim());
+    }
+    if (max && max.trim() !== '' && parseFloat(max) > 0) {
+      urlParams.set('max', max.trim());
+    }
+    
+    // Include status if present (for products page)
+    const status = formData.get('status');
+    if (status && status.trim() !== '' && status.trim() !== 'pending') {
+      urlParams.set('status', status.trim());
+    }
+    
+    // Include other filter params only if they have a value (not blank/empty)
+    formData.forEach((value, key) => {
+      // Skip already processed fields and system fields
+             if (['page', 'per_page', 'search', 'date_range', 'date_range_overlap', 'min', 'max', 'status', 'commit', 'utf8', '_method', 'authenticity_token'].includes(key)) {
+        return;
+      }
+      
+      // Only include if value is not empty and not the blank option
+      const valueStr = value ? value.toString().trim() : '';
+      // Skip empty values, blank markers, and select placeholder text
+      if (valueStr !== '' && 
+          valueStr !== '_blank' && 
+          !valueStr.toLowerCase().startsWith('select ') &&
+          valueStr !== 'null' &&
+          valueStr !== 'undefined') {
+        urlParams.set(key, valueStr);
+      }
+    });
+    
+    // Build clean URL and navigate
+    const baseUrl = form.action.split('?')[0];
+    const queryString = urlParams.toString();
+    const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+    
+    // Navigate to clean URL
+    window.location.href = finalUrl;
+  }
+
+  function clearFilter(field) {
+    const form = document.getElementById('search');
+    if (!form) { return; }
+
+    if (field === 'per_page') {
+      resetPerPageSelect(true);
+      return;
+    }
+
+    const element = form.querySelector(`[name="${field}"]`);
+    if (!element) { return; }
+
+    if (element.tagName === 'SELECT') {
+      element.selectedIndex = 0;
+    } else {
+      element.value = '';
+    }
+
+    cleanFormParamsAndSubmit(form);
+  }
+
+  function setPerPageValue(value) {
+    const form = document.getElementById('search');
+    const hidden = document.getElementById('per_page_hidden');
+    const select = document.getElementById('per_page_select');
+    const input = document.getElementById('per_page_input');
+    if (!form || !hidden) { return; }
+
+    const numericValue = parseInt(value, 10);
+    if (Number.isNaN(numericValue)) { return; }
+    const clampedValue = Math.max(5, Math.min(200, numericValue));
+
+    hidden.value = clampedValue;
+
+    if (select && !select.classList.contains('d-none')) {
+      select.value = clampedValue.toString();
+    }
+
+    if (input && !input.classList.contains('d-none')) {
+      input.value = clampedValue;
+    }
+
+    cleanFormParamsAndSubmit(form);
+  }
+
+  function updatePerPageHidden(value) {
+    const hidden = document.getElementById('per_page_hidden');
+    if (!hidden) { return; }
+    const numericValue = parseInt(value, 10);
+    if (!Number.isNaN(numericValue)) {
+      const clampedValue = Math.max(5, Math.min(200, numericValue));
+      hidden.value = clampedValue;
+    }
+  }
+
+  function showPerPageCustom() {
+    const hidden = document.getElementById('per_page_hidden');
+    const select = document.getElementById('per_page_select');
+    const input = document.getElementById('per_page_input');
+    const customBtn = document.getElementById('per_page_custom_btn');
+    const resetBtn = document.getElementById('per_page_reset_btn');
+    if (!hidden || !select || !input) { return; }
+
+    select.classList.add('d-none');
+    if (customBtn) customBtn.classList.add('d-none');
+    if (resetBtn) resetBtn.classList.remove('d-none');
+    input.classList.remove('d-none');
+    input.value = hidden.value || 15;
+    input.focus();
+  }
+
+  function resetPerPageSelect(submit = false) {
+    const form = document.getElementById('search');
+    const hidden = document.getElementById('per_page_hidden');
+    const select = document.getElementById('per_page_select');
+    const input = document.getElementById('per_page_input');
+    const customBtn = document.getElementById('per_page_custom_btn');
+    const resetBtn = document.getElementById('per_page_reset_btn');
+    if (!hidden) { return; }
+
+    hidden.value = 15;
+
+    if (select) {
+      select.value = '15';
+      select.classList.remove('d-none');
+    }
+
+    if (input) {
+      input.value = '';
+      input.classList.add('d-none');
+    }
+
+    if (customBtn) customBtn.classList.remove('d-none');
+    if (resetBtn) resetBtn.classList.add('d-none');
+
+    if (submit && form) {
+      cleanFormParamsAndSubmit(form);
+    }
+  }
+
+  function clearPriceRange() {
+    const form = document.getElementById('search');
+    if (!form) { return; }
+
+    const min = form.querySelector('[name="min"]');
+    const max = form.querySelector('[name="max"]');
+
+    if (min) min.value = '';
+    if (max) max.value = '';
+
+    cleanFormParamsAndSubmit(form);
+  }
+</script>
+<style>
+  .filters-row .form-control,
+  .filters-row .form-select,
+  .filters-row .input-group-sm > .form-control,
+  .filters-row .input-group-sm > .form-select,
+  .filters-row input[type="number"],
+  .filters-row input[type="text"] {
+    box-shadow: none;
+  }
+
+  .filters-row .form-control:focus,
+  .filters-row .form-select:focus,
+  .filters-row .input-group-sm > .form-control:focus,
+  .filters-row .input-group-sm > .form-select:focus,
+  .filters-row input[type="number"]:focus,
+  .filters-row input[type="text"]:focus {
+    box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.2);
+  }
+</style>
+<% end %>
 <% end %>

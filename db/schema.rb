@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_08_043510) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -80,7 +80,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
     t.string "resource_type", limit: 50
     t.integer "resource_id"
     t.text "description"
-    t.text "changes", default: "{}"
+    t.text "activity_changes", default: "{}"
     t.string "ip_address", limit: 50
     t.text "user_agent"
     t.datetime "created_at", null: false
@@ -127,8 +127,17 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
     t.datetime "last_login_at"
     t.datetime "password_changed_at"
     t.text "permissions", default: "{}"
+    t.string "invitation_token"
+    t.datetime "invitation_sent_at"
+    t.datetime "invitation_expires_at"
+    t.integer "invited_by_id"
+    t.datetime "invitation_accepted_at"
+    t.string "invitation_status"
     t.index ["deleted_at"], name: "index_admins_on_deleted_at"
     t.index ["email"], name: "index_admins_on_email", unique: true
+    t.index ["invitation_status"], name: "index_admins_on_invitation_status"
+    t.index ["invitation_token"], name: "index_admins_on_invitation_token", unique: true
+    t.index ["invited_by_id"], name: "index_admins_on_invited_by_id"
     t.index ["is_active"], name: "index_admins_on_is_active"
     t.index ["phone_number"], name: "index_admins_on_phone_number", unique: true
   end
@@ -356,6 +365,47 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
     t.index ["transaction_type"], name: "index_inventory_transactions_on_transaction_type"
   end
 
+  create_table "login_sessions", force: :cascade do |t|
+    t.string "user_type", null: false
+    t.integer "user_id", null: false
+    t.string "session_token", limit: 255, null: false
+    t.string "jwt_token_id", limit: 255
+    t.string "ip_address", limit: 50
+    t.string "country", limit: 100
+    t.string "region", limit: 100
+    t.string "city", limit: 100
+    t.string "timezone", limit: 50
+    t.string "device_type", limit: 50
+    t.string "device_name", limit: 100
+    t.string "os_name", limit: 50
+    t.string "os_version", limit: 50
+    t.string "browser_name", limit: 50
+    t.string "browser_version", limit: 50
+    t.text "user_agent", limit: 500
+    t.string "screen_resolution", limit: 50
+    t.string "viewport_size", limit: 50
+    t.string "connection_type", limit: 50
+    t.boolean "is_mobile", default: false
+    t.boolean "is_tablet", default: false
+    t.boolean "is_desktop", default: false
+    t.string "login_method", limit: 50
+    t.boolean "is_successful", default: true
+    t.string "failure_reason", limit: 255
+    t.datetime "logged_in_at", null: false
+    t.datetime "logged_out_at"
+    t.datetime "last_activity_at"
+    t.boolean "is_active", default: true
+    t.boolean "is_expired", default: false
+    t.text "metadata", default: "{}"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ip_address"], name: "index_login_sessions_on_ip_address"
+    t.index ["logged_in_at"], name: "index_login_sessions_on_logged_in_at"
+    t.index ["session_token"], name: "index_login_sessions_on_session_token", unique: true
+    t.index ["user_type", "user_id", "is_active"], name: "index_login_sessions_on_user_type_and_user_id_and_is_active"
+    t.index ["user_type", "user_id"], name: "index_login_sessions_on_user"
+  end
+
   create_table "loyalty_points_transactions", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "transaction_type", limit: 50, null: false
@@ -372,6 +422,36 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
     t.index ["transaction_type"], name: "index_loyalty_points_transactions_on_transaction_type"
     t.index ["user_id", "transaction_type", "created_at"], name: "index_loyalty_points_on_user_type_created"
     t.index ["user_id"], name: "index_loyalty_points_transactions_on_user_id"
+  end
+
+  create_table "navigation_items", force: :cascade do |t|
+    t.string "key", limit: 100, null: false
+    t.string "label", limit: 100, null: false
+    t.string "icon", limit: 50
+    t.string "path_method", limit: 100, null: false
+    t.string "section", limit: 100
+    t.text "required_permissions"
+    t.boolean "require_super_admin", default: false
+    t.boolean "always_visible", default: false
+    t.boolean "can_view", default: true
+    t.boolean "can_create", default: false
+    t.boolean "can_edit", default: false
+    t.boolean "can_delete", default: false
+    t.text "view_permissions"
+    t.text "create_permissions"
+    t.text "edit_permissions"
+    t.text "delete_permissions"
+    t.integer "display_order", default: 0
+    t.boolean "is_active", default: true
+    t.boolean "is_system", default: false
+    t.text "description"
+    t.string "controller_name", limit: 100
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["is_active"], name: "index_navigation_items_on_is_active"
+    t.index ["is_system"], name: "index_navigation_items_on_is_system"
+    t.index ["key"], name: "index_navigation_items_on_key", unique: true
+    t.index ["section", "display_order"], name: "index_navigation_items_on_section_and_display_order"
   end
 
   create_table "notification_preferences", force: :cascade do |t|
@@ -1211,6 +1291,23 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
     t.index ["user_id"], name: "index_support_tickets_on_user_id"
   end
 
+  create_table "system_configurations", force: :cascade do |t|
+    t.string "key", null: false
+    t.text "value"
+    t.string "value_type", default: "string", null: false
+    t.string "category", default: "general"
+    t.text "description"
+    t.boolean "is_active", default: true, null: false
+    t.string "created_by_type"
+    t.integer "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_system_configurations_on_category"
+    t.index ["created_by_type", "created_by_id"], name: "index_system_configurations_on_created_by"
+    t.index ["is_active"], name: "index_system_configurations_on_is_active"
+    t.index ["key"], name: "index_system_configurations_on_key", unique: true
+  end
+
   create_table "trending_products", force: :cascade do |t|
     t.integer "product_id", null: false
     t.integer "views_24h", default: 0
@@ -1283,8 +1380,18 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
     t.string "apple_id"
     t.datetime "password_changed_at"
     t.integer "orders_count", default: 0, null: false
+    t.string "invitation_token"
+    t.datetime "invitation_sent_at"
+    t.datetime "invitation_expires_at"
+    t.integer "invited_by_id"
+    t.datetime "invitation_accepted_at"
+    t.string "invitation_role"
+    t.string "invitation_status"
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["invitation_status"], name: "index_users_on_invitation_status"
+    t.index ["invitation_token"], name: "index_users_on_invitation_token", unique: true
+    t.index ["invited_by_id"], name: "index_users_on_invited_by_id"
     t.index ["is_active"], name: "index_users_on_is_active"
     t.index ["last_active_at"], name: "index_users_on_last_active_at"
     t.index ["notification_preferences"], name: "index_users_on_notification_preferences"
@@ -1390,6 +1497,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
   add_foreign_key "admin_role_assignments", "admins"
   add_foreign_key "admin_role_assignments", "admins", column: "assigned_by_id"
   add_foreign_key "admin_role_assignments", "rbac_roles"
+  add_foreign_key "admins", "admins", column: "invited_by_id"
   add_foreign_key "attribute_values", "attribute_types"
   add_foreign_key "audit_logs", "users"
   add_foreign_key "cart_items", "carts"
@@ -1470,6 +1578,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_06_114960) do
   add_foreign_key "trending_products", "categories"
   add_foreign_key "trending_products", "products"
   add_foreign_key "user_searches", "users"
+  add_foreign_key "users", "users", column: "invited_by_id"
   add_foreign_key "users", "users", column: "referred_by_id"
   add_foreign_key "warehouse_inventory", "product_variants"
   add_foreign_key "warehouse_inventory", "warehouses"

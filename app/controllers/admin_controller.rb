@@ -1,42 +1,83 @@
 class AdminController < BaseController
   before_action :authenticate_admin!, except: [:login]
   before_action :set_current_admin, except: [:login]
+  
+  # Note: Dashboard is handled by Admin::DashboardController#index
+  # This controller only handles login/logout
 
-  def dashboard
-    # Dashboard access is already controlled by authenticate_admin! before_action
-    @admins_count = ::Admin.count
-    @users_count = User.count
-    @suppliers_count = User.where(role: 'supplier').count
-    @products_count = Product.count
-    @orders_count = Order.count
-    
-    # Phase 2: Additional metrics
-    @active_products_count = Product.where(status: 'active').count
-    @featured_products_count = Product.where(is_featured: true).count
-    @low_stock_variants_count = ProductVariant.where(is_low_stock: true).count
-    @out_of_stock_variants_count = ProductVariant.where(out_of_stock: true).count
-    @pending_orders_count = Order.where(status: 'pending').count
-    @shipped_orders_count = Order.where(status: 'shipped').count
-    @categories_count = Category.count
-    @brands_count = Brand.where(active: true).count
-    
-    @recent_orders = Order.includes(:user).order(created_at: :desc).limit(5)
-    @recent_users = User.order(created_at: :desc).limit(5)
-    
-    # Phase 2: Recent products with Phase 2 fields
-    @recent_products = Product.includes(:supplier_profile, :category, :brand)
-                              .order(created_at: :desc)
-                              .limit(5)
-  end
 
   def login
     if request.post?
       admin = ::Admin.find_by(email: params[:email])
       
       if admin&.authenticate(params[:password])
+        # Check if admin is blocked
+        if admin.is_blocked?
+          flash.now[:alert] = 'Your account has been blocked. Please contact the administrator.'
+          render :login, layout: false
+          return
+        end
+        
+        # Check if admin is inactive (but not blocked)
+        unless admin.is_active
+          # If email is not verified, redirect to verification flow
+          unless admin.email_verified?
+            # Send verification OTP if not already sent
+            EmailVerificationService.new(admin).send_verification_email unless admin.email_verifications.pending.active.exists?
+            redirect_to "/verify-email?type=admin&id=#{admin.id}&email=#{CGI.escape(admin.email)}&reason=inactive", 
+                        notice: 'Your account is inactive. Please verify your email to activate your account.'
+            return
+          else
+            # Email verified but account inactive - need to activate
+            flash.now[:alert] = 'Your account is inactive. Please contact the administrator to activate your account.'
+            render :login, layout: false
+            return
+          end
+        end
+        
         session[:admin_id] = admin.id
+        
+        # Update last login
+        admin.update_last_login!
+        
+        # Create login session with device and location info
+        LoginSessionService.create_session(
+          admin,
+          request,
+          {
+            login_method: 'password',
+            platform: 'web',
+            jwt_token_id: "session_#{session.id}" # Use session ID as reference
+          }
+        )
+        
+        # Log admin activity
+        AdminActivity.log_activity(
+          admin,
+          'login',
+          nil,
+          nil,
+          {
+            description: 'Admin logged in via HTML interface',
+            ip_address: request.remote_ip,
+            user_agent: request.user_agent
+          }
+        )
+        
         redirect_to admin_root_path, notice: 'Successfully logged in!'
       else
+        # Log failed login attempt
+        if admin
+          LoginSessionService.create_session(
+            admin,
+            request,
+            {
+              login_method: 'password',
+              is_successful: false,
+              failure_reason: 'Invalid password'
+            }
+          )
+        end
         flash.now[:alert] = 'Invalid email or password'
         render :login, layout: false
       end
@@ -46,6 +87,31 @@ class AdminController < BaseController
   end
 
   def logout
+    # Get admin before clearing session
+    admin = current_admin
+    
+    # Mark login session as logged out
+    if admin
+      LoginSession.for_user(admin)
+                  .active
+                  .where(logged_out_at: nil)
+                  .where("session_token LIKE ?", "session_#{session.id}%")
+                  .update_all(logged_out_at: Time.current, is_active: false)
+      
+      # Log admin activity
+      AdminActivity.log_activity(
+        admin,
+        'logout',
+        nil,
+        nil,
+        {
+          description: 'Admin logged out via HTML interface',
+          ip_address: request.remote_ip,
+          user_agent: request.user_agent
+        }
+      )
+    end
+    
     session[:admin_id] = nil
     redirect_to admin_login_path, notice: 'Successfully logged out!'
   end
@@ -78,6 +144,51 @@ class AdminController < BaseController
   def authenticate_admin!
     unless current_admin
       redirect_to admin_login_path, alert: 'Please log in to access admin panel'
+      return
+    end
+    
+    # Check if admin is blocked - if so, log them out immediately
+    if current_admin.is_blocked?
+      # Clear Rails session completely
+      reset_session
+      
+      # Invalidate all active login sessions
+      LoginSession.for_user(current_admin)
+                  .active
+                  .where(logged_out_at: nil)
+                  .update_all(logged_out_at: Time.current, is_active: false)
+      
+      # Log the forced logout
+      AdminActivity.log_activity(
+        current_admin,
+        'logout',
+        nil,
+        nil,
+        {
+          description: 'Admin automatically logged out due to account being blocked',
+          ip_address: request.remote_ip,
+          user_agent: request.user_agent
+        }
+      )
+      
+      redirect_to admin_login_path, alert: 'Your account has been blocked. Please contact the administrator.'
+      return
+    end
+    
+    # Check if admin is inactive - show verification modal to reactivate account
+    unless current_admin.is_active
+      # When account is inactive, admin must verify email via OTP to reactivate
+      # Send verification OTP if not already sent
+      unless current_admin.email_verifications.pending.active.exists?
+        EmailVerificationService.new(current_admin).send_verification_email
+      end
+      
+      # Set session flag to trigger modal
+      session[:show_inactive_modal] = true
+      session[:verification_url] = "/verify-email?type=admin&id=#{current_admin.id}&email=#{CGI.escape(current_admin.email)}&reason=inactive"
+      
+      # Don't redirect immediately - let JavaScript modal handle it
+      # This allows the modal to show on the current page
     end
   end
 

@@ -1203,3 +1203,14 @@ puts "   - FLAT500 (₹500 off, min ₹2000)"
 puts "   - SUMMER25 (25% off, min ₹1000)"
 puts ""
 puts "🌐 Access RailsAdmin at: http://localhost:3000/admin"
+puts ""
+puts "📋 Seeding Navigation Items..."
+begin
+  require Rails.root.join('lib', 'navigation_items_seeder')
+  NavigationItemsSeeder.seed_navigation_items
+rescue => e
+  puts "⚠️  Warning: Could not seed navigation items automatically: #{e.message}"
+  puts "   Please run manually: rails navigation_items:seed"
+end
+puts ""
+puts "✅ All seeding completed!"

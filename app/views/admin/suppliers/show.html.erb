@@ -1,165 +1,316 @@
-<% content_for :page_title, "Supplier Details" %>
+<% content_for :title, "Supplier - #{@supplier.full_name.presence || @supplier.email}" %>
 
-<div class="supplier-details">
-  <div class="page-header">
-    <h1>Supplier Details: <%= @supplier.full_name %></h1>
-    <div class="breadcrumb">
-      <%= link_to "Dashboard", admin_root_path %> > 
-      <%= link_to "Supplier Management", admin_suppliers_path %> > 
-      Supplier Details
+<div class="admin-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-store me-2"></i><%= @supplier.full_name.presence || @supplier.email %>
+      </h1>
+      <p class="text-muted mb-0 mt-2">Supplier Details & Company Information</p>
+    </div>
+    <div>
+      <%= link_to "Back to Suppliers", admin_suppliers_path, class: "btn btn-outline-secondary" %>
+      <%= link_to "Edit", edit_admin_supplier_path(@supplier), class: "btn btn-primary" %>
     </div>
   </div>
-
-  <div class="supplier-info-grid">
-    <div class="info-card">
-      <h3>Personal Information</h3>
-      <div class="info-row">
-        <span class="label">Name:</span>
-        <span class="value"><%= @supplier.full_name %></span>
-      </div>
-      <div class="info-row">
-        <span class="label">Email:</span>
-        <span class="value"><%= @supplier.email %></span>
-      </div>
-      <div class="info-row">
-        <span class="label">Phone:</span>
-        <span class="value"><%= @supplier.phone_number %></span>
-      </div>
-      <div class="info-row">
-        <span class="label">Role:</span>
-        <span class="value">
-          <span class="role-badge role-<%= @supplier.role %>">
-            <%= @supplier.role.humanize %>
-          </span>
-        </span>
-      </div>
-      <div class="info-row">
-        <span class="label">Member Since:</span>
-        <span class="value"><%= @supplier.created_at.strftime("%B %d, %Y") %></span>
-      </div>
-    </div>
-
-    <div class="info-card">
-      <h3>Company Information</h3>
-      <% if @supplier_profile %>
-        <div class="info-row">
-          <span class="label">Company Name:</span>
-          <span class="value"><%= @supplier_profile.company_name %></span>
-        </div>
-        <div class="info-row">
-          <span class="label">GST Number:</span>
-          <span class="value"><%= @supplier_profile.gst_number %></span>
-        </div>
-        <div class="info-row">
-          <span class="label">Description:</span>
-          <span class="value"><%= @supplier_profile.description %></span>
-        </div>
-        <div class="info-row">
-          <span class="label">Website:</span>
-          <span class="value">
-            <% if @supplier_profile.website_url.present? %>
-              <%= link_to @supplier_profile.website_url, @supplier_profile.website_url, target: "_blank" %>
-            <% else %>
-              N/A
-            <% end %>
-          </span>
-        </div>
-        <div class="info-row">
-          <span class="label">Status:</span>
-          <span class="value">
-            <% if @supplier_profile.verified %>
-              <span class="status-badge status-verified">Verified</span>
-            <% else %>
-              <span class="status-badge status-unverified">Unverified</span>
-            <% end %>
-          </span>
-        </div>
-      <% else %>
-        <p class="no-profile">No company profile created yet.</p>
-      <% end %>
-    </div>
-
-    <div class="info-card">
-      <h3>Business Statistics</h3>
-      <% if @supplier_profile %>
-        <% supplier_products = @supplier_profile.products %>
-        <div class="stat-item">
-          <span class="stat-label">Total Products:</span>
-          <span class="stat-value"><%= supplier_products.count %></span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Active Products:</span>
-          <span class="stat-value"><%= supplier_products.where(status: 'active').count %></span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Pending Products:</span>
-          <span class="stat-value"><%= supplier_products.where(status: 'pending').count %></span>
-        </div>
-      <% else %>
-        <div class="stat-item">
-          <span class="stat-label">Total Products:</span>
-          <span class="stat-value">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Active Products:</span>
-          <span class="stat-value">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Pending Products:</span>
-          <span class="stat-value">0</span>
-        </div>
-      <% end %>
-    </div>
-  </div>
-
-  <!-- Supplier Approval Section -->
-  <% if @supplier_profile %>
-    <div class="approval-section mt-4">
-      <div class="card">
-        <div class="card-header <%= @supplier_profile.verified ? 'bg-success text-white' : 'bg-warning text-dark' %>">
-          <h5 class="mb-0">
-            <i class="fas fa-<%= @supplier_profile.verified ? 'check-circle' : 'exclamation-circle' %> me-2"></i>
-            Supplier Approval Status
-          </h5>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Personal Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
         </div>
         <div class="card-body">
-          <% if @supplier_profile.verified %>
-            <div class="alert alert-success mb-3">
-              <i class="fas fa-check-circle me-2"></i>
-              This supplier has been verified and approved.
-            </div>
-            <div class="d-grid gap-2">
-              <%= button_to reject_admin_supplier_path(@supplier), 
-                  method: :post,
-                  class: "btn btn-danger",
-                  data: { confirm: "Are you sure you want to unverify this supplier? This will mark them as unverified." } do %>
-                <i class="fas fa-times-circle me-2"></i>Unverify Supplier
+          <table class="table table-bordered">
+            <tr>
+              <th width="30%">ID</th>
+              <td><%= @supplier.id %></td>
+            </tr>
+            <tr>
+              <th>Full Name</th>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="avatar-circle bg-primary text-white me-2">
+                    <% if @supplier.first_name.present? %>
+                      <%= @supplier.first_name.first.upcase %><%= @supplier.last_name&.first&.upcase || '' %>
+                    <% else %>
+                      <%= @supplier.email.first.upcase %>
+                    <% end %>
+                  </div>
+                  <strong><%= @supplier.full_name.presence || @supplier.email %></strong>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <th>Email</th>
+              <td><%= @supplier.email %></td>
+            </tr>
+            <tr>
+              <th>Phone Number</th>
+              <td><%= @supplier.phone_number %></td>
+            </tr>
+            <tr>
+              <th>Role</th>
+              <td>
+                <span class="badge bg-warning fs-6">
+                  <%= @supplier.role.humanize %>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                <% if @supplier.is_active && @supplier.deleted_at.nil? %>
+                  <span class="badge bg-success">Active</span>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Email Verified</th>
+              <td>
+                <% if @supplier.email_verified? %>
+                  <span class="badge bg-success"><i class="fas fa-check me-1"></i>Verified</span>
+                <% else %>
+                  <span class="badge bg-warning"><i class="fas fa-times me-1"></i>Not Verified</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th>Member Since</th>
+              <td><%= @supplier.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Company Information -->
+      <% if @supplier_profile %>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-building me-2"></i>Company Information</h5>
+          </div>
+          <div class="card-body">
+            <table class="table table-bordered">
+              <tr>
+                <th width="30%">Company Name</th>
+                <td><strong><%= @supplier_profile.company_name %></strong></td>
+              </tr>
+              <tr>
+                <th>GST Number</th>
+                <td><%= @supplier_profile.gst_number %></td>
+              </tr>
+              <% if @supplier_profile.description.present? %>
+                <tr>
+                  <th>Description</th>
+                  <td><%= @supplier_profile.description %></td>
+                </tr>
               <% end %>
+              <tr>
+                <th>Website</th>
+                <td>
+                  <% if @supplier_profile.website_url.present? %>
+                    <%= link_to @supplier_profile.website_url, @supplier_profile.website_url, target: "_blank", class: "text-decoration-none" %>
+                  <% else %>
+                    <span class="text-muted">N/A</span>
+                  <% end %>
+                </td>
+              </tr>
+              <tr>
+                <th>Verification Status</th>
+                <td>
+                  <% if @supplier_profile.verified %>
+                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Verified</span>
+                  <% else %>
+                    <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Unverified</span>
+                  <% end %>
+                </td>
+              </tr>
+              <% if @supplier_profile.supplier_tier.present? %>
+                <tr>
+                  <th>Supplier Tier</th>
+                  <td>
+                    <span class="badge bg-info">
+                      <%= @supplier_profile.supplier_tier.humanize %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-building me-2"></i>Company Information</h5>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info mb-0">
+              <i class="fas fa-info-circle me-2"></i>No company profile created yet.
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Business Statistics -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Business Statistics</h5>
+        </div>
+        <div class="card-body">
+          <% if @supplier_profile %>
+            <% supplier_products = @supplier_profile.products %>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="stat-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-box me-2"></i>Total Products</strong>
+                    </div>
+                    <span class="badge bg-primary fs-5"><%= supplier_products.count %></span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-check-circle me-2"></i>Active Products</strong>
+                    </div>
+                    <span class="badge bg-success fs-5"><%= supplier_products.where(status: 'active').count %></span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-clock me-2"></i>Pending Products</strong>
+                    </div>
+                    <span class="badge bg-warning fs-5"><%= supplier_products.where(status: 'pending').count %></span>
+                  </div>
+                </div>
+              </div>
             </div>
           <% else %>
-            <div class="alert alert-warning mb-3">
-              <i class="fas fa-clock me-2"></i>
-              This supplier is pending verification.
-            </div>
-            <div class="d-grid gap-2">
-              <%= button_to approve_admin_supplier_path(@supplier), 
-                  method: :post,
-                  class: "btn btn-success btn-lg",
-                  data: { confirm: "Are you sure you want to approve this supplier? They will be marked as verified." } do %>
-                <i class="fas fa-check-circle me-2"></i>Approve Supplier
-              <% end %>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="stat-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-box me-2"></i>Total Products</strong>
+                    </div>
+                    <span class="badge bg-secondary fs-5">0</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-check-circle me-2"></i>Active Products</strong>
+                    </div>
+                    <span class="badge bg-secondary fs-5">0</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-item mb-3 p-3 border rounded">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong><i class="fas fa-clock me-2"></i>Pending Products</strong>
+                    </div>
+                    <span class="badge bg-secondary fs-5">0</span>
+                  </div>
+                </div>
+              </div>
             </div>
           <% end %>
         </div>
       </div>
     </div>
-  <% end %>
+    
+    <div class="col-md-4">
+      <!-- Actions Card -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <%= link_to "Edit Supplier", edit_admin_supplier_path(@supplier), class: "btn btn-primary" %>
+            <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
+            <hr>
+            <%= link_to "Delete Supplier", admin_supplier_path(@supplier), method: :delete, 
+                class: "btn btn-outline-danger",
+                data: { confirm: "Are you sure you want to delete #{@supplier.full_name.presence || @supplier.email}? This action cannot be undone." } %>
+          </div>
+        </div>
+      </div>
 
-  <div class="action-buttons mt-4">
-    <%= link_to "Edit Supplier", edit_admin_supplier_path(@supplier), class: "btn btn-warning" %>
-    <%= link_to "Back to Supplier Management", admin_suppliers_path, class: "btn btn-secondary" %>
-    <%= link_to "Delete Supplier", admin_supplier_path(@supplier), method: :delete, 
-        confirm: "Are you sure? This action cannot be undone.", 
-        class: "btn btn-danger" %>
+      <!-- Supplier Approval Section -->
+      <% if @supplier_profile %>
+        <div class="card">
+          <div class="card-header <%= @supplier_profile.verified ? 'bg-success text-white' : 'bg-warning text-dark' %>">
+            <h5 class="mb-0">
+              <i class="fas fa-<%= @supplier_profile.verified ? 'check-circle' : 'exclamation-circle' %> me-2"></i>
+              Verification Status
+            </h5>
+          </div>
+          <div class="card-body">
+            <% if @supplier_profile.verified %>
+              <div class="alert alert-success mb-3">
+                <i class="fas fa-check-circle me-2"></i>
+                This supplier has been verified and approved.
+              </div>
+              <div class="d-grid gap-2">
+                <%= button_to reject_admin_supplier_path(@supplier), 
+                    method: :post,
+                    class: "btn btn-danger",
+                    data: { confirm: "Are you sure you want to unverify this supplier? This will mark them as unverified." } do %>
+                  <i class="fas fa-times-circle me-2"></i>Unverify Supplier
+                <% end %>
+              </div>
+            <% else %>
+              <div class="alert alert-warning mb-3">
+                <i class="fas fa-clock me-2"></i>
+                This supplier is pending verification.
+              </div>
+              <div class="d-grid gap-2">
+                <%= button_to approve_admin_supplier_path(@supplier), 
+                    method: :post,
+                    class: "btn btn-success",
+                    data: { confirm: "Are you sure you want to approve this supplier? They will be marked as verified." } do %>
+                  <i class="fas fa-check-circle me-2"></i>Approve Supplier
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
   </div>
 </div>
+
+<style>
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .stat-item {
+    transition: all 0.2s;
+  }
+  
+  .stat-item:hover {
+    background-color: #f8f9fa;
+  }
+</style>

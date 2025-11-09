@@ -21,6 +21,19 @@ FactoryBot.define do
     trait :supplier_admin do
       role { 'supplier_admin' }
     end
+    
+    trait :pending_invitation do
+      first_name { nil }
+      last_name { nil }
+      phone_number { nil }
+      password { nil }
+      password_confirmation { nil }
+      invitation_status { 'pending' }
+      invitation_token { SecureRandom.urlsafe_base64(32) }
+      invitation_sent_at { Time.current }
+      invitation_expires_at { 7.days.from_now }
+      is_active { false }
+    end
   end
 end
 

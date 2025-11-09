@@ -5,26 +5,18 @@ RSpec.describe ReturnMedia, type: :model do
     it { should belong_to(:return_item) }
   end
 
-  describe 'factory' do
-    it 'has a valid factory' do
-      return_media = build(:return_media)
-      expect(return_media).to be_valid
-    end
+  describe 'validations' do
+    it { should validate_presence_of(:media_type) }
+    it { should validate_presence_of(:media_url) }
   end
 
-  describe 'methods' do
-    let(:return_media) { create(:return_media) }
+  describe 'enums' do
+    it { should define_enum_for(:media_type).with_values(image: 'image', video: 'video', document: 'document') }
+  end
 
-    describe 'media_type methods' do
-      it 'has image? method' do
-        return_media.media_type = 'image'
-        expect(return_media.image?).to be true
-      end
-
-      it 'has video? method' do
-        return_media.media_type = 'video'
-        expect(return_media.video?).to be true
-      end
+  describe 'factory' do
+    it 'has a valid factory' do
+      expect(build(:return_media)).to be_valid
     end
   end
 end

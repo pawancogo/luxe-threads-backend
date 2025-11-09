@@ -6,8 +6,10 @@
       <i class="fas fa-shopping-cart me-2"></i>Order Management
     </h1>
     <div>
-      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
-        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% if super_admin? %>
+        <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+          <i class="fas fa-database me-2"></i>View in RailsAdmin
+        <% end %>
       <% end %>
     </div>
   </div>
@@ -42,23 +44,23 @@
   
   <!-- Orders Table -->
   <div class="table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover table-sticky">
       <thead>
         <tr>
-          <th>Order #</th>
+          <th class="sticky-col sticky-start sticky-header">Order #</th>
           <th>Customer</th>
           <th>Amount</th>
           <th>Status</th>
           <th>Payment Status</th>
           <th>Created</th>
-          <th>Actions</th>
+          <th class="sticky-col sticky-end sticky-header">Actions</th>
         </tr>
       </thead>
       <tbody>
         <% if @orders.any? %>
           <% @orders.each do |order| %>
             <tr>
-              <td>
+              <td class="sticky-col sticky-start sticky-cell">
                 <strong><%= link_to order.order_number, admin_order_path(order), class: "text-decoration-none" %></strong>
               </td>
               <td>
@@ -83,7 +85,7 @@
                 </span>
               </td>
               <td><%= order.created_at.strftime('%b %d, %Y') %></td>
-              <td>
+              <td class="sticky-col sticky-end sticky-cell">
                 <div class="btn-group btn-group-sm">
                   <%= link_to admin_order_path(order), class: "btn btn-outline-primary", title: "View" do %>
                     <i class="fas fa-eye"></i>
@@ -104,11 +106,44 @@
     </table>
   </div>
   
-  <!-- Pagination -->
-  <% if @orders.respond_to?(:current_page) %>
-    <div class="d-flex justify-content-center mt-4">
-      <%= paginate @orders if defined?(Kaminari) %>
-    </div>
-  <% end %>
+  <%= render 'admin/shared/pagination', collection: @orders %>
+ </div>
+
+<style>
+  .table-sticky thead th,
+  .table-sticky tbody td {
+    white-space: nowrap;
+  }
+
+  .table-sticky .sticky-col {
+    position: sticky;
+    z-index: 3;
+  }
+
+  .table-sticky .sticky-header {
+    background-color: #f8f9fa !important;
+  }
+
+  .table-sticky .sticky-start {
+    left: 0;
+  }
+
+  .table-sticky tbody .sticky-start {
+    z-index: 2;
+  }
+
+  .table-sticky .sticky-cell {
+    background-color: #fff !important;
+  }
+
+  .table-sticky .sticky-end {
+    right: 0;
+  }
+
+  .table-sticky tbody .sticky-end {
+    z-index: 2;
+  }
+</style>
+
 </div>
 

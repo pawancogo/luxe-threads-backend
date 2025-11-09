@@ -40,29 +40,47 @@
     </div>
   </div>
 
-  <div class="mb-3">
-    <%= form.label :role, class: "form-label" %>
-    <%= form.select :role, 
-        options_for_select([
-          ['Super Admin - Full access to all features', 'super_admin'],
-          ['Product Admin - Manage products and categories', 'product_admin'],
-          ['Order Admin - Manage orders and fulfillments', 'order_admin'],
-          ['User Admin - Manage customers and users', 'user_admin'],
-          ['Supplier Admin - Manage suppliers and approvals', 'supplier_admin']
-        ], admin.role), 
-        { prompt: 'Select a role' }, 
-        { class: "form-select", required: true } %>
-    <small class="form-text text-muted">
-      <i class="fas fa-info-circle me-1"></i>
-      Each role has specific permissions. Super Admin has access to everything.
-    </small>
-  </div>
+  <%# Only show role field for new records or when super admin is editing another admin %>
+  <% if admin.new_record? || (current_admin&.super_admin? && admin != current_admin) %>
+    <div class="mb-3">
+      <%= form.label :role, class: "form-label" %>
+      <%= form.select :role, 
+          options_for_select([
+            ['Super Admin - Full access to all features', 'super_admin'],
+            ['Product Admin - Manage products and categories', 'product_admin'],
+            ['Order Admin - Manage orders and fulfillments', 'order_admin'],
+            ['User Admin - Manage customers and users', 'user_admin'],
+            ['Supplier Admin - Manage suppliers and approvals', 'supplier_admin']
+          ], admin.role), 
+          { prompt: 'Select a role' }, 
+          { class: "form-select", required: true } %>
+      <small class="form-text text-muted">
+        <i class="fas fa-info-circle me-1"></i>
+        Each role has specific permissions. Super Admin has access to everything.
+      </small>
+    </div>
+  <% elsif admin == current_admin %>
+    <%# Show role as read-only when editing own profile %>
+    <div class="mb-3">
+      <%= form.label :role, class: "form-label" %>
+      <input type="text" class="form-control" value="<%= admin.role.humanize %>" readonly>
+      <small class="form-text text-muted">
+        <i class="fas fa-info-circle me-1"></i>
+        You cannot change your own role. Contact a super admin if you need your role changed.
+      </small>
+    </div>
+  <% end %>
 
   <div class="row">
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :password, class: "form-label" %>
-        <%= form.password_field :password, class: "form-control", required: admin.new_record? %>
+        <div class="input-group">
+          <%= form.password_field :password, id: "admin-password", class: "form-control", required: admin.new_record? %>
+          <button type="button" class="btn btn-outline-secondary" id="admin-password-toggle" onclick="togglePassword('admin-password', 'admin-password-toggle')">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
         <% unless admin.new_record? %>
           <small class="form-text text-muted">Leave blank if you don't want to change the password</small>
         <% end %>
@@ -71,7 +89,12 @@
     <div class="col-md-6">
       <div class="mb-3">
         <%= form.label :password_confirmation, class: "form-label" %>
-        <%= form.password_field :password_confirmation, class: "form-control", required: admin.new_record? %>
+        <div class="input-group">
+          <%= form.password_field :password_confirmation, id: "admin-password-confirmation", class: "form-control", required: admin.new_record? %>
+          <button type="button" class="btn btn-outline-secondary" id="admin-password-confirmation-toggle" onclick="togglePassword('admin-password-confirmation', 'admin-password-confirmation-toggle')">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -1,0 +1,205 @@
+<% content_for :title, "Navigation Item - #{@navigation_item.label}" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="<%= @navigation_item.icon %> me-2"></i><%= @navigation_item.label %>
+    </h1>
+    <div>
+      <%= link_to "Edit", edit_admin_navigation_item_path(@navigation_item), class: "btn btn-primary me-2" %>
+      <%= link_to "Back", admin_navigation_items_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Details</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Key:</dt>
+            <dd class="col-sm-8"><code><%= @navigation_item.key %></code></dd>
+            
+            <dt class="col-sm-4">Label:</dt>
+            <dd class="col-sm-8"><%= @navigation_item.label %></dd>
+            
+            <dt class="col-sm-4">Icon:</dt>
+            <dd class="col-sm-8">
+              <% if @navigation_item.icon.present? %>
+                <i class="<%= @navigation_item.icon %> me-2"></i><%= @navigation_item.icon %>
+              <% else %>
+                <span class="text-muted">No icon</span>
+              <% end %>
+            </dd>
+            
+            <dt class="col-sm-4">Path Method:</dt>
+            <dd class="col-sm-8"><code><%= @navigation_item.path_method %></code></dd>
+            
+            <dt class="col-sm-4">Section:</dt>
+            <dd class="col-sm-8"><%= @navigation_item.section.present? ? @navigation_item.section : 'Other' %></dd>
+            
+            <dt class="col-sm-4">Controller:</dt>
+            <dd class="col-sm-8"><%= @navigation_item.controller_name.present? ? @navigation_item.controller_name : 'N/A' %></dd>
+            
+            <dt class="col-sm-4">Display Order:</dt>
+            <dd class="col-sm-8"><%= @navigation_item.display_order %></dd>
+            
+            <dt class="col-sm-4">Description:</dt>
+            <dd class="col-sm-8"><%= @navigation_item.description.present? ? @navigation_item.description : 'N/A' %></dd>
+          </dl>
+        </div>
+      </div>
+      
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">Status & Visibility</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p>
+                <strong>Status:</strong>
+                <% if @navigation_item.is_active %>
+                  <span class="badge bg-success">Active</span>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </p>
+              
+              <p>
+                <strong>System Item:</strong>
+                <% if @navigation_item.is_system %>
+                  <span class="badge bg-info">Yes</span>
+                <% else %>
+                  <span class="badge bg-secondary">No</span>
+                <% end %>
+              </p>
+            </div>
+            
+            <div class="col-md-6">
+              <p>
+                <strong>Super Admin Only:</strong>
+                <% if @navigation_item.require_super_admin %>
+                  <span class="badge bg-danger">Yes</span>
+                <% else %>
+                  <span class="badge bg-secondary">No</span>
+                <% end %>
+              </p>
+              
+              <p>
+                <strong>Always Visible:</strong>
+                <% if @navigation_item.always_visible %>
+                  <span class="badge bg-info">Yes</span>
+                <% else %>
+                  <span class="badge bg-secondary">No</span>
+                <% end %>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">Action Permissions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex gap-3">
+            <% if @navigation_item.can_view %>
+              <span class="badge bg-success">Can View</span>
+            <% end %>
+            <% if @navigation_item.can_create %>
+              <span class="badge bg-primary">Can Create</span>
+            <% end %>
+            <% if @navigation_item.can_edit %>
+              <span class="badge bg-warning">Can Edit</span>
+            <% end %>
+            <% if @navigation_item.can_delete %>
+              <span class="badge bg-danger">Can Delete</span>
+            <% end %>
+            <% unless @navigation_item.can_view || @navigation_item.can_create || @navigation_item.can_edit || @navigation_item.can_delete %>
+              <span class="text-muted">No action permissions</span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Permissions</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <strong>Required Permissions:</strong>
+            <% if @navigation_item.required_permissions_array.any? %>
+              <ul class="list-unstyled mt-2 mb-0">
+                <% @navigation_item.required_permissions_array.each do |perm| %>
+                  <li><code class="small"><%= perm %></code></li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="text-muted mb-0">None</p>
+            <% end %>
+          </div>
+          
+          <div class="mb-3">
+            <strong>View Permissions:</strong>
+            <% if @navigation_item.view_permissions_array.any? %>
+              <ul class="list-unstyled mt-2 mb-0">
+                <% @navigation_item.view_permissions_array.each do |perm| %>
+                  <li><code class="small"><%= perm %></code></li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="text-muted mb-0">None</p>
+            <% end %>
+          </div>
+          
+          <div class="mb-3">
+            <strong>Create Permissions:</strong>
+            <% if @navigation_item.create_permissions_array.any? %>
+              <ul class="list-unstyled mt-2 mb-0">
+                <% @navigation_item.create_permissions_array.each do |perm| %>
+                  <li><code class="small"><%= perm %></code></li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="text-muted mb-0">None</p>
+            <% end %>
+          </div>
+          
+          <div class="mb-3">
+            <strong>Edit Permissions:</strong>
+            <% if @navigation_item.edit_permissions_array.any? %>
+              <ul class="list-unstyled mt-2 mb-0">
+                <% @navigation_item.edit_permissions_array.each do |perm| %>
+                  <li><code class="small"><%= perm %></code></li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="text-muted mb-0">None</p>
+            <% end %>
+          </div>
+          
+          <div>
+            <strong>Delete Permissions:</strong>
+            <% if @navigation_item.delete_permissions_array.any? %>
+              <ul class="list-unstyled mt-2 mb-0">
+                <% @navigation_item.delete_permissions_array.each do |perm| %>
+                  <li><code class="small"><%= perm %></code></li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="text-muted mb-0">None</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

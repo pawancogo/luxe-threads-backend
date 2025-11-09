@@ -8,7 +8,13 @@ module JwtAuthentication
   private
 
   # Extract and decode JWT token
+  # Priority: 1. Cookie (httpOnly), 2. Authorization header (for backward compatibility)
   def extract_token
+    # Try cookie first (more secure)
+    token = cookies.signed[:auth_token] || cookies[:auth_token]
+    return token if token.present?
+    
+    # Fallback to Authorization header
     header = request.headers['Authorization']
     header&.split(' ')&.last
   end

@@ -1,0 +1,166 @@
+<% content_for :title, "Activity History" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-history me-2"></i>Activity History
+      </h1>
+      <p class="text-muted mb-0 mt-2">Complete audit trail of all system changes</p>
+    </div>
+    <div>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Search & Filters -->
+  <%= render 'admin/shared/filters', records: @versions %>
+
+  <!-- Activity History Table -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Actioned On</th>
+          <th>Action</th>
+          <th>Actioned By</th>
+          <th>Source</th>
+          <th>Actioned At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @versions.any? %>
+          <% @versions.each do |version| %>
+            <tr>
+              <td>
+                <span class="badge bg-<%= version.event == 'create' ? 'success' : version.event == 'update' ? 'primary' : 'danger' %>">
+                  <%= version.event.titleize %>
+                </span>
+              </td>
+              <td>
+                <div>
+                  <strong><%= version.actioned_on_name %></strong>
+                  <div class="text-muted small">
+                    <%= version.item_type %> #<%= version.item_id %>
+                  </div>
+                </div>
+              </td>
+              <td style="white-space: normal; max-width: 400px;">
+                <% if version.object_changes.present? %>
+                  <% 
+                    begin
+                      if version.object_changes.is_a?(Hash) || version.object_changes.is_a?(ActiveSupport::HashWithIndifferentAccess)
+                        changes = version.object_changes
+                      elsif version.object_changes.is_a?(String)
+                        # Handle YAML format (starts with '---')
+                        if version.object_changes.strip.start_with?('---')
+                          changes = YAML.load(version.object_changes) rescue {}
+                        else
+                          # Try JSON first, fallback to YAML
+                          changes = JSON.parse(version.object_changes) rescue YAML.load(version.object_changes) rescue {}
+                        end
+                      else
+                        changes = {}
+                      end
+                      # Ensure changes is a hash and not nil
+                      changes = {} if changes.nil? || !changes.is_a?(Hash)
+                    rescue => e
+                      Rails.logger.error "Error parsing object_changes: #{e.message}"
+                      changes = {}
+                    end
+                  %>
+                  <% if changes.present? && changes.is_a?(Hash) %>
+                  <% if version.event == 'create' %>
+                    <% changes.each do |key, value| %>
+                      <div class="mb-1">
+                        <strong><%= key.humanize %>:</strong>
+                          <span class="text-success"><%= value.is_a?(Array) ? (value[1] || value[0] || value) : value %></span>
+                      </div>
+                    <% end %>
+                  <% elsif version.event == 'destroy' %>
+                    <% changes.each do |key, value| %>
+                      <div class="mb-1">
+                        <strong><%= key.humanize %>:</strong>
+                          <span class="text-danger"><%= value.is_a?(Array) ? (value[0] || value[1] || value) : value %></span>
+                      </div>
+                    <% end %>
+                  <% else %>
+                    <% changes.each do |key, value| %>
+                      <div class="mb-1">
+                        <strong><%= key.humanize %>:</strong>
+                          <% if value.is_a?(Array) && value.length >= 2 %>
+                            <span class="text-muted"><%= value[0] || 'N/A' %></span>
+                        <i class="fas fa-arrow-right mx-1 text-muted"></i>
+                            <span class="text-primary"><%= value[1] || 'N/A' %></span>
+                          <% else %>
+                            <span class="text-primary"><%= value.is_a?(Array) ? value.first : value %></span>
+                          <% end %>
+                      </div>
+                      <% end %>
+                    <% end %>
+                  <% else %>
+                    <span class="text-muted">--</span>
+                  <% end %>
+                <% else %>
+                  <span class="text-muted">--</span>
+                <% end %>
+              </td>
+              <td>
+                <div>
+                  <strong><%= version.actioned_by_name %></strong>
+                  <% if version.actioned_by_email.present? %>
+                    <div class="text-muted small">
+                      <%= version.actioned_by_email %>
+                    </div>
+                  <% end %>
+                  <div class="text-muted small">
+                    <%= version.user_type %>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-info">
+                  <%= version.source %>
+                </span>
+                <% if version.controller_action.present? %>
+                  <div class="text-muted small mt-1">
+                    <%= version.controller_action %>
+                  </div>
+                <% end %>
+                <% if version.ip_address.present? %>
+                  <div class="text-muted small">
+                    <i class="fas fa-globe me-1"></i><%= version.ip_address %>
+                  </div>
+                <% end %>
+              </td>
+              <td>
+                <%= version.actioned_at %>
+              </td>
+              <td>
+                <%= link_to admin_audit_log_path(version), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                  <i class="fas fa-eye"></i>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              <i class="fas fa-history fa-3x mb-3 d-block"></i>
+              No activity history found.
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <%= render 'admin/shared/pagination', collection: @versions %>
+</div>
+
+

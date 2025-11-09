@@ -1,45 +1,96 @@
-# README
+# Luxe Threads Backend
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Rails 7.1 application providing the primary API, admin UI, and authentication layer for Luxe Threads.
 
-Things you may want to cover:
+## Requirements
 
-* Ruby version
+- **Ruby** - Version specified in `.ruby-version` (currently: 3.3.0)
+- **Bundler** - Version specified in `.bundler-version` (currently: 2.5.3)
+- SQLite 3 (development)
+- Optional services: Redis (`redis-server`) and Elasticsearch (`elasticsearch`) for caching/search features.
 
-* System dependencies
+**Note:** Versions are managed via `.ruby-version` and `.bundler-version` files (similar to `.nvmrc` for Node.js). The setup script automatically reads these files.
 
-* Configuration
+## Initial Setup
 
-* Database creation
+From the backend directory:
 
-* Database initialization
+```bash
+cd luxe-threads-backend
+./setup_backend.sh
+```
 
-* How to run the test suite
+**📖 For detailed setup instructions, see [BACKEND_PROJECT_SETUP.md](./BACKEND_PROJECT_SETUP.md)**
 
-* Services (job queues, cache servers, search engines, etc.)
+Or manually:
 
-* Deployment instructions
+```bash
+cd luxe-threads-backend
+bundle _2.5.3_ install
+bundle exec rails db:prepare
+```
 
-./bin/bundle3 exec rails server 
-./bin/bundle3 install
-./bin/bundle3 update
-./bin/bundle3 exec rake db:migrate
+Environment variables go in `.env` (not committed). Common keys:
 
+- `REDIS_URL=redis://localhost:6379/0`
+- `ELASTICSEARCH_URL=http://localhost:9200`
 
+## Day-to-Day Commands
 
-## Kill rails s 
-pkill -f "rails s"
+### Run the app
 
-OR 
+```bash
+bin/dev             # boots Rails server with js/css bundling
+```
 
-# Find the process
-ps aux | grep rails
-# Kill it by PID
+### Database maintenance
+
+```bash
+bin/rails db:migrate         # run migrations
+bin/rails db:rollback STEP=1 # roll back
+bin/rails db:seed            # seed data
+bin/rails db:prepare         # create + migrate + seed if needed
+```
+
+### Tests & linting
+
+```bash
+bundle exec rspec
+bundle exec rubocop          # via rubocop-rails-omakase
+bundle exec brakeman         # security scan
+```
+
+### Kill a running server
+
+```bash
+pkill -f "bin/rails s"       # quick kill
+
+# or find & kill manually
+ps aux | egrep "[p]uma|[r]ails"
 kill <PID>
-# Or force kill if needed
-kill -9 <PID>
+kill -9 <PID>   
+
+# onliner kill command 
+ps aux | egrep "[p]uma|[r]ails" | awk '{print $2}' | xargs kill -9
+             # force if necessary
+```
+
+### Background services
+
+- Redis: `redis-server` (local cache and job queue optional)
+- Elasticsearch: `elasticsearch` (optional search support)
+
+## Troubleshooting
+
+- Reset the database: `bin/rails db:drop db:setup`
+- Clear logs/temp files: `bin/rails log:clear tmp:clear`
+- Restart dev server: `bin/rails restart`
+
+## Logs
+```bash 
+tail -f log/development.log # development
+tail -f log/production.log # productions
+```
 
 
 
-* ...

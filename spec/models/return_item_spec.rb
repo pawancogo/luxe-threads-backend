@@ -6,10 +6,14 @@ RSpec.describe ReturnItem, type: :model do
     it { should belong_to(:order_item) }
   end
 
+  describe 'validations' do
+    it { should validate_presence_of(:quantity) }
+    it { should validate_numericality_of(:quantity).is_greater_than(0) }
+  end
+
   describe 'factory' do
     it 'has a valid factory' do
-      return_item = build(:return_item)
-      expect(return_item).to be_valid
+      expect(build(:return_item)).to be_valid
     end
   end
 end

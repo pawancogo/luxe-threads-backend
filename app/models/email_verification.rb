@@ -36,7 +36,22 @@ class EmailVerification < ApplicationRecord
     return false if otp != entered_otp.to_s
 
     update!(verified_at: Time.current)
-    verifiable.update!(email_verified: true) if verifiable.respond_to?(:email_verified=)
+    
+    # Update verifiable attributes
+    if verifiable.respond_to?(:email_verified=)
+      verifiable.update!(email_verified: true)
+    end
+    
+    # Activate the account when email is verified
+    if verifiable.respond_to?(:is_active=)
+      verifiable.update!(is_active: true) unless verifiable.is_active?
+    end
+    
+    # For users, also reactivate if they were soft deleted
+    if verifiable.is_a?(User) && verifiable.respond_to?(:deleted_at=)
+      verifiable.update!(deleted_at: nil) if verifiable.deleted_at.present?
+    end
+    
     true
   end
 

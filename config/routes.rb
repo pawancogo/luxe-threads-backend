@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
   # ============================================================================
+  # ROOT ROUTE
+  # ============================================================================
+  root 'admin/dashboard#index'
+  
+  # ============================================================================
   # RAILS ADMIN ENGINE
   # ============================================================================
   mount RailsAdmin::Engine => '/admin/rails', as: 'rails_admin'
@@ -19,6 +24,17 @@ Rails.application.routes.draw do
   get '/admin/logout', to: 'admin#logout', as: 'admin_logout'
   delete '/admin/logout', to: 'admin#logout'
   
+  # ============================================================================
+  # INVITATION ACCEPTANCE (Public - No Authentication Required)
+  # ============================================================================
+  # Admin invitation acceptance
+  get '/admin/invitations/accept', to: 'invitations#show', as: 'admin_invitation_accept'
+  post '/admin/invitations/accept', to: 'invitations#accept'
+  
+  # Supplier invitation acceptance
+  get '/admin/supplier/invitations/accept', to: 'invitations#show', as: 'supplier_invitation_accept'
+  post '/admin/supplier/invitations/accept', to: 'invitations#accept'
+  
   # Admin password reset routes
   get '/admin_auth/forgot_password', to: 'verification#forgot_password', as: 'admin_auth_forgot_password'
   post '/admin_auth/forgot_password', to: 'verification#forgot_password'
@@ -35,13 +51,23 @@ Rails.application.routes.draw do
     get 'dashboard', to: 'dashboard#index', as: 'dashboard'
     
     # Admin management (super admin only)
-    resources :admins, only: [:index, :show, :new, :create, :edit, :update, :destroy]
+    resources :admins, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
+      collection do
+        get :invite
+        post :send_invitation
+      end
+      member do
+        patch :block
+        patch :unblock
+        patch :status, to: 'admins#update_status'
+        post :resend_invitation
+      end
+    end
     
     # User management
     resources :users, only: [:index, :show, :edit, :update, :destroy] do
       member do
-        patch :activate
-        patch :deactivate
+        patch :status, to: 'users#update_status'
         get :orders
         get :activity
       end
@@ -52,17 +78,19 @@ Rails.application.routes.draw do
     
     # Supplier management
     resources :suppliers, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
+      collection do
+        get :invite
+        post :send_invitation
+        post :bulk_action
+      end
       member do
         patch :update_role
-        patch :activate
-        patch :deactivate
+        patch :status, to: 'suppliers#update_status'
         patch :suspend
         post :approve
         post :reject
         get :stats
-      end
-      collection do
-        post :bulk_action
+        post :resend_invitation
       end
     end
     
@@ -107,6 +135,9 @@ Rails.application.routes.draw do
     get 'reports', to: 'reports#index', as: 'reports'
     get 'reports/sales', to: 'reports#sales', as: 'reports_sales'
     get 'reports/products', to: 'reports#products', as: 'reports_products'
+    
+    # Audit Logs (Activity History)
+    resources :audit_logs, only: [:index, :show], path: 'activity-history'
     get 'reports/users', to: 'reports#users', as: 'reports_users'
     get 'reports/suppliers', to: 'reports#suppliers', as: 'reports_suppliers'
     get 'reports/revenue', to: 'reports#revenue', as: 'reports_revenue'
@@ -116,10 +147,29 @@ Rails.application.routes.draw do
     # Settings (super admin only)
     resources :settings, only: [:index, :show, :new, :create, :edit, :update, :destroy]
     
+    # System Configurations
+    resources :system_configurations, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
+      member do
+        patch :activate
+        patch :deactivate
+      end
+    end
+    
     # Email Templates (super admin only)
     resources :email_templates, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
       member do
         post :preview
+      end
+    end
+    
+    # Navigation Items Management (super admin only)
+    resources :navigation_items, only: [:index, :show, :new, :create, :edit, :update, :destroy]
+    
+    # RBAC Roles & Permissions Management (super admin only)
+    resources :rbac_roles, only: [:index, :show, :edit, :update], path: 'roles-permissions' do
+      member do
+        post :assign_to_admin
+        delete :remove_from_admin
       end
     end
   end
@@ -134,6 +184,7 @@ Rails.application.routes.draw do
       # ------------------------------------------------------------------------
       post 'signup', to: 'users#create'
       post 'login', to: 'authentication#create'
+      delete 'logout', to: 'authentication#destroy'
       post 'password/forgot', to: 'password_reset#forgot'
       post 'password/reset', to: 'password_reset#reset'
 
@@ -339,6 +390,16 @@ Rails.application.routes.draw do
         get 'payments/:id', to: 'supplier_payments#show'
         patch 'reviews/:id/respond', to: 'reviews#supplier_respond'
         get 'analytics', to: 'supplier_analytics#index'
+        
+        # Supplier Team Management (suppliers inviting other suppliers)
+        resources :users, only: [:index, :show, :create, :update, :destroy], controller: 'users' do
+          collection do
+            post :invite
+          end
+          member do
+            post :resend_invitation
+          end
+        end
       end
 
       # ------------------------------------------------------------------------
@@ -346,12 +407,22 @@ Rails.application.routes.draw do
       # ------------------------------------------------------------------------
       namespace :admin do
         post 'login', to: 'authentication#create'
+        delete 'logout', to: 'authentication#destroy'
+        get 'me', to: 'authentication#me'
+        
+        # Admin management (super admin only)
+        resources :admins, only: [:index, :show, :update, :destroy] do
+          member do
+            patch :block
+            patch :unblock
+            patch :status, to: 'admins#update_status'
+          end
+        end
         
         # User management
         resources :users, only: [:index, :show, :update, :destroy] do
           member do
-            patch :activate
-            patch :deactivate
+            patch :status, to: 'users#update_status'
             get :orders
             get :activity
           end
@@ -359,11 +430,14 @@ Rails.application.routes.draw do
         
         # Supplier management
         resources :suppliers, only: [:index, :show, :update, :destroy] do
+          collection do
+            post :invite
+          end
           member do
-            patch :activate
-            patch :deactivate
+            patch :status, to: 'suppliers#update_status'
             patch :suspend
             get :stats
+            post :resend_invitation
           end
         end
         

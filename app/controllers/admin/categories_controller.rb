@@ -4,8 +4,20 @@ class Admin::CategoriesController < Admin::BaseController
     before_action :set_category, only: [:show, :edit, :update, :destroy]
 
     def index
-      @categories = Category._search(params).order(:name)
-      @filters.merge!(@categories.filter_with_aggs)
+      search_params = params.except(:controller, :action).permit(:search, :per_page, :page, :featured, :level, :date_range, :min, :max)
+      search_options = {}
+      search_options[:range_field] = @filters[:range_field] if @filters[:range_field].present?
+      
+      @categories = Category._search(search_params, **search_options).order(:name)
+      
+      # Merge filters (this will include aggregations)
+      begin
+        filter_aggs = @categories.filter_with_aggs if @categories.respond_to?(:filter_with_aggs)
+        @filters.merge!(filter_aggs) if filter_aggs.present?
+      rescue => e
+        Rails.logger.error "Error merging filters: #{e.message}"
+        @filters ||= { search: [nil] }
+      end
     end
 
     def show

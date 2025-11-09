@@ -1,16 +1,17 @@
 source "http://rubygems.org"
 
-ruby "3.3.0"
+ruby "3.3.6"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 7.1.5"
+gem "rails", "~> 7.1.6"
 
 # Environment variables
 gem "dotenv-rails", "~> 2.8"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use SQLite for development, PostgreSQL for production
-gem "sqlite3", "~> 1.4"
+gem "sqlite3", "~> 1.4", group: [:development, :test]
+gem "pg", "~> 1.5", group: :production
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
@@ -75,6 +76,7 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+  gem 'byebug'
 end
 
 group :development do

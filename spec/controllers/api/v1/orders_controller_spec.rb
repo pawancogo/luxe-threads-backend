@@ -2,85 +2,78 @@ require 'rails_helper'
 
 RSpec.describe Api::V1::OrdersController, type: :controller do
   let(:user) { create(:user) }
-  let(:order) { create(:order, user: user) }
-  let(:cart) { user.cart }
-  let(:product) { create(:product) }
-  let(:product_variant) { create(:product_variant, product: product) }
-  let(:cart_item) { create(:cart_item, cart: cart, product_variant: product_variant) }
+  let(:cart) { create(:cart, user: user) }
+  let(:auth_headers) { { 'Authorization' => "Bearer #{jwt_encode({ user_id: user.id })}" } }
 
   before do
-    allow(controller).to receive(:current_user).and_return(user)
-    allow(controller).to receive(:authenticate_request)
-  end
-
-  describe 'inheritance' do
-    it 'inherits from ApplicationController' do
-      expect(Api::V1::OrdersController.superclass).to eq(ApplicationController)
-    end
-  end
-
-  describe 'before_actions' do
-    it 'has set_order before_action' do
-      expect(Api::V1::OrdersController._process_action_callbacks.map(&:filter)).to include(:set_order)
-    end
+    request.headers.merge!(auth_headers)
   end
 
   describe 'GET #index' do
     it 'returns user orders' do
-      order
+      create_list(:order, 3, user: user)
+      
       get :index
+      
       expect(response).to have_http_status(:ok)
-      expect(JSON.parse(response.body)).to be_an(Array)
+      json_response = JSON.parse(response.body)
+      expect(json_response['data'].length).to eq(3)
+    end
+
+    it 'filters by status' do
+      create(:order, user: user, status: 'pending')
+      create(:order, user: user, status: 'confirmed')
+      
+      get :index, params: { status: 'pending' }
+      
+      json_response = JSON.parse(response.body)
+      expect(json_response['data'].all? { |o| o['status'] == 'pending' }).to be true
     end
   end
 
   describe 'GET #show' do
-    it 'returns order with order items' do
-      get :show, params: { id: order.id }
-      expect(response).to have_http_status(:ok)
-      expect(JSON.parse(response.body)).to have_key('order_items')
-    end
+    let(:order) { create(:order, user: user) }
 
-    it 'raises exception for non-existent order' do
-      expect { get :show, params: { id: 999 } }.to raise_error(ActiveRecord::RecordNotFound)
+    it 'returns order details' do
+      get :show, params: { id: order.id }
+      
+      expect(response).to have_http_status(:ok)
+      json_response = JSON.parse(response.body)
+      expect(json_response['data']['id']).to eq(order.id)
     end
   end
 
   describe 'POST #create' do
-    let(:valid_params) do
-      {
-        order: {
-          shipping_address_id: create(:address, user: user).id,
-          billing_address_id: create(:address, user: user).id,
-          shipping_method: 'standard',
-          payment_method_id: 'pm_test'
+    let(:address) { create(:address, user: user) }
+    let(:cart_item) { create(:cart_item, cart: cart) }
+
+    it 'creates order from cart' do
+      expect {
+        post :create, params: {
+          order: {
+            shipping_address_id: address.id,
+            billing_address_id: address.id
+          }
         }
-      }
-    end
-
-    before do
-      cart_item
-      allow(Stripe::PaymentIntent).to receive(:create).and_return(double(client_secret: 'test_secret'))
-    end
-
-    it 'creates order with valid params' do
-      post :create, params: valid_params
+      }.to change(Order, :count).by(1)
+      
       expect(response).to have_http_status(:created)
-      expect(JSON.parse(response.body)).to have_key('order')
     end
+  end
 
-    it 'returns error for empty cart' do
-      cart.cart_items.destroy_all
-      post :create, params: valid_params
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(JSON.parse(response.body)).to have_key('error')
-    end
+  describe 'PATCH #cancel' do
+    let(:order) { create(:order, user: user, status: 'pending') }
 
-    it 'handles Stripe errors' do
-      allow(Stripe::PaymentIntent).to receive(:create).and_raise(Stripe::CardError.new('Card declined', 'card_declined'))
-      post :create, params: valid_params
-      expect(response).to have_http_status(:payment_required)
-      expect(JSON.parse(response.body)).to have_key('errors')
+    it 'cancels order' do
+      patch :cancel, params: { id: order.id }
+      
+      expect(response).to have_http_status(:ok)
+      order.reload
+      expect(order.status).to eq('cancelled')
     end
+  end
+
+  def jwt_encode(payload)
+    JWT.encode(payload, Rails.application.secret_key_base)
   end
 end

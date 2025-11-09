@@ -1,0 +1,192 @@
+<% content_for :title, "System Configurations" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-cog me-2"></i>System Configurations
+    </h1>
+    <div>
+      <%= link_to "New Configuration", new_admin_system_configuration_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+  
+  <!-- Search and Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <%= form_with url: admin_system_configurations_path, method: :get, local: true, class: "row g-3" do |f| %>
+        <!-- Search by Key -->
+        <div class="col-md-12 mb-3">
+          <%= f.label :search, "Search by Key", class: "form-label" %>
+          <div class="input-group">
+            <%= f.text_field :search, 
+                value: params[:search], 
+                class: "form-control", 
+                placeholder: "Enter configuration key to search...",
+                autocomplete: "off" %>
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <% if params[:search].present? %>
+              <%= link_to admin_system_configurations_path(params.except(:search)), class: "btn btn-outline-secondary" do %>
+                <i class="fas fa-times"></i> Clear
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+        
+        <div class="col-md-3">
+          <%= f.label :category, "Category", class: "form-label" %>
+          <%= f.select :category, 
+              [['All', '']] + SystemConfiguration.distinct.pluck(:category).compact.sort.map { |c| [c.humanize, c] },
+              { selected: params[:category] },
+              { class: "form-select" } %>
+        </div>
+        <div class="col-md-3">
+          <%= f.label :creator_type, "Created By", class: "form-label" %>
+          <%= f.select :creator_type,
+              [['All', ''], ['Admin', 'Admin'], ['User', 'User'], ['System', '']],
+              { selected: params[:creator_type] },
+              { class: "form-select" } %>
+        </div>
+        <div class="col-md-3">
+          <%= f.label :active, "Status", class: "form-label" %>
+          <%= f.select :active,
+              [['All', ''], ['Active', 'true'], ['Inactive', 'false']],
+              { selected: params[:active] },
+              { class: "form-select" } %>
+        </div>
+        <div class="col-md-3">
+          <%= f.label :my_configs, "Filter", class: "form-label" %>
+          <div class="form-check mt-2">
+            <%= f.check_box :my_configs, { checked: params[:my_configs] == 'true' }, 'true', '' %>
+            <%= f.label :my_configs, "My Configurations", class: "form-check-label" %>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <%= f.submit "Apply Filters", class: "btn btn-outline-primary" %>
+          <%= link_to "Clear All", admin_system_configurations_path, class: "btn btn-outline-secondary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <!-- Category Tabs -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <%= link_to "All", admin_system_configurations_path, 
+          class: "nav-link #{'active' unless params[:category].present?}" %>
+    </li>
+    <% SystemConfiguration.distinct.pluck(:category).compact.sort.each do |category| %>
+      <li class="nav-item">
+        <%= link_to category.humanize, admin_system_configurations_path(category: category), 
+            class: "nav-link #{'active' if params[:category] == category}" %>
+      </li>
+    <% end %>
+  </ul>
+  
+  <!-- Configurations Table -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Created By</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @system_configurations.any? %>
+          <% if params[:search].present? %>
+            <tr>
+              <td colspan="7" class="text-info bg-light py-2">
+                <i class="fas fa-info-circle me-2"></i>
+                Showing results for: <strong>"<%= params[:search] %>"</strong>
+                (<%= @system_configurations.total_count %> found)
+              </td>
+            </tr>
+          <% end %>
+          <% @system_configurations.each do |config| %>
+            <tr class="<%= 'table-secondary' unless config.is_active? %>">
+              <td><strong><%= config.key %></strong></td>
+              <td>
+                <% if config.value_type == 'boolean' %>
+                  <span class="badge bg-<%= config.cast_value ? 'success' : 'secondary' %>">
+                    <%= config.cast_value ? 'Yes' : 'No' %>
+                  </span>
+                <% elsif config.value_type == 'json' %>
+                  <code class="small"><%= truncate(config.value.to_s, length: 50) %></code>
+                <% else %>
+                  <%= truncate(config.value.to_s, length: 50) %>
+                <% end %>
+              </td>
+              <td><span class="badge bg-info"><%= config.value_type %></span></td>
+              <td><span class="badge bg-secondary"><%= config.category %></span></td>
+              <td>
+                <% if config.created_by %>
+                  <small>
+                    <%= config.creator_name %>
+                    <br>
+                    <span class="text-muted"><%= config.created_by_type %></span>
+                  </small>
+                <% else %>
+                  <span class="text-muted">System</span>
+                <% end %>
+              </td>
+              <td>
+                <% if config.is_active? %>
+                  <span class="badge bg-success">Active</span>
+                <% else %>
+                  <span class="badge bg-secondary">Inactive</span>
+                <% end %>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to admin_system_configuration_path(config), class: "btn btn-outline-primary", title: "View" do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_system_configuration_path(config), class: "btn btn-outline-info", title: "Edit" do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <% if config.is_active? %>
+                    <%= link_to deactivate_admin_system_configuration_path(config), method: :patch,
+                                class: "btn btn-outline-warning", title: "Deactivate",
+                                data: { confirm: "Are you sure you want to deactivate this configuration?" } do %>
+                      <i class="fas fa-pause"></i>
+                    <% end %>
+                  <% else %>
+                    <%= link_to activate_admin_system_configuration_path(config), method: :patch,
+                                class: "btn btn-outline-success", title: "Activate",
+                                data: { confirm: "Are you sure you want to activate this configuration?" } do %>
+                      <i class="fas fa-play"></i>
+                    <% end %>
+                  <% end %>
+                  <%= link_to admin_system_configuration_path(config), method: :delete, 
+                              class: "btn btn-outline-danger", title: "Delete",
+                              data: { confirm: "Are you sure? This action cannot be undone." } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">No configurations found</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Pagination -->
+  <% if @system_configurations.respond_to?(:current_page) %>
+    <div class="d-flex justify-content-center mt-4">
+      <%= paginate @system_configurations if defined?(Kaminari) %>
+    </div>
+  <% end %>
+</div>
+

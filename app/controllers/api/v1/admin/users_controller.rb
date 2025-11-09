@@ -4,12 +4,13 @@ module Api::V1::Admin
   class UsersController < BaseController
     include AdminApiAuthorization
     include EagerLoading
+    include StatusManageable
     
     before_action :require_permission!, only: [:index, :show], if: -> { @current_admin }
     before_action :require_permission!, only: [:create], if: -> { @current_admin }, with: 'users:create'
     before_action :require_permission!, only: [:update], if: -> { @current_admin }, with: 'users:update'
-    before_action :require_permission!, only: [:destroy, :activate, :deactivate], if: -> { @current_admin }, with: 'users:delete'
-    before_action :set_user, only: [:show, :update, :destroy, :activate, :deactivate, :orders, :activity]
+    before_action :require_permission!, only: [:destroy, :update_status], if: -> { @current_admin }, with: 'users:delete'
+    before_action :set_user, only: [:show, :update, :destroy, :update_status, :orders, :activity]
     
     # GET /api/v1/admin/users
     def index
@@ -65,24 +66,9 @@ module Api::V1::Admin
       end
     end
     
-    # PATCH /api/v1/admin/users/:id/activate
-    def activate
-      if @user.update(deleted_at: nil)
-        log_admin_activity('update', 'User', @user.id, { deleted_at: [@user.deleted_at_before_last_save, nil] })
-        render_success(format_user_detail_data(@user), 'User activated successfully')
-      else
-        render_validation_errors(@user.errors.full_messages, 'User activation failed')
-      end
-    end
-    
-    # PATCH /api/v1/admin/users/:id/deactivate
-    def deactivate
-      if @user.update(deleted_at: Time.current)
-        log_admin_activity('update', 'User', @user.id, { deleted_at: [@user.deleted_at_before_last_save, Time.current] })
-        render_success(format_user_detail_data(@user), 'User deactivated successfully')
-      else
-        render_validation_errors(@user.errors.full_messages, 'User deactivation failed')
-      end
+    # Uses StatusManageable concern
+    def update_status
+      super
     end
     
     # GET /api/v1/admin/users/:id/orders
@@ -167,6 +153,35 @@ module Api::V1::Admin
           items_count: order.order_items.count
         }
       end
+    end
+
+    # StatusManageable implementation
+    def get_status_resource
+      @user
+    end
+
+    def activate_resource(resource)
+      resource.update(is_active: true, deleted_at: nil)
+    end
+
+    def deactivate_resource(resource)
+      resource.update(is_active: false, deleted_at: Time.current)
+    end
+
+    def prevent_self_modification?(resource)
+      false
+    end
+
+    def format_resource_data(resource)
+      format_user_detail_data(resource)
+    end
+
+    def handle_status_success(resource, action)
+      changes = action == 'activate' ? 
+        { deleted_at: [resource.deleted_at_before_last_save, nil] } : 
+        { deleted_at: [resource.deleted_at_before_last_save, Time.current] }
+      log_admin_activity('update', 'User', resource.id, changes)
+      super
     end
   end
 end

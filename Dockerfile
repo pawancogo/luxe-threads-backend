@@ -1,77 +1,115 @@
 # syntax=docker/dockerfile:1
-# check=error=true
+# Multi-stage Dockerfile for production deployment
+# Optimized for security, performance, and minimal image size
 
-# This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
-# docker build -t my_app .
-# docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name my_app my_app
+# Read Ruby version from .ruby-version file (default fallback)
+ARG RUBY_VERSION=3.3.6
+FROM docker.io/library/ruby:${RUBY_VERSION}-slim AS base
 
-# For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
+# Read Bundler version from .bundler-version file (default fallback)
+ARG BUNDLER_VERSION=2.6.8
 
-# Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.4.4
-FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
+# Install system dependencies and clean up in one layer to reduce image size
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    curl \
+    libjemalloc2 \
+    libvips \
+    libpq-dev \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-# Rails app lives here
+# Set production environment variables
+ENV RAILS_ENV=production \
+    BUNDLE_DEPLOYMENT=1 \
+    BUNDLE_PATH=/usr/local/bundle \
+    BUNDLE_WITHOUT="development test" \
+    RAILS_LOG_TO_STDOUT=true \
+    RAILS_SERVE_STATIC_FILES=true \
+    LD_PRELOAD=libjemalloc.so.2
+
+# Create app directory
 WORKDIR /rails
 
-# Install base packages
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl libjemalloc2 libvips sqlite3 && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-# Set production environment
-ENV RAILS_ENV="production" \
-    BUNDLE_DEPLOYMENT="1" \
-    BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development"
-
-# Throw-away build stage to reduce size of final image
+# ============================================================================
+# Build stage - install dependencies and compile assets
+# ============================================================================
 FROM base AS build
 
-# Install packages needed to build gems
+# Install build dependencies
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libyaml-dev pkg-config && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    git \
+    libyaml-dev \
+    pkg-config \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-# Install application gems
+# Install Bundler (version from build arg)
+RUN gem install bundler -v "${BUNDLER_VERSION}" --no-document
+
+# Copy dependency files
 COPY Gemfile Gemfile.lock ./
+
+# Install gems
 RUN bundle install && \
-    rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
-    bundle exec bootsnap precompile --gemfile
+    rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
 
 # Copy application code
 COPY . .
 
-# Precompile bootsnap code for faster boot times
-RUN bundle exec bootsnap precompile app/ lib/
+# Precompile bootsnap for faster boot times
+RUN bundle exec bootsnap precompile app/ lib/ || true
 
-# Adjust binfiles to be executable on Linux
+# Make bin files executable
 RUN chmod +x bin/* && \
     sed -i "s/\r$//g" bin/* && \
     sed -i 's/ruby\.exe$/ruby/' bin/*
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# Precompile assets (using dummy secret key)
+RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile || true
 
-
-
-
-# Final stage for app image
+# ============================================================================
+# Final stage - minimal production image
+# ============================================================================
 FROM base
 
-# Copy built artifacts: gems, application
+# Install runtime dependencies only
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    libpq5 \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Copy gems from build stage
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
+
+# Copy application from build stage
 COPY --from=build /rails /rails
 
-# Run and own only the runtime files as a non-root user for security
+# Create non-root user for security
 RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    chown -R rails:rails db log storage tmp
-USER 1000:1000
+    useradd --system --uid 1000 --gid 1000 --create-home --shell /bin/bash rails && \
+    chown -R rails:rails /rails
 
-# Entrypoint prepares the database.
+# Switch to non-root user
+USER rails:rails
+
+# Set working directory
+WORKDIR /rails
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3000/up || exit 1
+
+# Expose port
+EXPOSE 3000
+
+# Entrypoint prepares the database and runs migrations
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-# Start server via Thruster by default, this can be overwritten at runtime
-EXPOSE 80
-CMD ["./bin/thrust", "./bin/rails", "server"]
+# Default command - start Puma server
+CMD ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "3000"]

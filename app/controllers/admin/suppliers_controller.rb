@@ -1,14 +1,27 @@
 class Admin::SuppliersController < Admin::BaseController
     before_action :require_super_admin!
-    before_action :set_supplier, only: [:show, :edit, :update, :destroy, :update_role, :approve, :reject]
+    before_action :set_supplier, only: [:show, :edit, :update, :destroy, :update_role, :approve, :reject, :resend_invitation]
 
     def index
       # Get users with supplier role who own supplier profiles
+      # Exclude role from params to avoid double filtering since we already filter by role
+      search_params = params.except(:role, :controller, :action).permit(:search, :per_page, :page, :is_active, :email_verified, :date_range, :min, :max)
+      search_options = {}
+      search_options[:range_field] = @filters[:range_field] if @filters[:range_field].present?
+      
       @suppliers = User.where(role: 'supplier')
                       .includes(:supplier_profile, :owned_supplier_profiles)
-                      ._search(params)
+                      ._search(search_params, **search_options)
                       .order(:first_name)
-      @filters.merge!(@suppliers.filter_with_aggs)
+      
+      # Merge filters (this will include aggregations)
+      begin
+        filter_aggs = @suppliers.filter_with_aggs if @suppliers.respond_to?(:filter_with_aggs)
+        @filters.merge!(filter_aggs) if filter_aggs.present?
+      rescue => e
+        Rails.logger.error "Error merging filters: #{e.message}"
+        @filters ||= { search: [nil] }
+      end
     end
 
     def show
@@ -123,6 +136,65 @@ class Admin::SuppliersController < Admin::BaseController
         redirect_to admin_supplier_path(@supplier), notice: 'Supplier rejected successfully.'
       else
         redirect_to admin_supplier_path(@supplier), alert: 'Failed to reject supplier.'
+      end
+    end
+
+    # Invitation flow
+    def invite
+      @supplier = User.new(role: 'supplier')
+    end
+
+    def send_invitation
+      @supplier = User.find_or_initialize_by(email: params[:user][:email])
+      invitation_type = params[:user][:invitation_type] || 'parent'
+      invitation_role = params[:user][:invitation_role] || 'supplier'
+      supplier_profile_id = params[:user][:supplier_profile_id]
+      account_role = params[:user][:account_role] || 'staff'
+      
+      # Build options for child supplier invitation
+      options = {}
+      if invitation_type == 'child' && supplier_profile_id.present?
+        # Prevent assigning owner role via invitation
+        if account_role == 'owner'
+          @errors = ['Owner role cannot be assigned via invitation. The parent supplier is automatically the owner.']
+          @supplier = User.new(email: params[:user][:email], role: 'supplier')
+          @supplier_profiles = SupplierProfile.includes(:owner).active.order(:company_name)
+          render :invite, status: :unprocessable_entity
+          return
+        end
+        
+        options[:supplier_profile_id] = supplier_profile_id
+        options[:account_role] = account_role
+        options[:permissions] = {
+          can_manage_products: params[:user][:can_manage_products] == '1',
+          can_manage_orders: params[:user][:can_manage_orders] == '1',
+          can_view_financials: params[:user][:can_view_financials] == '1',
+          can_manage_users: params[:user][:can_manage_users] == '1',
+          can_manage_settings: params[:user][:can_manage_settings] == '1',
+          can_view_analytics: params[:user][:can_view_analytics] == '1'
+        }
+      end
+      
+      service = InvitationService.new(@supplier, current_admin)
+      
+      if service.send_supplier_invitation(invitation_role, options)
+        invitation_type_text = invitation_type == 'child' ? 'child supplier' : 'parent supplier'
+        redirect_to admin_suppliers_path, notice: "Invitation sent to #{@supplier.email} as #{invitation_type_text} successfully."
+      else
+        @errors = service.errors
+        @supplier = User.new(email: params[:user][:email], role: 'supplier') # Reset for form
+        @supplier_profiles = SupplierProfile.includes(:owner).active.order(:company_name)
+        render :invite, status: :unprocessable_entity
+      end
+    end
+
+    def resend_invitation
+      service = InvitationService.new(@supplier, current_admin)
+      
+      if service.resend_invitation
+        redirect_to admin_suppliers_path, notice: "Invitation resent to #{@supplier.email}."
+      else
+        redirect_to admin_suppliers_path, alert: "Failed to resend invitation: #{service.errors.join(', ')}"
       end
     end
 

@@ -1,0 +1,194 @@
+<% content_for :title, "Invite Supplier" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-envelope me-2"></i>Invite Supplier
+      </h1>
+      <p class="text-muted mb-0 mt-2">Send an invitation email to a new supplier. They will set up their own account.</p>
+    </div>
+    <%= link_to "Back to Suppliers", admin_suppliers_path, class: "btn btn-outline-secondary" %>
+  </div>
+
+  <div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Invitation Flow:</strong> You can invite a new parent supplier (creates new account) or invite a child supplier to join an existing supplier account. Child suppliers are activated immediately without admin approval.
+  </div>
+
+  <%= form_with url: send_invitation_admin_suppliers_path, local: true, id: "invite-supplier-form" do |form| %>
+    <% if @errors.present? %>
+      <div class="alert alert-danger">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>Please fix the following errors:</h5>
+        <ul class="mb-0">
+          <% @errors.each do |error| %>
+            <li><%= error %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="mb-3">
+          <%= form.label :email, "Email Address", class: "form-label" %>
+          <%= form.email_field "user[email]", class: "form-control", required: true, placeholder: "supplier@example.com" %>
+          <small class="form-text text-muted">The supplier will receive an invitation email at this address</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="mb-3">
+          <%= form.label :invitation_type, "Invitation Type", class: "form-label" %>
+          <%= form.select "user[invitation_type]", 
+              options_for_select([
+                ['New Parent Supplier (creates new account)', 'parent'],
+                ['Child Supplier (join existing account)', 'child']
+              ], 'parent'), 
+              {}, 
+              { class: "form-select", required: true, id: "invitation_type", onchange: "toggleInvitationType()" } %>
+          <small class="form-text text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            <strong>Parent Supplier:</strong> Creates a new supplier account (requires admin approval). 
+            <strong>Child Supplier:</strong> Joins an existing supplier account (activated immediately).
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parent Supplier Fields -->
+    <div id="parent-supplier-fields">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="mb-3">
+            <%= form.label :invitation_role, "Supplier Role", class: "form-label" %>
+            <%= form.select "user[invitation_role]", 
+                options_for_select([
+                  ['Supplier - Full supplier access', 'supplier'],
+                  ['Supplier Manager - Manage products and orders', 'supplier_manager'],
+                  ['Supplier Staff - Limited access', 'supplier_staff']
+                ], 'supplier'), 
+                {}, 
+                { class: "form-select", required: true } %>
+            <small class="form-text text-muted">
+              <i class="fas fa-info-circle me-1"></i>
+              Select the role for this supplier within their account.
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Child Supplier Fields -->
+    <div id="child-supplier-fields" style="display: none;">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="mb-3">
+            <%= form.label :supplier_profile_id, "Existing Supplier Account", class: "form-label" %>
+            <%= form.select "user[supplier_profile_id]", 
+                options_from_collection_for_select(
+                  SupplierProfile.includes(:owner).active.order(:company_name),
+                  :id,
+                  ->(sp) { "#{sp.company_name} (#{sp.owner&.email || 'N/A'})" }
+                ),
+                { prompt: 'Select a supplier account' },
+                { class: "form-select", required: false, id: "supplier_profile_id" } %>
+            <small class="form-text text-muted">
+              <i class="fas fa-info-circle me-1"></i>
+              Select the supplier account this user will join.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-8">
+          <div class="mb-3">
+            <%= form.label :account_role, "Account Role", class: "form-label" %>
+            <%= form.select "user[account_role]", 
+                options_for_select([
+                  ['Admin', 'admin'],
+                  ['Product Manager', 'product_manager'],
+                  ['Order Manager', 'order_manager'],
+                  ['Accountant', 'accountant'],
+                  ['Staff', 'staff']
+                ], 'staff'), 
+                {}, 
+                { class: "form-select", required: true } %>
+            <small class="form-text text-muted">
+              <i class="fas fa-info-circle me-1"></i>
+              <strong>Note:</strong> Owner role cannot be assigned via invitation. The parent supplier is automatically the owner. Only parent supplier (owner) or admin can invite child suppliers.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-8">
+          <div class="mb-3">
+            <label class="form-label">Permissions</label>
+            <div class="form-check">
+              <%= form.check_box "user[can_manage_products]", class: "form-check-input" %>
+              <%= form.label "user[can_manage_products]", "Can Manage Products", class: "form-check-label" %>
+            </div>
+            <div class="form-check">
+              <%= form.check_box "user[can_manage_orders]", class: "form-check-input" %>
+              <%= form.label "user[can_manage_orders]", "Can Manage Orders", class: "form-check-label" %>
+            </div>
+            <div class="form-check">
+              <%= form.check_box "user[can_view_financials]", class: "form-check-input" %>
+              <%= form.label "user[can_view_financials]", "Can View Financials", class: "form-check-label" %>
+            </div>
+            <div class="form-check">
+              <%= form.check_box "user[can_manage_users]", class: "form-check-input" %>
+              <%= form.label "user[can_manage_users]", "Can Manage Users", class: "form-check-label" %>
+            </div>
+            <div class="form-check">
+              <%= form.check_box "user[can_manage_settings]", class: "form-check-input" %>
+              <%= form.label "user[can_manage_settings]", "Can Manage Settings", class: "form-check-label" %>
+            </div>
+            <div class="form-check">
+              <%= form.check_box "user[can_view_analytics]", class: "form-check-input" %>
+              <%= form.label "user[can_view_analytics]", "Can View Analytics", class: "form-check-label" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= form.submit "Send Invitation", class: "btn btn-primary" %>
+      <%= link_to "Cancel", admin_suppliers_path, class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+
+  <script>
+    function toggleInvitationType() {
+      const invitationType = document.getElementById('invitation_type').value;
+      const parentFields = document.getElementById('parent-supplier-fields');
+      const childFields = document.getElementById('child-supplier-fields');
+      const supplierProfileSelect = document.getElementById('supplier_profile_id');
+
+      if (invitationType === 'child') {
+        parentFields.style.display = 'none';
+        childFields.style.display = 'block';
+        supplierProfileSelect.required = true;
+      } else {
+        parentFields.style.display = 'block';
+        childFields.style.display = 'none';
+        supplierProfileSelect.required = false;
+      }
+    }
+  </script>
+
+  <hr class="my-4">
+
+  <div class="mt-4">
+    <h5><i class="fas fa-question-circle me-2"></i>Need to create a supplier directly?</h5>
+    <p class="text-muted">If you need to create a supplier account with all details upfront, use the direct creation flow instead.</p>
+    <%= link_to "Create Supplier Directly", new_admin_supplier_path, class: "btn btn-outline-primary" %>
+  </div>
+</div>
+

@@ -56,10 +56,37 @@ class User < ApplicationRecord
   scope :suppliers_only, -> { where(role: 'supplier') }
   scope :customers_only, -> { where.not(role: 'supplier') }
 
+  # Associations for invitations
+  belongs_to :invited_by, class_name: 'User', foreign_key: 'invited_by_id', optional: true
+  has_many :invited_users, class_name: 'User', foreign_key: 'invited_by_id', dependent: :nullify
+
   # Validations
-  validates :first_name, presence: true
+  validates :first_name, presence: true, unless: :pending_invitation?
+  validates :last_name, presence: true, unless: :pending_invitation?
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :role, presence: true
+  
+  # Ensure names are present after invitation is accepted
+  validate :names_present_after_acceptance, if: :invitation_accepted?
+  
+  def names_present_after_acceptance
+    if invitation_accepted? && (first_name.blank? || last_name.blank?)
+      errors.add(:base, 'First name and last name are required after accepting invitation')
+    end
+  end
+  
+  def invitation_accepted?
+    invitation_status == 'accepted' && invitation_accepted_at.present?
+  end
+  
+  # Invitation status enum
+  attribute :invitation_status, :string
+  enum invitation_status: {
+    pending: 'pending',
+    accepted: 'accepted',
+    expired: 'expired',
+    cancelled: 'cancelled'
+  }, _prefix: :invitation
 
   # Helper methods for customer roles
   def premium?
@@ -91,7 +118,21 @@ class User < ApplicationRecord
   end
 
   def full_name
-    "#{first_name} #{last_name}"
+    parts = [first_name, last_name].compact.reject(&:blank?)
+    parts.any? ? parts.join(' ') : nil
+  end
+
+  # Invitation methods
+  def pending_invitation?
+    invitation_status == 'pending' && invitation_token.present?
+  end
+
+  def invitation_expired?
+    invitation_expires_at.present? && invitation_expires_at < Time.current
+  end
+
+  def can_accept_invitation?
+    pending_invitation? && !invitation_expired?
   end
 
   # Generate referral code if not present

@@ -7,7 +7,7 @@ module Passwordable
 
   included do
     attr_accessor :password, :password_confirmation
-    validates :password, presence: true, on: :create
+    validates :password, presence: true, on: :create, unless: :pending_invitation?
     validates :password, length: { minimum: 8 }, if: :password_required?
     validates :password_confirmation, presence: true, if: -> { password.present? && (new_record? || password_required?) }
     validate :password_confirmation_match, if: -> { password.present? }

@@ -39,6 +39,128 @@
         color: #212529;
       }
       
+      /* Profile Dropdown Styles */
+      .profile-dropdown-btn {
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+        border: none !important;
+        position: relative;
+      }
+      
+      .profile-dropdown-btn:hover {
+        background-color: #f8f9fa !important;
+        transform: translateY(-1px);
+      }
+      
+      .profile-dropdown-btn:focus {
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+      }
+      
+      .profile-dropdown-btn::after {
+        display: none; /* Hide Bootstrap's default arrow */
+      }
+      
+      .profile-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+      
+      .profile-avatar-lg {
+        width: 48px;
+        height: 48px;
+        font-size: 1.125rem;
+      }
+      
+      .profile-dropdown-btn:hover .profile-avatar {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+      
+      .profile-info {
+        min-width: 0; /* Allow text truncation */
+      }
+      
+      .profile-name {
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: #212529;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+      }
+      
+      .profile-email {
+        font-size: 0.75rem;
+        color: #6c757d;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+        margin-top: 2px;
+      }
+      
+      .profile-arrow {
+        font-size: 0.75rem;
+        color: #6c757d;
+        transition: transform 0.2s ease;
+        margin-left: 0.25rem;
+        flex-shrink: 0;
+      }
+      
+      .profile-dropdown-btn[aria-expanded="true"] .profile-arrow {
+        transform: rotate(180deg);
+      }
+      
+      .profile-dropdown-menu {
+        min-width: 280px;
+        padding: 0;
+        margin-top: 0.5rem !important;
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+      
+      .profile-dropdown-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 1px solid #dee2e6;
+      }
+      
+      .profile-menu-item {
+        padding: 0.625rem 1rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+      }
+      
+      .profile-menu-item:hover {
+        background-color: #f8f9fa;
+        padding-left: 1.25rem;
+      }
+      
+      .profile-menu-item i {
+        width: 20px;
+        text-align: center;
+      }
+      
+      .profile-menu-item.text-danger:hover {
+        background-color: #fff5f5;
+        color: #dc3545 !important;
+      }
+      
       /* Sidebar */
       .admin-sidebar {
         position: fixed;
@@ -173,7 +295,10 @@
     </style>
   </head>
 
-  <body>
+  <body data-admin-active="<%= current_admin&.is_active ? 'true' : 'false' %>" 
+        data-admin-email-verified="<%= current_admin&.email_verified? ? 'true' : 'false' %>"
+        data-admin-id="<%= current_admin&.id %>"
+        data-admin-email="<%= current_admin&.email %>">
     <!-- Header -->
     <header class="admin-header">
       <div class="container-fluid h-100">
@@ -188,26 +313,50 @@
           
           <!-- Right Menu -->
           <div class="d-flex align-items-center gap-3">
-            <!-- RailsAdmin Link -->
-            <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
-              <i class="fas fa-database me-1"></i>RailsAdmin
-            <% end %>
-            
             <!-- Profile Dropdown -->
             <div class="dropdown">
-              <button class="btn btn-link text-dark text-decoration-none dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown">
-                <i class="fas fa-user-circle me-1"></i>
-                <%= current_admin&.full_name || current_admin&.email || "Admin" %>
+              <button class="profile-dropdown-btn btn btn-link text-dark text-decoration-none dropdown-toggle d-flex align-items-center gap-2" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="<%= current_admin&.full_name || current_admin&.email || "Admin" %>">
+                <!-- Avatar with Initials -->
+                <div class="profile-avatar">
+                  <% if current_admin&.first_name && current_admin&.last_name %>
+                    <%= current_admin.first_name.first.upcase %><%= current_admin.last_name.first.upcase %>
+                  <% elsif current_admin&.email %>
+                    <%= current_admin.email.first.upcase %>
+                  <% else %>
+                    A
+                  <% end %>
+                </div>
+                <!-- Name and Email -->
+                <div class="d-flex flex-column align-items-start profile-info">
+                  <span class="profile-name"><%= current_admin&.full_name || "Admin" %></span>
+                  <% if current_admin&.email %>
+                    <small class="profile-email"><%= current_admin.email %></small>
+                  <% end %>
+                </div>
+                <!-- Dropdown Arrow -->
+                <i class="fas fa-chevron-down profile-arrow"></i>
               </button>
-              <ul class="dropdown-menu dropdown-menu-end">
+              <ul class="dropdown-menu dropdown-menu-end profile-dropdown-menu shadow-lg border-0">
                 <li>
-                  <%= link_to admin_dashboard_path, class: "dropdown-item" do %>
+                  <%= link_to admin_dashboard_path, class: "dropdown-item profile-menu-item" do %>
                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                   <% end %>
                 </li>
-                <li><hr class="dropdown-divider"></li>
                 <li>
-                  <%= link_to admin_logout_path, method: :delete, class: "dropdown-item text-danger" do %>
+                  <%= link_to admin_admin_path(current_admin), class: "dropdown-item profile-menu-item" do %>
+                    <i class="fas fa-user me-2"></i>My Profile
+                  <% end %>
+                </li>
+                <% if super_admin? %>
+                  <li>
+                    <%= link_to rails_admin_path, class: "dropdown-item profile-menu-item", target: "_blank" do %>
+                      <i class="fas fa-database me-2"></i>RailsAdmin
+                    <% end %>
+                  </li>
+                <% end %>
+                <li><hr class="dropdown-divider my-2"></li>
+                <li>
+                  <%= link_to admin_logout_path, method: :delete, class: "dropdown-item profile-menu-item text-danger" do %>
                     <i class="fas fa-sign-out-alt me-2"></i>Logout
                   <% end %>
                 </li>
@@ -221,88 +370,31 @@
     <!-- Sidebar -->
     <aside class="admin-sidebar" id="adminSidebar">
       <nav class="nav flex-column py-2">
-        <!-- Dashboard -->
-        <li class="nav-item">
-          <%= link_to admin_dashboard_path, class: "nav-link #{'active' if controller_name_without_namespace == 'dashboard'}" do %>
-            <i class="fas fa-tachometer-alt"></i>Dashboard
-          <% end %>
-        </li>
+        <% 
+          # Get dynamic navigation items organized by section
+          nav_sections = navigation_items
+          current_controller = controller_name_without_namespace
+        %>
         
-        <!-- User Management -->
-        <li class="nav-section">User Management</li>
-        <li class="nav-item">
-            <%= link_to admin_users_path, class: "nav-link #{'active' if controller_name_without_namespace == 'users'}" do %>
-            <i class="fas fa-users"></i>Customers
+        <% nav_sections.each do |section_name, items| %>
+          <% if section_name.present? && section_name != 'Other' %>
+            <li class="nav-section"><%= section_name %></li>
           <% end %>
-        </li>
-        <li class="nav-item">
-            <%= link_to admin_suppliers_path, class: "nav-link #{'active' if controller_name_without_namespace == 'suppliers'}" do %>
-            <i class="fas fa-store"></i>Suppliers
+          
+          <% items.each do |item| %>
+            <% 
+              # Use controller_name from item if available, otherwise use key
+              item_controller = item[:controller_name].presence || item[:key].to_s
+              is_active = current_controller == item_controller || 
+                          (item_controller == 'dashboard' && current_controller == 'dashboard')
+              path_method = item[:path]
+            %>
+            <li class="nav-item">
+              <%= link_to send(path_method), class: "nav-link #{'active' if is_active}" do %>
+                <i class="<%= item[:icon] %>"></i><%= item[:label] %>
+              <% end %>
+            </li>
           <% end %>
-        </li>
-        <% if current_admin&.super_admin? %>
-          <li class="nav-item">
-            <%= link_to admin_admins_path, class: "nav-link #{'active' if controller_name_without_namespace == 'admins'}" do %>
-              <i class="fas fa-user-shield"></i>Admins
-            <% end %>
-          </li>
-        <% end %>
-        
-        <!-- Product Management -->
-        <li class="nav-section">Product Management</li>
-        <li class="nav-item">
-            <%= link_to admin_products_path, class: "nav-link #{'active' if controller_name_without_namespace == 'products'}" do %>
-            <i class="fas fa-box"></i>Products
-          <% end %>
-        </li>
-        <li class="nav-item">
-            <%= link_to admin_categories_path, class: "nav-link #{'active' if controller_name_without_namespace == 'categories'}" do %>
-            <i class="fas fa-tags"></i>Categories
-          <% end %>
-        </li>
-        
-        <!-- Orders -->
-        <li class="nav-section">Orders</li>
-        <li class="nav-item">
-            <%= link_to admin_orders_path, class: "nav-link #{'active' if controller_name_without_namespace == 'orders'}" do %>
-            <i class="fas fa-shopping-cart"></i>Orders
-          <% end %>
-        </li>
-        
-        <!-- Marketing -->
-        <li class="nav-section">Marketing</li>
-        <li class="nav-item">
-            <%= link_to admin_promotions_path, class: "nav-link #{'active' if controller_name_without_namespace == 'promotions'}" do %>
-            <i class="fas fa-bullhorn"></i>Promotions
-          <% end %>
-        </li>
-        <li class="nav-item">
-            <%= link_to admin_coupons_path, class: "nav-link #{'active' if controller_name_without_namespace == 'coupons'}" do %>
-            <i class="fas fa-ticket-alt"></i>Coupons
-          <% end %>
-        </li>
-        
-        <!-- Reports -->
-        <li class="nav-section">Reports</li>
-        <li class="nav-item">
-            <%= link_to admin_reports_path, class: "nav-link #{'active' if controller_name_without_namespace == 'reports'}" do %>
-            <i class="fas fa-chart-bar"></i>Reports
-          <% end %>
-        </li>
-        
-        <!-- System (Super Admin Only) -->
-        <% if current_admin&.super_admin? %>
-          <li class="nav-section">System</li>
-          <li class="nav-item">
-            <%= link_to admin_settings_path, class: "nav-link #{'active' if controller_name_without_namespace == 'settings'}" do %>
-              <i class="fas fa-cog"></i>Settings
-            <% end %>
-          </li>
-          <li class="nav-item">
-            <%= link_to admin_email_templates_path, class: "nav-link #{'active' if controller_name_without_namespace == 'email_templates'}" do %>
-              <i class="fas fa-envelope"></i>Email Templates
-            <% end %>
-          </li>
         <% end %>
       </nav>
     </aside>
@@ -561,6 +653,181 @@
       });
     </script>
     
+    <!-- Inactive Account Blocker Overlay -->
+    <div id="inactiveAccountOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+      <div style="background: white; padding: 2rem; border-radius: 0.5rem; max-width: 500px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+        <div style="font-size: 3rem; color: #ffc107; margin-bottom: 1rem;">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 style="margin-bottom: 1rem; color: #212529;">Account Verification Required</h3>
+        <p style="margin-bottom: 1.5rem; color: #6c757d;">Your account is inactive. Please verify your email to activate your account.</p>
+        <button type="button" class="btn btn-primary btn-lg" onclick="redirectToVerification()" style="min-width: 200px;">
+          <i class="fas fa-envelope me-2"></i>Verify Account
+        </button>
+      </div>
+    </div>
+
+    <!-- Verification Modal for Inactive Accounts -->
+    <div class="modal fade" id="inactiveAccountModal" tabindex="-1" aria-labelledby="inactiveAccountModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title" id="inactiveAccountModalLabel">
+              <i class="fas fa-exclamation-triangle me-2"></i>Account Verification Required
+            </h5>
+          </div>
+          <div class="modal-body">
+            <p class="mb-3">Your account is inactive. Please verify your email to activate your account.</p>
+            <p class="text-muted small mb-0">You will be redirected to the verification page.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="redirectToVerification()">
+              <i class="fas fa-envelope me-2"></i>Verify Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if session[:show_inactive_modal] && session[:verification_url] %>
+      <div id="inactive-account-data" 
+           data-verification-url="<%= session[:verification_url] %>" 
+           style="display: none;"></div>
+      <% session.delete(:show_inactive_modal) %>
+      <% @verification_url = session.delete(:verification_url) %>
+    <% end %>
+
+    <script>
+      // Check for inactive account and show modal
+      function checkInactiveAccount() {
+        // Check if we're already on verification page
+        if (window.location.pathname.includes('verify-email')) {
+          return;
+        }
+        
+        const body = document.body;
+        const isActive = body.getAttribute('data-admin-active') === 'true';
+        const emailVerified = body.getAttribute('data-admin-email-verified') === 'true';
+        const adminId = body.getAttribute('data-admin-id');
+        const adminEmail = body.getAttribute('data-admin-email');
+        
+        // Check if admin is inactive - show verification modal to reactivate
+        // When deactivated, email_verified is reset to false, so they need to verify again
+        if (!isActive && adminId && adminEmail) {
+          const verificationUrl = `/verify-email?type=admin&id=${adminId}&email=${encodeURIComponent(adminEmail)}&reason=inactive`;
+          showInactiveModal(verificationUrl);
+          return;
+        }
+        
+        // Also check for inactive account data from session (fallback)
+        const inactiveData = document.getElementById('inactive-account-data');
+        if (inactiveData) {
+          const verificationUrl = inactiveData.getAttribute('data-verification-url');
+          if (verificationUrl) {
+            showInactiveModal(verificationUrl);
+          }
+        }
+      }
+      
+      function showInactiveModal(verificationUrl) {
+        // Store verification URL
+        window.verificationUrl = verificationUrl;
+        
+        // Show overlay immediately (works even if Bootstrap isn't loaded)
+        const overlay = document.getElementById('inactiveAccountOverlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+          overlay.style.alignItems = 'center';
+          overlay.style.justifyContent = 'center';
+          document.body.style.overflow = 'hidden';
+          // Prevent any clicks on the overlay background
+          overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          });
+        }
+        
+        // Also try to show Bootstrap modal if available
+        const modalElement = document.getElementById('inactiveAccountModal');
+        if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          try {
+            const modal = new bootstrap.Modal(modalElement, {
+              backdrop: 'static',
+              keyboard: false
+            });
+            
+            // Prevent closing the modal
+            modalElement.addEventListener('hide.bs.modal', function(event) {
+              event.preventDefault();
+              return false;
+            });
+            
+            // Show the modal
+            modal.show();
+          } catch (e) {
+            console.error('Error showing Bootstrap modal:', e);
+            // Overlay is already showing, so that's fine
+          }
+        }
+      }
+      
+      function redirectToVerification() {
+        if (window.verificationUrl) {
+          window.location.href = window.verificationUrl;
+        } else {
+          // Fallback - construct URL
+          window.location.href = '/verify-email?type=admin&reason=inactive';
+        }
+      }
+      
+      // Run check immediately and on page load
+      // Check immediately (in case DOMContentLoaded already fired)
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkInactiveAccount);
+      } else {
+        // DOM already loaded, check immediately
+        checkInactiveAccount();
+      }
+      
+      // Also check after a short delay to ensure Bootstrap is loaded
+      setTimeout(checkInactiveAccount, 100);
+      
+      // Check on every navigation (for SPA-like behavior)
+      let lastUrl = location.href;
+      new MutationObserver(() => {
+        const url = location.href;
+        if (url !== lastUrl) {
+          lastUrl = url;
+          setTimeout(checkInactiveAccount, 200);
+        }
+      }).observe(document, { subtree: true, childList: true });
+      
+      // Password toggle function - available globally
+      function togglePassword(fieldId, buttonId) {
+        const field = document.getElementById(fieldId);
+        const button = document.getElementById(buttonId);
+        const icon = button?.querySelector('i');
+        
+        if (field) {
+          if (field.type === 'password') {
+            field.type = 'text';
+            if (icon) {
+              icon.classList.remove('fa-eye');
+              icon.classList.add('fa-eye-slash');
+            }
+          } else {
+            field.type = 'password';
+            if (icon) {
+              icon.classList.remove('fa-eye-slash');
+              icon.classList.add('fa-eye');
+            }
+          }
+        }
+      }
+    </script>
+
     <!-- jQuery (required for daterangepicker) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Moment.js (required for daterangepicker) -->

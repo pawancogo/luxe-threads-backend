@@ -1,0 +1,212 @@
+<% collection = local_assigns[:collection] %>
+<% return unless collection.respond_to?(:current_page) %>
+
+<% total_entries = if collection.respond_to?(:total_count)
+                     collection.total_count
+                   elsif collection.respond_to?(:size)
+                     collection.size
+                   else
+                     0
+                   end %>
+
+<% per_page = collection.respond_to?(:limit_value) ? collection.limit_value : total_entries %>
+<% start_entry = total_entries.positive? ? (collection.current_page - 1) * per_page + 1 : 0 %>
+<% end_entry = if total_entries.positive?
+                 [start_entry + per_page - 1, total_entries].min
+               else
+                 0
+               end %>
+
+<div class="pagination-wrapper mt-4">
+  <div class="card border-0 shadow-sm pagination-card">
+    <div class="card-body py-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div class="pagination-info">
+          <span class="text-muted">
+            <% if total_entries.positive? %>
+              <i class="fas fa-list me-2"></i>
+              <span class="pagination-text">
+                Showing <strong class="text-primary"><%= start_entry %></strong> to 
+                <strong class="text-primary"><%= end_entry %></strong> of 
+                <strong class="text-primary"><%= number_with_delimiter(total_entries) %></strong> entries
+              </span>
+            <% else %>
+              <i class="fas fa-info-circle me-2"></i>
+              <span class="text-muted">No entries found</span>
+            <% end %>
+          </span>
+        </div>
+        <div class="pagination-controls">
+          <% if defined?(Kaminari) && total_entries.positive? %>
+            <nav aria-label="Page navigation" class="enhanced-pagination">
+              <%= paginate collection, 
+                           pagination_class: 'pagination mb-0',
+                           previous_label: '<i class="fas fa-chevron-left"></i> Previous',
+                           next_label: 'Next <i class="fas fa-chevron-right"></i>',
+                           outer_window: 1,
+                           inner_window: 2 %>
+            </nav>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pagination-wrapper {
+    margin-top: 1.5rem;
+  }
+  
+  .pagination-wrapper .pagination-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 0.75rem;
+    border: 1px solid #e3e6ea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  }
+  
+  .pagination-wrapper .pagination-info {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  
+  .pagination-wrapper .pagination-text {
+    color: #495057;
+  }
+  
+  .pagination-wrapper .pagination-text strong {
+    font-size: 1.05rem;
+  }
+  
+  .pagination-wrapper .enhanced-pagination {
+    display: flex;
+    align-items: center;
+  }
+  
+  .pagination-wrapper .pagination {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .pagination-wrapper .pagination .page-item {
+    margin: 0;
+  }
+  
+  .pagination-wrapper .pagination .page-link {
+    color: #495057;
+    background-color: #ffffff;
+    border: 2px solid #dee2e6;
+    padding: 0.625rem 1rem;
+    min-width: 44px;
+    height: 44px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    font-size: 0.95rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .pagination-wrapper .pagination .page-link:hover:not(.disabled) {
+    color: #ffffff;
+    background-color: #007bff;
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  }
+  
+  .pagination-wrapper .pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border-color: #007bff;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+    transform: scale(1.05);
+  }
+  
+  .pagination-wrapper .pagination .page-item.active .page-link:hover {
+    transform: scale(1.05) translateY(-2px);
+  }
+  
+  .pagination-wrapper .pagination .page-item.disabled .page-link {
+    color: #adb5bd;
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.5;
+    box-shadow: none;
+  }
+  
+  .pagination-wrapper .pagination .page-item:first-child .page-link {
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    font-weight: 600;
+  }
+  
+  .pagination-wrapper .pagination .page-item:last-child .page-link {
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    font-weight: 600;
+  }
+  
+  .pagination-wrapper .pagination .page-link i {
+    font-size: 0.875rem;
+    margin: 0 0.25rem;
+  }
+  
+  /* Gap between page items */
+  .pagination-wrapper .pagination .page-item + .page-item {
+    margin-left: 0;
+  }
+  
+  /* Ellipsis styling */
+  .pagination-wrapper .pagination .page-item.gap .page-link {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    cursor: default;
+    color: #6c757d;
+    font-weight: 600;
+    padding: 0.625rem 0.5rem;
+    min-width: auto;
+  }
+  
+  .pagination-wrapper .pagination .page-item.gap .page-link:hover {
+    transform: none;
+    background: transparent;
+    color: #6c757d;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .pagination-wrapper .pagination .page-link {
+      padding: 0.5rem 0.75rem;
+      min-width: 40px;
+      height: 40px;
+      font-size: 0.875rem;
+    }
+    
+    .pagination-wrapper .pagination .page-item:first-child .page-link,
+    .pagination-wrapper .pagination .page-item:last-child .page-link {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    .pagination-wrapper .pagination-info {
+      font-size: 0.875rem;
+    }
+  }
+</style>
+

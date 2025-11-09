@@ -1,213 +1,198 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Email Verification - LuxeThreads</title>
+<% if @verifiable&.is_a?(Admin) %>
+  <% content_for :title, "Email Verification" %>
+  
   <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      margin: 0; 
-      padding: 20px; 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .admin-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05);
+      padding: 24px 28px;
+      max-width: 700px;
+      margin: 20px auto;
+      border: 1px solid rgba(255, 255, 255, 0.8);
     }
-    .container { 
-      max-width: 500px; 
-      margin: 0 auto; 
-      background: white; 
-      padding: 40px; 
-      border-radius: 12px; 
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      text-align: center;
-    }
-    .header { 
-      margin-bottom: 30px; 
-    }
-    .header h1 { 
-      color: #333; 
-      margin: 0 0 10px 0; 
-      font-size: 28px;
-    }
-    .header p { 
-      color: #666; 
-      margin: 0; 
-      font-size: 16px;
-    }
-    .form-group { 
-      margin-bottom: 25px; 
-      text-align: left;
-    }
-    .form-label { 
-      display: block; 
-      margin-bottom: 8px; 
-      font-weight: bold; 
-      color: #333;
-    }
-    .form-control { 
-      width: 100%; 
-      padding: 15px; 
-      border: 2px solid #e1e5e9; 
-      border-radius: 8px; 
-      font-size: 16px; 
-      box-sizing: border-box;
-      transition: border-color 0.3s ease;
-    }
-    .form-control:focus { 
-      outline: none; 
-      border-color: #667eea; 
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    .btn { 
-      padding: 15px 30px; 
-      border: none; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      text-decoration: none; 
-      display: inline-block; 
-      font-size: 16px;
-      font-weight: bold;
+    .admin-card .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: #ffffff !important;
+      border: none;
+      padding: 12px 36px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
       transition: all 0.3s ease;
-      margin: 5px;
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+      letter-spacing: 0.3px;
+      width: 100%;
     }
-    .btn-primary { 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white; 
-    }
-    .btn-primary:hover { 
+    .admin-card .btn-primary:hover {
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+      color: #ffffff !important;
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.45);
     }
-    .btn-secondary { 
-      background-color: #f8f9fa; 
-      color: #6c757d; 
-      border: 2px solid #e9ecef;
-    }
-    .btn-secondary:hover { 
-      background-color: #e9ecef;
-    }
-    .alert { 
-      padding: 15px; 
-      margin-bottom: 20px; 
-      border-radius: 8px; 
+    .admin-card .btn-outline-secondary {
+      background: transparent !important;
+      color: #6b7280 !important;
+      border: 2px solid #e5e7eb !important;
+      padding: 12px 28px;
+      border-radius: 12px;
       font-weight: 500;
+      transition: all 0.3s ease;
     }
-    .alert-success { 
-      background-color: #d4edda; 
-      color: #155724; 
-      border: 1px solid #c3e6cb; 
+    .admin-card .btn-outline-secondary:hover {
+      background: #f9fafb !important;
+      border-color: #d1d5db !important;
+      color: #374151 !important;
     }
-    .alert-danger { 
-      background-color: #f8d7da; 
-      color: #721c24; 
-      border: 1px solid #f5c6cb; 
+    .admin-card .info-box {
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      border: 2px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
     }
-    .info-box {
-      background-color: #f8f9fa;
-      border: 1px solid #e9ecef;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 25px;
+    .admin-card .form-control {
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      transition: all 0.3s ease;
     }
-    .info-box h3 {
-      margin: 0 0 10px 0;
-      color: #495057;
-      font-size: 18px;
+    .admin-card .form-control:focus {
+      border-color: #667eea !important;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+      background: #ffffff !important;
     }
-    .info-box p {
-      margin: 0;
-      color: #6c757d;
-      font-size: 14px;
+    .admin-card .otp-input:focus {
+      border-color: #667eea !important;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+      background: #ffffff !important;
     }
-    .otp-input {
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-      letter-spacing: 5px;
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
     }
-    .footer {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e9ecef;
-      color: #6c757d;
-      font-size: 14px;
+    .toast {
+      min-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .toast-success {
+      background-color: #f3f4f6;
+      border-left: 4px solid #667eea;
+    }
+    .toast-danger {
+      background-color: #fef2f2;
+      border-left: 4px solid #ef4444;
     }
   </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>📧 Email Verification</h1>
-      <p>Please verify your email address to continue</p>
+  
+  <div class="admin-card mb-4">
+    <div class="text-center mb-3">
+      <div style="width: 64px; height: 64px; margin: 0 auto 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);">
+        <i class="fas fa-envelope" style="font-size: 1.75rem; color: white;"></i>
+      </div>
+      <h1 class="card-title mb-2" style="font-size: 1.5rem; font-weight: 600; color: #1f2937; letter-spacing: -0.5px;">Email Verification</h1>
+      <p class="text-muted" style="font-size: 0.9rem; color: #6b7280; line-height: 1.5;">Please verify your email address to continue</p>
     </div>
 
     <% if flash[:notice] %>
-      <div class="alert alert-success"><%= flash[:notice] %></div>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= flash[:notice] %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
     <% end %>
 
     <% if flash[:alert] %>
-      <div class="alert alert-danger"><%= flash[:alert] %></div>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <%= flash[:alert] %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
     <% end %>
 
-    <% if @verification_successful %>
+    <% if @verification_successful || @account_activated %>
       <!-- Success State -->
-      <div class="info-box" style="background-color: #d4edda; border-color: #c3e6cb;">
-        <h3 style="color: #155724;">✅ Email Verified Successfully!</h3>
-        <p style="color: #155724;">Your email address has been verified. You can now use all features of your account.</p>
-      </div>
-      
-      <div style="margin-top: 30px;">
-        <p style="color: #6c757d;">You can close this page or proceed to login.</p>
+      <div class="card border-success mb-4">
+        <div class="card-body text-center">
+          <div style="font-size: 2rem; color: #28a745; margin-bottom: 0.75rem; opacity: 0.9;">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h3 class="text-success mb-3" style="font-size: 1.25rem;">Email Verified Successfully!</h3>
+          <p class="text-success" style="font-size: 0.95rem;">Your email address has been verified. You can now use all features of your account.</p>
+          <div class="mt-4">
+            <%= link_to "Go to Dashboard", admin_root_path, class: "btn btn-primary" %>
+          </div>
+        </div>
       </div>
     <% elsif @verifiable&.email_verified? %>
       <!-- Already Verified State -->
-      <div class="info-box" style="background-color: #d1ecf1; border-color: #bee5eb;">
-        <h3 style="color: #0c5460;">✓ Already Verified</h3>
-        <p style="color: #0c5460;">This email address has already been verified.</p>
+      <div class="card border-info mb-4">
+        <div class="card-body text-center">
+          <div style="font-size: 2rem; color: #17a2b8; margin-bottom: 0.75rem; opacity: 0.9;">
+            <i class="fas fa-check"></i>
+          </div>
+          <h3 class="text-info mb-3" style="font-size: 1.25rem;">Already Verified</h3>
+          <p class="text-info" style="font-size: 0.95rem;">This email address has already been verified.</p>
+          <div class="mt-4">
+            <%= link_to "Go to Dashboard", admin_root_path, class: "btn btn-primary" %>
+          </div>
+        </div>
       </div>
     <% else %>
       <!-- Verification Form -->
-      <div class="info-box">
-        <h3>Verification Code Sent</h3>
-        <p>We've sent a 6-digit verification code to <strong><%= @email %></strong></p>
-        <p>Please check your email and enter the code below. The code will expire in 15 minutes.</p>
+      <div class="card mb-3" style="border: none; box-shadow: none; background: transparent;">
+        <div class="card-body" style="padding: 0;">
+          <div class="info-box bg-light p-4 mb-3 rounded" style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important; border: 2px solid #c7d2fe !important; padding: 16px 18px !important; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1) !important;">
+            <div style="text-align: center; margin-bottom: 10px;">
+              <div style="width: 48px; height: 48px; margin: 0 auto 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                <i class="fas fa-paper-plane" style="color: white; font-size: 1.25rem;"></i>
+              </div>
+            </div>
+            <h5 class="mb-2 text-center" style="color: #5a67d8; font-size: 1rem; font-weight: 600;">Verification Code Sent</h5>
+            <p class="mb-1 text-center" style="color: #4c51bf; font-size: 0.875rem; line-height: 1.4;">We've sent a 6-digit verification code to</p>
+            <p class="mb-2 text-center" style="color: #5a67d8; font-size: 0.875rem; font-weight: 600; word-break: break-all;"><%= @email %></p>
+            <p class="mb-0 text-center" style="color: #4c51bf !important; font-size: 0.8rem; line-height: 1.4;">Please check your email and enter the code below. The code will expire in 15 minutes.</p>
+          </div>
+
+          <%= form_with url: '/verify-email', method: :post, local: true, class: "verification-form" do |form| %>
+            <%= form.hidden_field :type, value: @verifiable_type %>
+            <%= form.hidden_field :id, value: @verifiable_id %>
+            <%= form.hidden_field :email, value: @email %>
+            
+            <div class="mb-3">
+              <%= form.label :otp, "Enter Verification Code", class: "form-label fw-bold", style: "font-size: 0.9rem; color: #374151; margin-bottom: 8px; font-weight: 600;" %>
+              <%= form.text_field :otp, 
+                  class: "form-control text-center otp-input", 
+                  placeholder: "000000",
+                  maxlength: 6,
+                  pattern: "[0-9]{6}",
+                  style: "font-size: 1.3rem; letter-spacing: 0.6rem; font-weight: 600; padding: 14px; border: 2px solid #d1d5db; border-radius: 12px; background: #ffffff; color: #111827; transition: all 0.3s ease;",
+                  required: true,
+                  autofocus: true %>
+              <div class="form-text text-center" style="font-size: 0.8rem; color: #6b7280; margin-top: 6px;">Enter the 6-digit code sent to your email</div>
+            </div>
+
+            <div class="d-grid gap-2">
+              <%= form.submit "Verify Email", class: "btn btn-primary" %>
+            </div>
+          <% end %>
+
+          <div class="mt-4 text-center">
+            <button type="button" id="resend-code-btn" class="btn btn-outline-secondary" data-type="<%= @verifiable_type %>" data-id="<%= @verifiable_id %>" data-email="<%= @email %>">
+              Resend Code
+            </button>
+          </div>
+        </div>
       </div>
 
-      <%= form_with url: '/verify-email', method: :post, local: true, class: "verification-form" do |form| %>
-        <%= form.hidden_field :type, value: @verifiable_type %>
-        <%= form.hidden_field :id, value: @verifiable_id %>
-        <%= form.hidden_field :email, value: @email %>
-        
-        <div class="form-group">
-          <%= form.label :otp, "Enter Verification Code", class: "form-label" %>
-          <%= form.text_field :otp, 
-              class: "form-control otp-input", 
-              placeholder: "000000",
-              maxlength: 6,
-              pattern: "[0-9]{6}",
-              required: true %>
+      <div class="card border-0" style="margin-top: 20px; background: #f9fafb; border-radius: 12px;">
+        <div class="card-body text-center" style="padding: 16px;">
+          <p class="mb-1" style="font-size: 0.8rem; color: #6b7280; line-height: 1.5;">Didn't receive the email? Check your spam folder or try resending the code.</p>
+          <p class="mb-0" style="font-size: 0.8rem; color: #9ca3af;">For support, contact us at <a href="mailto:support@luxethreads.com" style="color: #667eea; text-decoration: none; font-weight: 500;">support@luxethreads.com</a></p>
         </div>
-
-        <div class="form-group">
-          <%= form.submit "Verify Email", class: "btn btn-primary" %>
-        </div>
-      <% end %>
-
-      <div style="margin-top: 20px;">
-        <%= form_with url: '/resend-verification', method: :post, local: true do |form| %>
-          <%= form.hidden_field :type, value: @verifiable_type %>
-          <%= form.hidden_field :id, value: @verifiable_id %>
-          <%= form.hidden_field :email, value: @email %>
-          <%= form.submit "Resend Code", class: "btn btn-secondary" %>
-        <% end %>
       </div>
     <% end %>
-
-    <div class="footer">
-      <p>Didn't receive the email? Check your spam folder or try resending the code.</p>
-      <p>For support, contact us at support@luxethreads.com</p>
-    </div>
   </div>
 
   <script>
@@ -221,11 +206,541 @@
         this.value = this.value.replace(/[^0-9]/g, '');
       });
     }
+
+    // Toast notification function
+    function showToast(message, type = 'success') {
+      const toastContainer = document.getElementById('toast-container') || createToastContainer();
+      const toastId = 'toast-' + Date.now();
+      const iconClass = type === 'success' ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger';
+      const toastClass = type === 'success' ? 'toast-success' : 'toast-danger';
+      const title = type === 'success' ? 'Success' : 'Error';
+      
+      const toastHTML = `
+        <div class="toast ${toastClass}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+          <div class="toast-header">
+            <i class="fas ${iconClass} me-2"></i>
+            <strong class="me-auto">${title}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+          </div>
+          <div class="toast-body">
+            ${message}
+          </div>
+        </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+      const toastElement = document.getElementById(toastId);
+      const bsToast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: 5000
+      });
+      bsToast.show();
+      
+      // Remove toast element after it's hidden
+      toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
+      });
+    }
+
+    function createToastContainer() {
+      const container = document.createElement('div');
+      container.id = 'toast-container';
+      container.className = 'toast-container position-fixed top-0 end-0 p-3';
+      container.style.zIndex = '9999';
+      document.body.appendChild(container);
+      return container;
+    }
+
+    // Handle resend code button click
+    const resendBtn = document.getElementById('resend-code-btn');
+    if (resendBtn) {
+      resendBtn.addEventListener('click', function() {
+        const btn = this;
+        const originalText = btn.textContent;
+        const type = btn.getAttribute('data-type');
+        const id = btn.getAttribute('data-id');
+        const email = btn.getAttribute('data-email');
+        
+        // Disable button and show loading state
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        
+        // Create form data
+        const formData = new URLSearchParams();
+        formData.append('type', type);
+        formData.append('id', id);
+        formData.append('email', email);
+        
+        // Send AJAX request
+        fetch('/resend-verification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+          },
+          body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+          // Check if response contains success message
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const notice = doc.querySelector('.alert-success, [class*="notice"]');
+          const alert = doc.querySelector('.alert-danger, [class*="alert"]');
+          
+          if (notice || html.includes('Code sent successfully') || html.includes('successfully')) {
+            showToast('Code sent successfully!', 'success');
+          } else if (alert) {
+            showToast(alert.textContent.trim() || 'Failed to send verification code. Please try again.', 'danger');
+          } else {
+            showToast('Code sent successfully!', 'success');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Failed to send verification code. Please try again.', 'danger');
+        })
+        .finally(() => {
+          // Re-enable button
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
+      });
+    }
   </script>
-</body>
-</html>
+<% else %>
+  <!-- Standalone layout for users -->
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Email Verification - LuxeThreads</title>
+    <meta name="csrf-token" content="<%= form_authenticity_token %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        margin: 0; 
+        padding: 20px; 
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .container { 
+        max-width: 700px; 
+        margin: 0 auto; 
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); 
+        padding: 28px 32px; 
+        border-radius: 24px; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05);
+        text-align: center;
+        backdrop-filter: blur(10px);
+        animation: fadeIn 0.5s ease-in;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .header { 
+        margin-bottom: 20px; 
+      }
+      .header-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        font-size: 28px;
+      }
+      .header h1 { 
+        color: #1f2937; 
+        margin: 0 0 8px 0; 
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+      }
+      .header p { 
+        color: #6b7280; 
+        margin: 0; 
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .form-group { 
+        margin-bottom: 16px; 
+        text-align: left;
+      }
+      .form-label { 
+        display: block; 
+        margin-bottom: 8px; 
+        font-weight: 400; 
+        color: #4a5568;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+      .form-control { 
+        width: 100%; 
+        padding: 14px 16px; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 10px; 
+        font-size: 15px; 
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        background-color: #f7fafc;
+        color: #2d3748;
+      }
+      .form-control:focus { 
+        outline: none; 
+        border-color: #667eea; 
+        background-color: #fff;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      .form-control::placeholder {
+        color: #cbd5e0;
+      }
+      .btn { 
+        padding: 12px 28px; 
+        border: none; 
+        border-radius: 10px; 
+        cursor: pointer; 
+        text-decoration: none; 
+        display: inline-block; 
+        font-size: 15px;
+        font-weight: 400;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin: 4px;
+        letter-spacing: 0.3px;
+      }
+      .btn-primary { 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff; 
+        box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+        font-weight: 600;
+        font-size: 14px;
+        padding: 12px 36px;
+        width: 100%;
+        letter-spacing: 0.3px;
+      }
+      .btn-primary:hover { 
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.45);
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+      .btn-secondary { 
+        background-color: #f7fafc; 
+        color: #718096; 
+        border: 1px solid #e2e8f0;
+      }
+      .btn-secondary:hover { 
+        background-color: #edf2f7;
+        border-color: #cbd5e0;
+        color: #4a5568;
+      }
+      .alert { 
+        padding: 14px 16px; 
+        margin-bottom: 20px; 
+        border-radius: 10px; 
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 1.5;
+        border: none;
+      }
+      .alert-success { 
+        background-color: #f0fdf4; 
+        color: #166534; 
+        border-left: 3px solid #86efac;
+      }
+      .alert-danger { 
+        background-color: #fef2f2; 
+        color: #991b1b; 
+        border-left: 3px solid #fca5a5;
+      }
+      .info-box {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        border: 2px solid #c7d2fe;
+        border-radius: 12px;
+        padding: 16px 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+      }
+      .info-box h3 {
+        margin: 0 0 10px 0;
+        color: #4a5568;
+        font-size: 17px;
+        font-weight: 400;
+        letter-spacing: -0.2px;
+      }
+      .info-box p {
+        margin: 8px 0 0 0;
+        color: #718096;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .info-box strong {
+        color: #4a5568;
+        font-weight: 500;
+      }
+      .otp-input {
+        text-align: center;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: 6px;
+        color: #111827;
+        background: #ffffff;
+        border: 2px solid #d1d5db;
+        padding: 14px !important;
+      }
+      .otp-input:focus {
+        border-color: #667eea;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        outline: none;
+      }
+      .footer {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        background: #f9fafb;
+        margin-left: -32px;
+        margin-right: -32px;
+        margin-bottom: -28px;
+        padding-left: 32px;
+        padding-right: 32px;
+        padding-bottom: 16px;
+        border-radius: 0 0 24px 24px;
+      }
+      .footer p {
+        margin: 6px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-icon">✉️</div>
+        <h1>Email Verification</h1>
+        <p>Please verify your email address to continue</p>
+      </div>
 
+      <% if flash[:notice] %>
+        <div class="alert alert-success"><%= flash[:notice] %></div>
+      <% end %>
 
+      <% if flash[:alert] %>
+        <div class="alert alert-danger"><%= flash[:alert] %></div>
+      <% end %>
 
+      <% if @verification_successful || @account_activated %>
+        <!-- Success State -->
+        <div class="info-box" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #bbf7d0;">
+          <div style="font-size: 40px; margin-bottom: 12px; opacity: 0.8;">✓</div>
+          <h3 style="color: #166534; margin-top: 0;">Email Verified Successfully!</h3>
+          <p style="color: #166534;">Your email address has been verified. You can now use all features of your account.</p>
+        </div>
+        
+        <div style="margin-top: 32px;">
+          <p style="color: #718096; font-size: 14px;">You can close this page or proceed to login.</p>
+        </div>
+      <% elsif @verifiable&.email_verified? %>
+        <!-- Already Verified State -->
+        <div class="info-box" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-color: #bfdbfe;">
+          <div style="font-size: 40px; margin-bottom: 12px; opacity: 0.8;">✓</div>
+          <h3 style="color: #1e40af; margin-top: 0;">Already Verified</h3>
+          <p style="color: #1e40af;">This email address has already been verified.</p>
+        </div>
+      <% else %>
+        <!-- Verification Form -->
+        <div class="info-box">
+          <div style="text-align: center; margin-bottom: 10px;">
+            <div style="width: 48px; height: 48px; margin: 0 auto 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+              <span style="font-size: 24px;">📬</span>
+            </div>
+          </div>
+          <h3 style="color: #5a67d8; text-align: center; margin-bottom: 8px; font-size: 1rem; font-weight: 600;">Verification Code Sent</h3>
+          <p style="color: #4c51bf; text-align: center; margin-bottom: 4px; font-size: 0.875rem; line-height: 1.4;">We've sent a 6-digit verification code to</p>
+          <p style="color: #5a67d8; text-align: center; margin-bottom: 8px; font-size: 0.875rem; font-weight: 600; word-break: break-all;"><%= @email %></p>
+          <p style="color: #4c51bf; text-align: center; font-size: 0.8rem; line-height: 1.4; margin: 0;">Please check your email and enter the code below. The code will expire in 15 minutes.</p>
+        </div>
 
+        <%= form_with url: '/verify-email', method: :post, local: true, class: "verification-form" do |form| %>
+          <%= form.hidden_field :type, value: @verifiable_type %>
+          <%= form.hidden_field :id, value: @verifiable_id %>
+          <%= form.hidden_field :email, value: @email %>
+          
+          <div class="form-group">
+            <%= form.label :otp, "Enter Verification Code", class: "form-label", style: "font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;" %>
+            <%= form.text_field :otp, 
+                class: "form-control otp-input", 
+                placeholder: "000000",
+                maxlength: 6,
+                pattern: "[0-9]{6}",
+                required: true %>
+            <div class="form-text text-center" style="font-size: 0.8rem; color: #6b7280; margin-top: 6px;">Enter the 6-digit code sent to your email</div>
+          </div>
 
+          <div class="form-group">
+            <%= form.submit "Verify Email", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+
+        <div style="margin-top: 16px;">
+          <button type="button" id="resend-code-btn-standalone" class="btn btn-secondary" data-type="<%= @verifiable_type %>" data-id="<%= @verifiable_id %>" data-email="<%= @email %>">
+            Resend Code
+          </button>
+        </div>
+      <% end %>
+
+      <div class="footer">
+        <p>Didn't receive the email? Check your spam folder or try resending the code.</p>
+        <p>For support, contact us at support@luxethreads.com</p>
+      </div>
+    </div>
+
+    <style>
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+      .toast {
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+      .toast-success {
+        background-color: #f3f4f6;
+        border-left: 4px solid #667eea;
+      }
+      .toast-danger {
+        background-color: #fef2f2;
+        border-left: 4px solid #ef4444;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Auto-focus on OTP input (only if it exists)
+      const otpInput = document.querySelector('.otp-input');
+      if (otpInput) {
+        otpInput.focus();
+        
+        // Format OTP input (numbers only)
+        otpInput.addEventListener('input', function(e) {
+          this.value = this.value.replace(/[^0-9]/g, '');
+        });
+      }
+
+      // Toast notification function
+      function showToast(message, type = 'success') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+          toastContainer = document.createElement('div');
+          toastContainer.id = 'toast-container';
+          toastContainer.className = 'toast-container';
+          document.body.appendChild(toastContainer);
+        }
+        
+        const toastId = 'toast-' + Date.now();
+        const iconClass = type === 'success' ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger';
+        const toastClass = type === 'success' ? 'toast-success' : 'toast-danger';
+        const title = type === 'success' ? 'Success' : 'Error';
+        
+        const toastHTML = `
+          <div class="toast ${toastClass}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+            <div class="toast-header">
+              <i class="fas ${iconClass} me-2"></i>
+              <strong class="me-auto">${title}</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+              ${message}
+            </div>
+          </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+        const toastElement = document.getElementById(toastId);
+        const bsToast = new bootstrap.Toast(toastElement, {
+          autohide: true,
+          delay: 5000
+        });
+        bsToast.show();
+        
+        // Remove toast element after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', function() {
+          toastElement.remove();
+        });
+      }
+
+      // Handle resend code button click (standalone page)
+      const resendBtn = document.getElementById('resend-code-btn-standalone');
+      if (resendBtn) {
+        resendBtn.addEventListener('click', function() {
+          const btn = this;
+          const originalText = btn.textContent;
+          const type = btn.getAttribute('data-type');
+          const id = btn.getAttribute('data-id');
+          const email = btn.getAttribute('data-email');
+          
+          // Disable button and show loading state
+          btn.disabled = true;
+          btn.textContent = 'Sending...';
+          
+          // Create form data
+          const formData = new URLSearchParams();
+          formData.append('type', type);
+          formData.append('id', id);
+          formData.append('email', email);
+          
+          // Get CSRF token from meta tag or form
+          const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                           document.querySelector('input[name="authenticity_token"]')?.value || '';
+          
+          // Send AJAX request
+          fetch('/resend-verification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRF-Token': csrfToken
+            },
+            body: formData
+          })
+          .then(response => response.text())
+          .then(html => {
+            // Check if response contains success message
+            if (html.includes('Code sent successfully') || html.includes('successfully')) {
+              showToast('Code sent successfully!', 'success');
+            } else if (html.includes('Failed') || html.includes('Error')) {
+              showToast('Failed to send verification code. Please try again.', 'danger');
+            } else {
+              showToast('Code sent successfully!', 'success');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showToast('Failed to send verification code. Please try again.', 'danger');
+          })
+          .finally(() => {
+            // Re-enable button
+            btn.disabled = false;
+            btn.textContent = originalText;
+          });
+        });
+      }
+    </script>
+  </body>
+  </html>
+<% end %>

@@ -28,7 +28,10 @@ RailsAdmin.config do |config|
   # config.authorize_with :pundit
 
   ## == PaperTrail ==
-  # config.audit_with :paper_trail, 'User', 'PaperTrail::Version' # PaperTrail >= 3.0.0
+  # Only enable PaperTrail audit for models that actually have PaperTrail configured
+  # The 'only' restriction on history actions ensures history is only available for:
+  # Order, Admin, User, Product, Supplier (models with has_paper_trail)
+  config.audit_with :paper_trail, 'Admin', 'Version' # PaperTrail >= 3.0.0
 
   ### More at https://github.com/railsadminteam/rails_admin/wiki/Base-configuration
 
@@ -81,8 +84,15 @@ RailsAdmin.config do |config|
     show_in_app
 
     ## With an audit adapter, you can add:
-    # history_index
-    # history_show
+    history_index do
+      # Only allow history for models that have PaperTrail configured
+      only ['Order', 'Admin', 'User', 'Product', 'Supplier']
+    end
+    
+    history_show do
+      # Only allow history for models that have PaperTrail configured
+      only ['Order', 'Admin', 'User', 'Product', 'Supplier']
+    end
   end
 
   # Customize the dashboard - Users (Customers & Suppliers)
@@ -379,6 +389,148 @@ RailsAdmin.config do |config|
       field :verified
       field :is_active
       field :is_suspended
+    end
+  end
+
+  # PaperTrail Version model configuration
+  config.model 'Version' do
+    navigation_label 'System'
+    weight 10
+    visible true
+    
+    list do
+      field :id
+      field :item_type
+      field :item_id
+      field :event
+      field :whodunnit do
+        label 'Changed By'
+        pretty_value do
+          if value.present?
+            parts = value.split(':')
+            if parts.length == 2
+              type = parts[0]
+              id = parts[1]
+              case type
+              when 'Admin'
+                admin = Admin.find_by(id: id)
+                admin ? "#{admin.full_name} (Admin ##{id})" : value
+              when 'User'
+                user = User.find_by(id: id)
+                user ? "#{user.full_name} (User ##{id})" : value
+              when 'Supplier'
+                user = User.where(role: 'supplier').find_by(id: id)
+                user ? "#{user.full_name} (Supplier ##{id})" : value
+              else
+                value
+              end
+            else
+              value
+            end
+          else
+            'System'
+          end
+        end
+      end
+      field :created_at do
+        label 'Changed At'
+      end
+      field :ip_address
+      field :user_agent
+    end
+    
+    show do
+      field :id
+      field :item_type
+      field :item_id
+      field :event
+      field :whodunnit do
+        label 'Changed By'
+        pretty_value do
+          if value.present?
+            parts = value.split(':')
+            if parts.length == 2
+              type = parts[0]
+              id = parts[1]
+              case type
+              when 'Admin'
+                admin = Admin.find_by(id: id)
+                admin ? "#{admin.full_name} (Admin ##{id})" : value
+              when 'User'
+                user = User.find_by(id: id)
+                user ? "#{user.full_name} (User ##{id})" : value
+              when 'Supplier'
+                user = User.where(role: 'supplier').find_by(id: id)
+                user ? "#{user.full_name} (Supplier ##{id})" : value
+              else
+                value
+              end
+            else
+              value
+            end
+          else
+            'System'
+          end
+        end
+      end
+      field :object_changes do
+        label 'Changes'
+        pretty_value do
+          if value.present?
+            begin
+              changes = value.is_a?(String) ? YAML.load(value) : value
+              if changes.is_a?(Hash)
+                html = '<div class="version-changes">'
+                changes.each do |key, change_array|
+                  if change_array.is_a?(Array) && change_array.length == 2
+                    html += "<div class='mb-2'><strong>#{key.humanize}:</strong><br/>"
+                    html += "<span class='text-muted'>From: #{change_array[0] || 'N/A'}</span><br/>"
+                    html += "<span class='text-primary'>To: #{change_array[1] || 'N/A'}</span></div>"
+                  else
+                    html += "<div class='mb-2'><strong>#{key.humanize}:</strong> #{change_array}</div>"
+                  end
+                end
+                html += '</div>'
+                html.html_safe
+              else
+                value.to_s
+              end
+            rescue
+              value.to_s
+            end
+          else
+            'No changes'
+          end
+        end
+      end
+      field :object do
+        label 'Object State'
+        pretty_value do
+          if value.present?
+            begin
+              obj = value.is_a?(String) ? YAML.load(value) : value
+              "<pre>#{JSON.pretty_generate(obj)}</pre>".html_safe
+            rescue
+              value.to_s
+            end
+          else
+            'N/A'
+          end
+        end
+      end
+      field :ip_address
+      field :user_agent
+      field :created_at do
+        label 'Changed At'
+      end
+    end
+    
+    edit do
+      # Versions are read-only
+    end
+    
+    export do
+      # Allow export of versions
     end
   end
 

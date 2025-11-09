@@ -50,7 +50,7 @@ module ApplicationHelper
       controller_name = controller.controller_name.singularize.camelize
       controller_name.constantize rescue nil
     end
-    
+
     # Handle special cases for associations
     if key.to_s.end_with?('_id')
       association_name = key.to_s.gsub(/_id$/, '')
@@ -63,7 +63,7 @@ module ApplicationHelper
       rescue
       end
     end
-    
+
     # Use human_attribute_name if model class is available
     if model_class && model_class.respond_to?(:human_attribute_name)
       begin
@@ -71,8 +71,14 @@ module ApplicationHelper
       rescue
       end
     end
-    
+
     # Fallback to smart titleize
     key.to_s.gsub(/_name|_title|_id/, '').titleize
+  end
+
+  # Options for range filter dropdown - matches vendor-backend pattern
+  # Override in specific controllers if needed
+  def options_for_filter
+    []
   end
 end

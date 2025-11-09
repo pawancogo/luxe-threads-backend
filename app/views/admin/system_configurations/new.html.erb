@@ -1,0 +1,147 @@
+<% content_for :title, "New System Configuration" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="card-title mb-0">
+      <i class="fas fa-plus me-2"></i>Create New System Configuration
+    </h1>
+    <%= link_to "Back to Configurations", admin_system_configurations_path, class: "btn btn-outline-secondary" %>
+  </div>
+  
+  <%= form_with model: [:admin, @system_configuration], local: true do |f| %>
+    <% if @system_configuration.errors.any? %>
+      <div class="alert alert-danger">
+        <h5>Please fix the following errors:</h5>
+        <ul class="mb-0">
+          <% @system_configuration.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    
+    <div class="mb-3">
+      <%= f.label :key, class: "form-label" %>
+      <%= f.text_field :key, class: "form-control", required: true, placeholder: "app_name" %>
+      <small class="form-text text-muted">Use lowercase with underscores (e.g., app_name, min_order_amount)</small>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :category, class: "form-label" %>
+          <%= f.select :category, 
+              [['General', 'general'], ['Payment', 'payment'], ['Shipping', 'shipping'], 
+               ['Email', 'email'], ['API', 'api'], ['Feature Flags', 'feature_flags']],
+              {}, { class: "form-select", required: true } %>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <%= f.label :value_type, class: "form-label" %>
+          <%= f.select :value_type, 
+              [['String', 'string'], ['Integer', 'integer'], ['Float', 'float'], 
+               ['Boolean', 'boolean'], ['JSON', 'json']],
+              {}, { class: "form-select", required: true, id: "value_type_select" } %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :value, class: "form-label" %>
+      <div id="value-input-container">
+        <%= f.text_field :value, class: "form-control", required: true %>
+      </div>
+      <small class="form-text text-muted">
+        <span id="value-hint">Enter the configuration value</span>
+      </small>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :description, class: "form-label" %>
+      <%= f.text_area :description, rows: 3, class: "form-control", placeholder: "Describe what this configuration does" %>
+    </div>
+    
+    <div class="mb-3">
+      <div class="form-check">
+        <%= f.check_box :is_active, { checked: true }, true, false %>
+        <%= f.label :is_active, "Active", class: "form-check-label" %>
+        <small class="form-text text-muted d-block">Active configurations are available for use in the application</small>
+      </div>
+    </div>
+    
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      <strong>Note:</strong> This configuration will be created by <strong><%= current_admin.full_name %></strong> (<%= current_admin.email %>)
+    </div>
+    
+    <div class="d-flex gap-2">
+      <%= f.submit "Create Configuration", class: "btn btn-primary" %>
+      <%= link_to "Cancel", admin_system_configurations_path, class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const valueTypeSelect = document.getElementById('value_type_select');
+  const valueInputContainer = document.getElementById('value-input-container');
+  const valueHint = document.getElementById('value-hint');
+  
+  if (valueTypeSelect) {
+    function updateValueInput() {
+      const valueType = valueTypeSelect.value;
+      const currentValue = valueInputContainer.querySelector('input')?.value || '';
+      
+      let input;
+      if (valueType === 'boolean') {
+        input = document.createElement('select');
+        input.className = 'form-select';
+        input.name = 'system_configuration[value]';
+        input.innerHTML = '<option value="true">True</option><option value="false">False</option>';
+      } else if (valueType === 'integer' || valueType === 'float') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.step = valueType === 'float' ? '0.01' : '1';
+        input.className = 'form-control';
+        input.name = 'system_configuration[value]';
+        input.required = true;
+        if (currentValue) input.value = currentValue;
+      } else if (valueType === 'json') {
+        input = document.createElement('textarea');
+        input.rows = 5;
+        input.className = 'form-control';
+        input.name = 'system_configuration[value]';
+        input.required = true;
+        input.placeholder = '{"key": "value"}';
+        if (currentValue) input.value = currentValue;
+      } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control';
+        input.name = 'system_configuration[value]';
+        input.required = true;
+        if (currentValue) input.value = currentValue;
+      }
+      
+      valueInputContainer.innerHTML = '';
+      valueInputContainer.appendChild(input);
+      
+      // Update hint
+      const hints = {
+        'string': 'Enter text value',
+        'integer': 'Enter whole number',
+        'float': 'Enter decimal number',
+        'boolean': 'Select true or false',
+        'json': 'Enter JSON format (e.g., {"key": "value"})'
+      };
+      valueHint.textContent = hints[valueType] || 'Enter the configuration value';
+    }
+    
+    valueTypeSelect.addEventListener('change', updateValueInput);
+    updateValueInput();
+  }
+});
+</script>
+

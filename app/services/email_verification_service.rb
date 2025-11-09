@@ -12,8 +12,9 @@ class EmailVerificationService
   def send_verification_email
     return false if verifiable.email_verified?
     
-    # Clean up any existing pending verifications to avoid duplicates
-    verifiable.email_verifications.pending.destroy_all
+    # Clean up any existing verifications for this email to avoid unique constraint violations
+    # The email_verifications table has a unique index on email, so we need to remove all existing ones
+    EmailVerification.where(email: verifiable.email.downcase).destroy_all
     
     create_and_send_verification
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => e
@@ -55,7 +56,21 @@ class EmailVerificationService
   private
 
   def create_and_send_verification
-    verification = verifiable.email_verifications.create!(email: verifiable.email)
+    # Since we've already destroyed all existing verifications for this email,
+    # we can safely create a new one. Use find_or_initialize_by as a safety net
+    # for race conditions where multiple requests happen simultaneously.
+    verification = EmailVerification.find_or_initialize_by(email: verifiable.email.downcase) do |v|
+      v.verifiable = verifiable
+    end
+    
+    # If it's an existing record (race condition), reset it to create a new verification
+    if verification.persisted?
+      # Delete and recreate to get fresh timestamps and OTP
+      verification.destroy
+      verification = verifiable.email_verifications.build(email: verifiable.email.downcase)
+    end
+    
+    verification.save!
     send_otp_email(verification)
     verification
   end

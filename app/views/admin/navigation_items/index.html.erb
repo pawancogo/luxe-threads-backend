@@ -1,0 +1,120 @@
+<% content_for :title, "Navigation Items Management" %>
+
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-bars me-2"></i>Navigation Items
+      </h1>
+      <p class="text-muted mb-0 mt-2">Manage navigation menu items and permissions</p>
+    </div>
+    <div>
+      <%= link_to new_admin_navigation_item_path, class: "btn btn-primary" do %>
+        <i class="fas fa-plus me-2"></i>New Navigation Item
+      <% end %>
+    </div>
+  </div>
+
+  <% if @sections.any? %>
+    <% @sections.each do |section, items| %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <%= section.present? ? section : 'Other' %>
+            <span class="badge bg-secondary ms-2"><%= items.count %></span>
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Key</th>
+                <th>Path</th>
+                <th>Actions</th>
+                <th>Permissions</th>
+                <th>Status</th>
+                <th>Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% items.each do |item| %>
+                <tr>
+                  <td>
+                    <i class="<%= item.icon %> me-2"></i>
+                    <strong><%= item.label %></strong>
+                    <% if item.is_system %>
+                      <span class="badge bg-info ms-2">System</span>
+                    <% end %>
+                  </td>
+                  <td><code><%= item.key %></code></td>
+                  <td><code><%= item.path_method %></code></td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <% if item.can_view %>
+                        <span class="badge bg-success" title="View">V</span>
+                      <% end %>
+                      <% if item.can_create %>
+                        <span class="badge bg-primary" title="Create">C</span>
+                      <% end %>
+                      <% if item.can_edit %>
+                        <span class="badge bg-warning" title="Edit">E</span>
+                      <% end %>
+                      <% if item.can_delete %>
+                        <span class="badge bg-danger" title="Delete">D</span>
+                      <% end %>
+                    </div>
+                  </td>
+                  <td>
+                    <small class="text-muted">
+                      <%= item.required_permissions_array.count %> required
+                    </small>
+                  </td>
+                  <td>
+                    <% if item.is_active %>
+                      <span class="badge bg-success">Active</span>
+                    <% else %>
+                      <span class="badge bg-secondary">Inactive</span>
+                    <% end %>
+                    <% if item.require_super_admin %>
+                      <span class="badge bg-danger ms-1">Super Admin</span>
+                    <% end %>
+                    <% if item.always_visible %>
+                      <span class="badge bg-info ms-1">Always Visible</span>
+                    <% end %>
+                  </td>
+                  <td><%= item.display_order %></td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <%= link_to admin_navigation_item_path(item), class: "btn btn-outline-primary", title: "View" do %>
+                        <i class="fas fa-eye"></i>
+                      <% end %>
+                      <%= link_to edit_admin_navigation_item_path(item), class: "btn btn-outline-secondary", title: "Edit" do %>
+                        <i class="fas fa-edit"></i>
+                      <% end %>
+                      <% unless item.is_system %>
+                        <%= link_to admin_navigation_item_path(item), method: :delete, 
+                            class: "btn btn-outline-danger", 
+                            title: "Delete",
+                            data: { confirm: "Are you sure?" } do %>
+                          <i class="fas fa-trash"></i>
+                        <% end %>
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>No navigation items found.
+      <%= link_to "Create one", new_admin_navigation_item_path, class: "alert-link" %>.
+    </div>
+  <% end %>
+</div>
+

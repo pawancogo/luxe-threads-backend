@@ -5,14 +5,14 @@ class AdminActivity < ApplicationRecord
   
   belongs_to :admin
   
-  # Parse changes JSON
+  # Parse activity_changes JSON
   def changes_data
-    return {} if changes.blank?
-    JSON.parse(changes) rescue {}
+    return {} if activity_changes.blank?
+    JSON.parse(activity_changes) rescue {}
   end
   
   def changes_data=(data)
-    self.changes = data.to_json
+    self.activity_changes = data.to_json
   end
   
   scope :recent, -> { order(created_at: :desc) }
@@ -27,7 +27,7 @@ class AdminActivity < ApplicationRecord
       resource_type: resource_type,
       resource_id: resource_id,
       description: options[:description],
-      changes: options[:changes]&.to_json || '{}',
+      activity_changes: options[:changes]&.to_json || '{}',
       ip_address: options[:ip_address],
       user_agent: options[:user_agent]
     )

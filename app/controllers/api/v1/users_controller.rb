@@ -21,10 +21,20 @@ class Api::V1::UsersController < ApplicationController
       if service.success?
         # Generate JWT token for the new user
         token = jwt_encode({ user_id: service.user.id })
+        
+        # Set httpOnly cookie for token
+        cookies.signed[:auth_token] = {
+          value: token,
+          httponly: true,
+          secure: Rails.env.production?,
+          same_site: :lax,
+          expires: 7.days.from_now
+        }
+        
         user_data = format_user_data(service.user)
         
-        # Return token and user data
-        render_created({ token: token, user: user_data }, 'User created successfully')
+        # Return user data (token is in cookie, not in response)
+        render_created({ user: user_data }, 'User created successfully')
       else
         # Service already handled validation errors
         # Check if there's a server error that should include trace (dev/test)
@@ -57,10 +67,27 @@ class Api::V1::UsersController < ApplicationController
 
   # PATCH/PUT /api/v1/users/:id
   def update
-    if @user.update(user_params)
-      render_success(format_user_data(@user), 'User updated successfully')
+    # Handle password change separately if current_password is provided
+    if params[:user][:current_password].present? && params[:user][:password].present?
+      # Verify current password
+      unless @user.authenticate(params[:user][:current_password])
+        render_unauthorized('Current password is incorrect')
+        return
+      end
+      
+      # Update password
+      if @user.update(password: params[:user][:password], password_confirmation: params[:user][:password_confirmation])
+        render_success(format_user_data(@user), 'Password changed successfully')
+      else
+        render_validation_errors(@user.errors.full_messages, 'Password change failed')
+      end
     else
-      render_validation_errors(@user.errors.full_messages, 'User update failed')
+      # Regular update (without password change)
+      if @user.update(user_params.except(:password, :password_confirmation, :current_password))
+        render_success(format_user_data(@user), 'User updated successfully')
+      else
+        render_validation_errors(@user.errors.full_messages, 'User update failed')
+      end
     end
   end
 
@@ -144,6 +171,7 @@ class Api::V1::UsersController < ApplicationController
       :phone_number,
       :password,
       :password_confirmation,
+      :current_password,
       :role
     )
   end

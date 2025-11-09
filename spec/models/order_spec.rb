@@ -1,89 +1,42 @@
 require 'rails_helper'
 
 RSpec.describe Order, type: :model do
+  describe 'validations' do
+    it { should validate_presence_of(:order_number) }
+    it { should validate_uniqueness_of(:order_number) }
+    it { should validate_presence_of(:total_amount) }
+    it { should validate_numericality_of(:total_amount).is_greater_than_or_equal_to(0) }
+  end
+
   describe 'associations' do
     it { should belong_to(:user) }
-    it { should belong_to(:shipping_address).class_name('Address') }
-    it { should belong_to(:billing_address).class_name('Address') }
+    it { should belong_to(:shipping_address).class_name('Address').optional }
+    it { should belong_to(:billing_address).class_name('Address').optional }
     it { should have_many(:order_items).dependent(:destroy) }
-    it { should have_many(:return_requests).dependent(:destroy) }
+    it { should have_many(:payments).dependent(:destroy) }
+    it { should have_many(:shipments).dependent(:destroy) }
+  end
+
+  describe 'enums' do
+    it { should define_enum_for(:status).with_values(pending: 'pending', confirmed: 'confirmed', processing: 'processing', shipped: 'shipped', delivered: 'delivered', cancelled: 'cancelled', returned: 'returned') }
+    it { should define_enum_for(:payment_status).with_values(pending: 'pending', paid: 'paid', failed: 'failed', refunded: 'refunded') }
   end
 
   describe 'factory' do
     it 'has a valid factory' do
-      order = build(:order)
-      expect(order).to be_valid
+      expect(build(:order)).to be_valid
     end
   end
 
-  describe 'methods' do
-    let(:order) { create(:order) }
-
-    describe 'status methods' do
-      it 'has pending? method' do
-        order.status = 'pending'
-        expect(order.pending?).to be true
-      end
-
-      it 'has paid? method' do
-        order.status = 'paid'
-        expect(order.paid?).to be true
-      end
-
-      it 'has packed? method' do
-        order.status = 'packed'
-        expect(order.packed?).to be true
-      end
-
-      it 'has shipped? method' do
-        order.status = 'shipped'
-        expect(order.shipped?).to be true
-      end
-
-      it 'has delivered? method' do
-        order.status = 'delivered'
-        expect(order.delivered?).to be true
-      end
-
-      it 'has cancelled? method' do
-        order.status = 'cancelled'
-        expect(order.cancelled?).to be true
-      end
+  describe '#can_cancel?' do
+    it 'returns true for cancellable orders' do
+      order = create(:order, status: 'pending')
+      expect(order.can_cancel?).to be true
     end
 
-    describe 'payment_status methods' do
-      it 'has payment_pending? method' do
-        order.payment_status = 'payment_pending'
-        expect(order.payment_pending?).to be true
-      end
-
-      it 'has payment_complete? method' do
-        order.payment_status = 'payment_complete'
-        expect(order.payment_complete?).to be true
-      end
-
-      it 'has payment_failed? method' do
-        order.payment_status = 'payment_failed'
-        expect(order.payment_failed?).to be true
-      end
-    end
-
-    describe 'associations with data' do
-      it 'can have multiple order items' do
-        item1 = create(:order_item, order: order)
-        item2 = create(:order_item, order: order)
-        
-        expect(order.order_items.count).to eq(2)
-        expect(order.order_items).to include(item1, item2)
-      end
-
-      it 'can have multiple return requests' do
-        return1 = create(:return_request, order: order)
-        return2 = create(:return_request, order: order)
-        
-        expect(order.return_requests.count).to eq(2)
-        expect(order.return_requests).to include(return1, return2)
-      end
+    it 'returns false for non-cancellable orders' do
+      order = create(:order, status: 'delivered')
+      expect(order.can_cancel?).to be false
     end
   end
 end

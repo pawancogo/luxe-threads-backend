@@ -16,14 +16,14 @@ class AuditService
   def self.set_metadata(request)
     return unless request
     
+    # Store metadata - only store fields that exist as columns in versions table
+    # Note: versions table has ip_address and user_agent columns, but not request_id or meta
     PaperTrail.request.controller_info = {
       ip_address: request.remote_ip,
-      user_agent: request.user_agent,
-      request_id: request.request_id,
-      controller: request.controller_class&.name,
-      action: request.action_name,
-      params: request.params.except(:controller, :action, :password, :password_confirmation)
-    }
+      user_agent: request.user_agent
+      # request_id, controller, action, params are not columns
+      # and meta column doesn't exist, so we can't store them
+    }.compact
   end
   
   # Get audit trail for a specific model

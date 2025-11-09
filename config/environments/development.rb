@@ -37,9 +37,6 @@ Rails.application.configure do
   config.active_storage.variant_processor = :mini_magick
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
-
   config.action_mailer.perform_caching = false
 
   # Print deprecation notices to the Rails logger.
@@ -85,13 +82,60 @@ Rails.application.configure do
     port: ENV.fetch('PORT', 3000)
   }
 
-  # SMTP Configuration using SmtpConfigurable concern
-  SmtpConfigurable.configure_smtp(config, :development) if defined?(SmtpConfigurable)
-
-  # Fallback to test delivery if SMTP credentials not available
-  unless ENV['SMTP_USERNAME'].present? && ENV['SMTP_PASSWORD'].present?
-    config.action_mailer.delivery_method = :test
-    config.action_mailer.perform_deliveries = false
+  # SMTP Configuration - Direct configuration with environment variable fallback
+  config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.delivery_method = :smtp
+  
+  # Get SMTP settings from environment variables or use defaults
+  smtp_address = ENV.fetch('SMTP_ADDRESS', 'smtp.gmail.com')
+  smtp_port = ENV.fetch('SMTP_PORT', '587').to_i
+  smtp_domain = ENV.fetch('SMTP_DOMAIN', 'gmail.com')
+  smtp_username = ENV.fetch('SMTP_USERNAME', 'pawancogoport@gmail.com')
+  smtp_password = ENV.fetch('SMTP_PASSWORD', 'taiaxcmahjoqoveo')
+  smtp_authentication = ENV.fetch('SMTP_AUTHENTICATION', 'plain')
+  # For development, use 'none' to avoid SSL certificate verification issues
+  # For production, use 'peer' for proper certificate verification
+  smtp_openssl_verify_mode = ENV.fetch('SMTP_OPENSSL_VERIFY_MODE', 'none')
+  
+  config.action_mailer.smtp_settings = {
+    address: smtp_address,
+    port: smtp_port,
+    domain: smtp_domain,
+    user_name: smtp_username,
+    password: smtp_password,
+    authentication: smtp_authentication,
+    enable_starttls_auto: true,
+    openssl_verify_mode: smtp_openssl_verify_mode
+  }
+  
+  # Debug logging (safe check for Rails.logger availability)
+  if defined?(Rails) && Rails.logger
+    Rails.logger.info "=" * 60
+    Rails.logger.info "SMTP Configuration Applied:"
+    Rails.logger.info "  raise_delivery_errors: #{config.action_mailer.raise_delivery_errors}"
+    Rails.logger.info "  perform_deliveries: #{config.action_mailer.perform_deliveries}"
+    Rails.logger.info "  delivery_method: #{config.action_mailer.delivery_method}"
+    Rails.logger.info "  smtp_settings.address: #{config.action_mailer.smtp_settings[:address]}"
+    Rails.logger.info "  smtp_settings.port: #{config.action_mailer.smtp_settings[:port]}"
+    Rails.logger.info "  smtp_settings.domain: #{config.action_mailer.smtp_settings[:domain]}"
+    Rails.logger.info "  smtp_settings.user_name: #{config.action_mailer.smtp_settings[:user_name]}"
+    Rails.logger.info "  smtp_settings.password: #{smtp_password.present? ? '[SET - ' + smtp_password.length.to_s + ' chars]' : '[NOT SET]'}"
+    Rails.logger.info "  smtp_settings.authentication: #{config.action_mailer.smtp_settings[:authentication]}"
+    Rails.logger.info "  smtp_settings.enable_starttls_auto: #{config.action_mailer.smtp_settings[:enable_starttls_auto]}"
+    Rails.logger.info "  smtp_settings.openssl_verify_mode: #{config.action_mailer.smtp_settings[:openssl_verify_mode]}"
+    Rails.logger.info "=" * 60
+  end
+  
+  # Verify configuration after Rails is fully loaded
+  Rails.application.config.to_prepare do
+    if Rails.env.development?
+      Rails.logger.info "🔍 Verifying SMTP Configuration at Runtime:"
+      Rails.logger.info "  ActionMailer::Base.delivery_method: #{ActionMailer::Base.delivery_method}"
+      Rails.logger.info "  ActionMailer::Base.perform_deliveries: #{ActionMailer::Base.perform_deliveries}"
+      Rails.logger.info "  ActionMailer::Base.raise_delivery_errors: #{ActionMailer::Base.raise_delivery_errors}"
+      Rails.logger.info "  ActionMailer::Base.smtp_settings: #{ActionMailer::Base.smtp_settings.inspect}"
+    end
   end
 
   # ===========================================
@@ -100,7 +144,7 @@ Rails.application.configure do
   # CORS Configuration
   config.middleware.insert_before 0, Rack::Cors do
     allow do
-      origins ENV.fetch('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(',')
+      origins ENV.fetch('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:8080').split(',')
       resource '*',
         headers: :any,
         methods: [:get, :post, :put, :patch, :delete, :options, :head],

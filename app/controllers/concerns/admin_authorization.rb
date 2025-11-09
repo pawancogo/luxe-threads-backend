@@ -16,6 +16,9 @@ module AdminAuthorization
   end
   
   def authenticate_admin_request
+    # Skip authentication for logout endpoint
+    return if action_name == 'destroy' && controller_name == 'authentication'
+    
     token = extract_token
     return unless validate_token_presence(token)
     
@@ -39,8 +42,42 @@ module AdminAuthorization
   def load_and_validate_admin(admin_id)
     @current_admin = Admin.find(admin_id)
     
-    unless @current_admin.is_active && !@current_admin.is_blocked
-      render_unauthorized('Admin account is inactive or blocked')
+    # Check if admin is blocked - if so, clear tokens and log out
+    if @current_admin.is_blocked?
+      # Clear admin token cookie (for API requests)
+      cookies.delete(:admin_token, domain: :all)
+      
+      # Clear Rails session if it exists (for HTML requests)
+      if session[:admin_id] == admin_id
+        reset_session
+      end
+      
+      # Mark all active login sessions as logged out
+      LoginSession.for_user(@current_admin)
+                  .active
+                  .where(logged_out_at: nil)
+                  .update_all(logged_out_at: Time.current, is_active: false)
+      
+      # Log the forced logout
+      AdminActivity.log_activity(
+        @current_admin,
+        'logout',
+        nil,
+        nil,
+        {
+          description: 'Admin automatically logged out due to account being blocked - all tokens and sessions cleared',
+          ip_address: request.remote_ip,
+          user_agent: request.user_agent
+        }
+      )
+      
+      render_unauthorized('Your account has been blocked. Please contact the administrator.')
+      return false
+    end
+    
+    # Check if admin is inactive
+    unless @current_admin.is_active
+      render_unauthorized('Your account is inactive. Please contact the administrator to activate your account.')
       return false
     end
     

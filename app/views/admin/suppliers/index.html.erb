@@ -1,23 +1,26 @@
 <% content_for :title, "Supplier Management" %>
 
-<%= form_with url: bulk_action_admin_suppliers_path, method: :post, local: true, id: "bulk-action-form" do |f| %>
-  <div class="admin-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h1 class="card-title mb-0">
-          <i class="fas fa-store me-2"></i>Supplier Management
-        </h1>
-        <p class="text-muted mb-0 mt-2">Manage suppliers and their profiles</p>
-      </div>
-      <div>
-        <%= link_to "New Supplier", new_admin_supplier_path, class: "btn btn-primary" %>
-        <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
-          <i class="fas fa-database me-2"></i>View in RailsAdmin
-        <% end %>
-      </div>
+<div class="admin-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="card-title mb-0">
+        <i class="fas fa-store me-2"></i>Supplier Management
+      </h1>
+      <p class="text-muted mb-0 mt-2">Manage suppliers and their profiles</p>
     </div>
+    <div>
+      <%= link_to invite_admin_suppliers_path, class: "btn btn-success me-2" do %>
+        <i class="fas fa-envelope me-2"></i>Invite Supplier
+      <% end %>
+      <%= link_to "New Supplier", new_admin_supplier_path, class: "btn btn-primary me-2" %>
+      <%= link_to rails_admin_path, class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+        <i class="fas fa-database me-2"></i>View in RailsAdmin
+      <% end %>
+    </div>
+  </div>
 
-    <!-- Bulk Actions Bar -->
+  <!-- Bulk Actions Bar -->
+  <%= form_with url: bulk_action_admin_suppliers_path, method: :post, local: true, id: "bulk-action-form", data: { turbo: false } do |f| %>
     <div id="bulk-actions-bar" class="card mb-3" style="display: none;">
       <div class="card-body py-2">
         <div class="d-flex align-items-center justify-content-between">
@@ -44,16 +47,17 @@
         </div>
       </div>
     </div>
+  <% end %>
 
-    <!-- Search & Filters -->
-    <%= render 'admin/shared/filters', records: @suppliers %>
-
-    <!-- Suppliers Table -->
+  <!-- Search & Filters -->
+  <%= render 'admin/shared/filters', records: @suppliers %>
+  
+  <!-- Suppliers Table -->
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover table-sticky">
         <thead>
           <tr>
-            <th width="40">
+            <th width="40" class="sticky-col sticky-start sticky-header">
               <input type="checkbox" id="select-all" class="form-check-input" onchange="toggleSelectAll(this)">
             </th>
             <th>ID</th>
@@ -64,30 +68,40 @@
             <th>Status</th>
             <th>Products</th>
             <th>Created</th>
-            <th>Actions</th>
+            <th class="sticky-col sticky-end sticky-header">Actions</th>
           </tr>
         </thead>
         <tbody>
           <% if @suppliers.any? %>
             <% @suppliers.each do |supplier| %>
-              <tr data-id="<%= supplier.id %>" data-name="<%= supplier.full_name %>">
-                <td>
+              <tr data-id="<%= supplier.id %>" data-name="<%= supplier.full_name.presence || supplier.email %>">
+                <td class="sticky-col sticky-start sticky-cell">
                   <input type="checkbox" name="selected_ids[]" value="<%= supplier.id %>" class="form-check-input row-checkbox" onchange="updateBulkActions()">
                 </td>
                 <td><%= supplier.id %></td>
                 <td>
                   <div class="d-flex align-items-center">
                     <div class="avatar-circle bg-primary text-white me-2">
-                      <%= supplier.first_name.first.upcase %><%= supplier.last_name.first.upcase if supplier.last_name.present? %>
+                      <% if supplier.first_name.present? %>
+                        <%= supplier.first_name.first.upcase %><%= supplier.last_name&.first&.upcase || '' %>
+                      <% else %>
+                        <%= supplier.email.first.upcase %>
+                      <% end %>
                     </div>
-                    <strong><%= supplier.full_name %></strong>
+                    <strong><%= supplier.full_name.presence || supplier.email %></strong>
                   </div>
                 </td>
                 <td><%= supplier.email %></td>
                 <td><%= supplier.supplier_profile&.company_name || '<span class="text-muted">N/A</span>'.html_safe %></td>
                 <td><%= supplier.phone_number || '<span class="text-muted">N/A</span>'.html_safe %></td>
                 <td>
-                  <% if supplier.supplier_profile&.verified %>
+                  <% if supplier.pending_invitation? %>
+                    <span class="badge bg-warning text-dark">
+                      <i class="fas fa-envelope me-1"></i>Pending Invitation
+                    </span>
+                  <% elsif supplier.invitation_expired? %>
+                    <span class="badge bg-danger">Invitation Expired</span>
+                  <% elsif supplier.supplier_profile&.verified %>
                     <span class="badge bg-success">Verified</span>
                   <% else %>
                     <span class="badge bg-warning">Unverified</span>
@@ -101,7 +115,7 @@
                   <span class="badge bg-info"><%= product_count %></span>
                 </td>
                 <td><%= supplier.created_at.strftime('%b %d, %Y') %></td>
-                <td>
+                <td class="sticky-col sticky-end sticky-cell">
                   <div class="btn-group btn-group-sm">
                     <%= link_to admin_supplier_path(supplier), class: "btn btn-outline-primary", title: "View" do %>
                       <i class="fas fa-eye"></i>
@@ -109,9 +123,19 @@
                     <%= link_to edit_admin_supplier_path(supplier), class: "btn btn-outline-info", title: "Edit" do %>
                       <i class="fas fa-edit"></i>
                     <% end %>
+                    <% if supplier.pending_invitation? %>
+                      <%= form_with url: resend_invitation_admin_supplier_path(supplier), method: :post, 
+                          local: true,
+                          style: "display: inline-block;",
+                          data: { confirm: "Resend invitation email to #{supplier.email}?" } do |f| %>
+                        <%= f.button type: :submit, class: "btn btn-outline-info btn-sm", title: "Resend Invitation" do %>
+                          <i class="fas fa-paper-plane"></i>
+                        <% end %>
+                      <% end %>
+                    <% end %>
                     <%= link_to admin_supplier_path(supplier), method: :delete, 
                                 class: "btn btn-outline-danger", title: "Delete",
-                                data: { confirm: "Are you sure you want to delete #{supplier.full_name}?" } do %>
+                                data: { confirm: "Are you sure you want to delete #{supplier.full_name.presence || supplier.email}?" } do %>
                       <i class="fas fa-trash"></i>
                     <% end %>
                   </div>
@@ -130,23 +154,8 @@
       </table>
     </div>
 
-    <!-- Pagination -->
-    <div class="d-flex justify-content-between align-items-center mt-4">
-      <div class="text-muted">
-        <% if @suppliers.respond_to?(:current_page) && @suppliers.respond_to?(:total_count) %>
-          Showing <%= (@suppliers.current_page - 1) * @suppliers.limit_value + 1 %> to 
-          <%= [@suppliers.current_page * @suppliers.limit_value, @suppliers.total_count].min %> of 
-          <%= @suppliers.total_count %> entries
-        <% end %>
-      </div>
-      <div>
-        <% if @suppliers.respond_to?(:current_page) %>
-          <%= paginate @suppliers if defined?(Kaminari) %>
-        <% end %>
-      </div>
-    </div>
-  </div>
-<% end %>
+    <%= render 'admin/shared/pagination', collection: @suppliers %>
+</div>
 
 <script>
   function toggleSelectAll(checkbox) {
@@ -224,5 +233,39 @@
   #bulk-actions-bar {
     background-color: #e7f1ff;
     border: 1px solid #b3d7ff;
+  }
+
+  .table-sticky thead th,
+  .table-sticky tbody td {
+    white-space: nowrap;
+  }
+
+  .table-sticky .sticky-col {
+    position: sticky;
+    z-index: 3;
+  }
+
+  .table-sticky .sticky-header {
+    background-color: #f8f9fa !important;
+  }
+
+  .table-sticky .sticky-start {
+    left: 0;
+  }
+
+  .table-sticky tbody .sticky-start {
+    z-index: 2;
+  }
+
+  .table-sticky .sticky-cell {
+    background-color: #fff !important;
+  }
+
+  .table-sticky .sticky-end {
+    right: 0;
+  }
+
+  .table-sticky tbody .sticky-end {
+    z-index: 2;
   }
 </style>
