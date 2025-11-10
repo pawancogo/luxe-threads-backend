@@ -3,8 +3,8 @@
 ## 🎯 Overview
 Test admin login, authentication, session management, and security features.
 
-**Estimated Time**: 30-45 minutes  
-**Test Cases**: ~35
+**Estimated Time**: 60-75 minutes  
+**Test Cases**: ~50
 
 ---
 
@@ -820,6 +820,428 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
+## 🔐 Admin Invite Flow Testing
+
+### Overview
+Test the complete admin invitation flow: sending invitations, accepting invitations, and logging in after acceptance.
+
+---
+
+## Test Case 1.36: Admin Invitation - Send Invitation (Super Admin) => Tested by Pawan
+
+**Prerequisites**: 
+- Super Admin logged in
+- Access to Admin Management section
+
+**Steps**:
+1. Navigate to `/admin/admins`
+2. Click **"Invite Admin"** button
+3. Fill invitation form:
+   - Enter email address (e.g., `newadmin@luxethreads.com`)
+   - Select role from dropdown (e.g., Product Admin)
+4. Click **"Send Invitation"**
+
+**Expected Result (FE)**:
+- ✅ Invitation form displays correctly
+- ✅ Email field accepts valid email format
+- ✅ Role dropdown shows all available roles
+- ✅ Success message: "Invitation sent to [email]"
+- ✅ Redirects to admin list or shows success notification
+- ✅ New admin appears in list with status "Pending Invitation"
+- ✅ "Resend Invitation" button available for pending admins
+
+**Expected Result (BE)**:
+- ✅ API: `POST /api/v1/admin/admins/invite` returns 201 Created
+- ✅ Admin record created with:
+  - `email`: Provided email
+  - `role`: Selected role
+  - `status`: "pending_invitation"
+  - `invitation_token`: Secure random token (32+ characters)
+  - `invitation_expires_at`: 7 days from now
+  - `invited_by_id`: Current Super Admin ID
+  - `is_active`: false
+- ✅ Invitation email sent successfully
+- ✅ Activity logged: "Admin invited"
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.37: Admin Invitation - Invalid Email Format => Tested by Pawan
+
+**Prerequisites**: 
+- Super Admin logged in
+
+**Steps**:
+1. Navigate to invite admin form
+2. Enter invalid email (e.g., `invalid-email`)
+3. Select role
+4. Click "Send Invitation"
+
+**Expected Result (FE)**:
+- ✅ Email validation error: "Please provide a valid email address"
+- ✅ Form does not submit
+- ✅ No API call made
+
+**Expected Result (BE)**:
+- ✅ No admin record created
+- ✅ No email sent
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.38: Admin Invitation - Duplicate Email => Tested by Pawan
+
+**Prerequisites**: 
+- Super Admin logged in
+- Admin with email `existing@luxethreads.com` already exists
+
+**Steps**:
+1. Navigate to invite admin form
+2. Enter existing admin email
+3. Select role
+4. Click "Send Invitation"
+
+**Expected Result (FE)**:
+- ✅ Error message: "Admin with this email already exists"
+- ✅ Form shows validation error
+- ✅ No invitation sent
+
+**Expected Result (BE)**:
+- ✅ API returns 422 Unprocessable Entity
+- ✅ Response: `{ error: "Email has already been taken" }`
+- ✅ No duplicate admin created
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.39: Admin Invitation - Non-Super Admin Attempt => Tested by Pawan
+
+**Prerequisites**: 
+- Product Admin (or other non-super admin) logged in
+
+**Steps**:
+1. Try to navigate to `/admin/admins/invite`
+2. Or try to access invite functionality
+
+**Expected Result (FE)**:
+- ✅ Access denied or 403 Forbidden error
+- ✅ Error message: "You don't have permission to perform this action"
+- ✅ Redirects to dashboard or shows access denied page
+
+**Expected Result (BE)**:
+- ✅ API: `POST /api/v1/admin/admins/invite` returns 403 Forbidden
+- ✅ Response: `{ error: "Access denied" }`
+- ✅ No invitation sent
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.40: Admin Invitation - Email Received => Tested by Pawan
+
+**Prerequisites**: 
+- Invitation sent successfully (from Test 1.36)
+
+**Steps**:
+1. Check email inbox for invitation email
+2. Verify email content
+
+**Expected Result**:
+- ✅ Email received at specified address
+- ✅ Subject: "You've been invited to join Luxe Threads Admin Panel"
+- ✅ Email body includes:
+  - Welcome message
+  - Invitation link with token
+  - Expiration notice (7 days)
+  - Instructions to complete registration
+- ✅ Invitation link format: `/admin/invitations/accept?token=ABC123...`
+- ✅ Link is clickable and properly formatted
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.41: Admin Invitation - Click Invitation Link => Tested by Pawan
+
+**Prerequisites**: 
+- Invitation email received
+- Valid invitation token
+
+**Steps**:
+1. Click invitation link from email
+2. Verify redirect to acceptance page
+
+**Expected Result (FE)**:
+- ✅ Redirects to invitation acceptance page
+- ✅ Page shows: "Welcome! Complete your admin account setup"
+- ✅ Form displays with:
+  - Email (pre-filled, read-only)
+  - Role (pre-filled, read-only)
+  - First Name (required field)
+  - Last Name (required field)
+  - Phone Number (required field)
+  - Password (required field)
+  - Password Confirmation (required field)
+- ✅ Form validation visible
+
+**Expected Result (BE)**:
+- ✅ API: `GET /admin/invitations/accept?token=...` validates token
+- ✅ Token checked:
+  - Token exists
+  - Token not expired
+  - Token not already used
+- ✅ If valid: Form displayed
+- ✅ If invalid: Error shown
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.42: Admin Invitation - Expired Token => Tested by Pawan
+
+**Prerequisites**: 
+- Invitation token expired (past 7 days) OR manually expired in database
+
+**Steps**:
+1. Click expired invitation link
+2. Try to access acceptance page
+
+**Expected Result (FE)**:
+- ✅ Error message: "Invitation link has expired. Please request a new invitation."
+- ✅ Link to request new invitation or contact admin
+- ✅ Cannot access registration form
+
+**Expected Result (BE)**:
+- ✅ API returns 400 Bad Request
+- ✅ Response: `{ error: "Invitation token expired" }`
+- ✅ Token validation fails
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.43: Admin Invitation - Invalid Token => Tested by Pawan
+
+**Prerequisites**: 
+- Invalid or non-existent invitation token
+
+**Steps**:
+1. Navigate to `/admin/invitations/accept?token=INVALID123`
+2. Try to access acceptance page
+
+**Expected Result (FE)**:
+- ✅ Error message: "Invalid invitation link. Please contact administrator."
+- ✅ Cannot access registration form
+
+**Expected Result (BE)**:
+- ✅ API returns 404 Not Found or 400 Bad Request
+- ✅ Response: `{ error: "Invalid invitation token" }`
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.44: Admin Invitation - Complete Registration => Tested by Pawan
+
+**Prerequisites**: 
+- On invitation acceptance page with valid token
+
+**Steps**:
+1. Fill registration form:
+   - First Name: "John"
+   - Last Name: "Doe"
+   - Phone Number: "+1234567890"
+   - Password: "SecurePass123!"
+   - Password Confirmation: "SecurePass123!"
+2. Click **"Complete Registration"** or **"Accept Invitation"**
+
+**Expected Result (FE)**:
+- ✅ Form validation works correctly
+- ✅ Success message: "Account created successfully! You can now login."
+- ✅ Redirects to `/admin/login`
+- ✅ All fields validated before submission
+
+**Expected Result (BE)**:
+- ✅ API: `POST /admin/invitations/accept` returns 200 OK
+- ✅ Admin record updated:
+  - `first_name`: "John"
+  - `last_name`: "Doe"
+  - `phone_number`: "+1234567890"
+  - `password_digest`: Hashed password stored
+  - `status`: "active" (changed from "pending_invitation")
+  - `is_active`: true
+  - `invitation_token`: NULL (cleared)
+  - `invitation_accepted_at`: Current timestamp
+- ✅ Activity logged: "Admin invitation accepted"
+- ✅ Welcome email sent (optional)
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.45: Admin Invitation - Registration Validation Errors => Tested by Pawan
+
+**Prerequisites**: 
+- On invitation acceptance page with valid token
+
+**Steps**:
+1. Try to submit form with:
+   - Empty first name
+   - Empty last name
+   - Invalid phone number
+   - Weak password (e.g., "123")
+   - Password mismatch
+2. Click "Complete Registration"
+
+**Expected Result (FE)**:
+- ✅ Validation errors displayed for each invalid field:
+  - "First name is required"
+  - "Last name is required"
+  - "Phone number is invalid"
+  - "Password must be at least 8 characters"
+  - "Password confirmation doesn't match"
+- ✅ Form does not submit
+- ✅ Error messages clear and helpful
+
+**Expected Result (BE)**:
+- ✅ API returns 422 Unprocessable Entity
+- ✅ Response contains validation errors
+- ✅ Admin record not updated
+- ✅ Invitation token still valid
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.46: Admin Invitation - Login After Acceptance => Tested by Pawan
+
+**Prerequisites**: 
+- Admin invitation accepted and registration completed (from Test 1.44)
+
+**Steps**:
+1. Navigate to `/admin/login`
+2. Enter email used in invitation
+3. Enter password set during registration
+4. Click "Login"
+
+**Expected Result (FE)**:
+- ✅ Login successful
+- ✅ Success message: "Welcome! You have successfully logged in as admin."
+- ✅ Redirects to `/admin/dashboard`
+- ✅ Admin can access dashboard
+- ✅ Permissions based on assigned role
+
+**Expected Result (BE)**:
+- ✅ API: `POST /admin/login` returns 200 OK
+- ✅ Response contains admin data with correct role
+- ✅ `last_login_at` updated
+- ✅ Session/token created
+- ✅ Admin status is "active"
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.47: Admin Invitation - Resend Invitation => Tested by Pawan
+
+**Prerequisites**: 
+- Super Admin logged in
+- Admin with pending invitation exists
+
+**Steps**:
+1. Navigate to `/admin/admins`
+2. Find admin with "Pending Invitation" status
+3. Click **"Resend Invitation"** button
+4. Confirm resend (if confirmation required)
+
+**Expected Result (FE)**:
+- ✅ Success message: "Invitation resent successfully"
+- ✅ New invitation email sent
+- ✅ Invitation expiry date updated
+
+**Expected Result (BE)**:
+- ✅ API: `POST /api/v1/admin/admins/:id/resend_invitation` returns 200 OK
+- ✅ New invitation token generated
+- ✅ `invitation_expires_at` updated to 7 days from now
+- ✅ `invitation_sent_at` updated
+- ✅ New invitation email sent
+- ✅ Old token invalidated (if configured)
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.48: Admin Invitation - Already Used Token => Tested by Pawan
+
+**Prerequisites**: 
+- Invitation already accepted (token used)
+- Try to use same token again
+
+**Steps**:
+1. Use invitation link that was already used
+2. Try to access acceptance page
+
+**Expected Result (FE)**:
+- ✅ Error message: "This invitation has already been accepted."
+- ✅ Link to login page or contact admin
+
+**Expected Result (BE)**:
+- ✅ API returns 400 Bad Request
+- ✅ Response: `{ error: "Invitation already accepted" }`
+- ✅ Token validation fails (token cleared after acceptance)
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.49: Admin Invitation - Pending Admin Cannot Login => Tested by Pawan
+
+**Prerequisites**: 
+- Admin with pending invitation (not yet accepted)
+
+**Steps**:
+1. Navigate to `/admin/login`
+2. Enter email of pending admin
+3. Enter any password (since no password set yet)
+4. Try to login
+
+**Expected Result (FE)**:
+- ✅ Error message: "Invalid email or password" or "Please accept your invitation first"
+- ✅ Cannot login until invitation accepted
+
+**Expected Result (BE)**:
+- ✅ API: `POST /admin/login` returns 401 Unauthorized or 403 Forbidden
+- ✅ Response: `{ error: "Please accept your invitation first" }` or similar
+- ✅ No session created
+
+**Pass/Fail**: ☐
+
+---
+
+## Test Case 1.50: Admin Invitation - Email Link Security => Tested by Pawan
+
+**Prerequisites**: 
+- Invitation email received
+
+**Steps**:
+1. Check invitation link in email
+2. Verify token format and security
+
+**Expected Result**:
+- ✅ Token is long and random (32+ characters)
+- ✅ Token uses secure random generation
+- ✅ Token is URL-safe (base64 encoded)
+- ✅ Token is unique (not predictable)
+- ✅ Link uses HTTPS in production
+- ✅ Token not exposed in server logs
+
+**Pass/Fail**: ☐
+
+---
+
 ## 📝 Notes Section
 
 **Issues Found**:
@@ -830,6 +1252,6 @@ Test admin login, authentication, session management, and security features.
 
 **Completed By**: _______________  
 **Date**: _______________  
-**Total Passed**: ___/35  
-**Total Failed**: ___/35
+**Total Passed**: ___/50  
+**Total Failed**: ___/50
 

@@ -30,10 +30,37 @@ bundle _2.5.3_ install
 bundle exec rails db:prepare
 ```
 
-Environment variables go in `.env` (not committed). Common keys:
+## Environment Variables
+
+Environment variables are automatically loaded by `dotenv-rails` from the following files (in loading order):
+
+1. **`.env`** - Base environment variables (loaded first)
+2. **`.env.{RAILS_ENV}`** - Environment-specific variables (e.g., `.env.development`, `.env.production`, `.env.test`) - loaded after `.env`, so values here override those in `.env`
+
+**Note:** All `.env*` files are gitignored and should not be committed.
+
+### Common Environment Variables
 
 - `REDIS_URL=redis://localhost:6379/0`
 - `ELASTICSEARCH_URL=http://localhost:9200`
+- `SECRET_KEY_BASE` - Rails secret key (required in production)
+- `JWT_SECRET_KEY` - JWT signing key (required in production)
+- `SMTP_USERNAME` - SMTP username for email delivery
+- `SMTP_PASSWORD` - SMTP password for email delivery
+- `MAILER_FROM_EMAIL` - Default sender email address
+
+### Example Setup
+
+For development, create a `.env.development` file:
+```bash
+# .env.development
+REDIS_URL=redis://localhost:6379/0
+ELASTICSEARCH_URL=http://localhost:9200
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+```
+
+For production, create a `.env.production` file with production-specific values.
 
 ## Day-to-Day Commands
 
