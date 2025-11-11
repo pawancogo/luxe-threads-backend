@@ -41,7 +41,7 @@ gem "pundit"
 gem "paper_trail", "~> 14.0"
 
 # For soft deletes
-gem "paranoia", "~> 2.6"
+gem "paranoia", "~> 3.1"
 
 # For Elasticsearch integration
 gem "searchkick"
