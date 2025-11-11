@@ -10,7 +10,7 @@ gem "dotenv-rails", "~> 2.8"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use SQLite for development, PostgreSQL for production
-gem "sqlite3", "~> 1.4", group: [:development, :test]
+gem "sqlite3", "~> 2.8", group: [:development, :test]
 gem "pg", "~> 1.5", group: :production
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
