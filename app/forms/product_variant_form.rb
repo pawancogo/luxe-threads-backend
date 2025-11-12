@@ -51,13 +51,14 @@ class ProductVariantForm
   def save
     return false unless valid?
 
-    ActiveRecord::Base.transaction do
-      create_variant
-      create_images if @variant.persisted?
-      create_attributes if @variant.persisted?
+    @variant = ProductVariant.create(variant_attributes)
+    
+    if @variant.persisted?
+      true
+    else
+      errors.add(:base, @variant.errors.full_messages.join(', '))
+      false
     end
-
-    success?
   rescue StandardError => e
     Rails.logger.error "ProductVariantForm save failed: #{e.message}"
     errors.add(:base, "Failed to create variant: #{e.message}")
@@ -68,13 +69,12 @@ class ProductVariantForm
     return false unless valid?
 
     @variant = variant
-    ActiveRecord::Base.transaction do
-      update_variant
-      update_images if @variant.persisted?
-      update_attributes if @variant.persisted?
+    unless @variant.update(variant_attributes)
+      errors.add(:base, @variant.errors.full_messages.join(', '))
+      return false
     end
 
-    success?
+    true
   rescue StandardError => e
     Rails.logger.error "ProductVariantForm update failed: #{e.message}"
     errors.add(:base, "Failed to update variant: #{e.message}")
@@ -87,21 +87,6 @@ class ProductVariantForm
 
   private
 
-  def update_variant
-    unless @variant.update(variant_attributes)
-      errors.add(:base, @variant.errors.full_messages.join(', '))
-      raise ActiveRecord::RecordInvalid, @variant
-    end
-  end
-
-  def update_images
-    # Remove old images if needed
-    @variant.product_images.destroy_all
-    
-    # Create new images
-    create_images
-  end
-
   def variant_attributes
     {
       sku: sku.presence, # Will be auto-generated if blank
@@ -111,45 +96,6 @@ class ProductVariantForm
       weight_kg: weight_kg,
       product_id: product_id
     }.compact
-  end
-
-  def create_variant
-    @variant = ProductVariant.create!(variant_attributes)
-    errors.add(:base, @variant.errors.full_messages.join(', ')) unless @variant.persisted?
-  end
-
-  def create_images
-    return if image_urls.blank?
-
-    image_urls.each_with_index do |url, index|
-      next if url.blank?
-      ProductImage.create!(
-        product_variant_id: @variant.id,
-        image_url: url,
-        display_order: index,
-        alt_text: "#{@variant.product.name} - Image #{index + 1}"
-      )
-    end
-  end
-
-  def create_attributes
-    return if attribute_value_ids.blank?
-
-    attribute_value_ids.each do |attribute_value_id|
-      next unless AttributeValue.exists?(attribute_value_id)
-      ProductVariantAttribute.find_or_create_by!(
-        product_variant_id: @variant.id,
-        attribute_value_id: attribute_value_id
-      )
-    end
-  end
-
-  def update_attributes
-    # Remove old attributes
-    @variant.product_variant_attributes.destroy_all
-    
-    # Create new attributes
-    create_attributes
   end
 
   def product_exists

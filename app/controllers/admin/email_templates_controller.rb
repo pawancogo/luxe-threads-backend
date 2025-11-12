@@ -16,10 +16,13 @@ class Admin::EmailTemplatesController < Admin::BaseController
     end
 
     def create
-      @template = EmailTemplate.new(email_template_params)
-      if @template.save
-        redirect_to admin_email_template_path(@template), notice: 'Email template created successfully.'
+      service = EmailTemplates::CreationService.new(email_template_params)
+      service.call
+      
+      if service.success?
+        redirect_to admin_email_template_path(service.email_template), notice: 'Email template created successfully.'
       else
+        @template = service.email_template || EmailTemplate.new(email_template_params)
         render :new, status: :unprocessable_entity
       end
     end
@@ -28,7 +31,10 @@ class Admin::EmailTemplatesController < Admin::BaseController
     end
 
     def update
-      if @template.update(email_template_params)
+      service = EmailTemplates::UpdateService.new(@template, email_template_params)
+      service.call
+      
+      if service.success?
         redirect_to admin_email_template_path(@template), notice: 'Email template updated successfully.'
       else
         render :edit, status: :unprocessable_entity
@@ -36,20 +42,26 @@ class Admin::EmailTemplatesController < Admin::BaseController
     end
 
     def destroy
-      @template.destroy
-      redirect_to admin_email_templates_path, notice: 'Email template deleted successfully.'
+      service = EmailTemplates::DeletionService.new(@template)
+      service.call
+      
+      if service.success?
+        redirect_to admin_email_templates_path, notice: 'Email template deleted successfully.'
+      else
+        redirect_to admin_email_templates_path, alert: service.errors.first || 'Failed to delete email template'
+      end
     end
 
     def preview
-      preview_variables = params[:variables] || {}
-      @preview = {
-        subject: @template.interpolate(@template.subject, preview_variables),
-        body_html: @template.body_html ? @template.interpolate(@template.body_html, preview_variables) : nil,
-        body_text: @template.body_text ? @template.interpolate(@template.body_text, preview_variables) : nil,
-        from_email: @template.from_email,
-        from_name: @template.from_name
-      }
-      render :preview
+      service = EmailTemplatePreviewService.new(@template, params[:variables])
+      service.call
+      
+      if service.success?
+        @preview = service.preview_data
+        render :preview
+      else
+        redirect_to admin_email_template_path(@template), alert: service.errors.first || 'Failed to generate preview'
+      end
     end
 
     private

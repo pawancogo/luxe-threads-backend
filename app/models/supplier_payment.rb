@@ -32,7 +32,7 @@ class SupplierPayment < ApplicationRecord
   # Generate unique payment_id
   before_validation :generate_payment_id, on: :create
   
-  # Calculate net_amount
+  # Calculate net_amount (delegates to service)
   before_validation :calculate_net_amount, on: :create
   
   # Helper methods for API responses
@@ -66,7 +66,10 @@ class SupplierPayment < ApplicationRecord
   
   def calculate_net_amount
     return if amount.blank? || commission_deducted.blank?
-    self.net_amount = amount - commission_deducted
+    
+    service = Suppliers::PaymentCalculationService.new(amount, commission_deducted || 0)
+    service.call
+    self.net_amount = service.net_amount if service.success?
   end
 end
 

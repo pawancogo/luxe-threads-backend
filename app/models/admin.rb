@@ -29,7 +29,6 @@ class Admin < ApplicationRecord
 
   # Validations
   validates :first_name, presence: true, unless: :pending_invitation?
-  validates :last_name, presence: true, unless: :pending_invitation?
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :phone_number, presence: true, uniqueness: true, unless: :pending_invitation?
   validates :role, presence: true
@@ -45,7 +44,9 @@ class Admin < ApplicationRecord
   }, _prefix: :invitation
 
   # Callbacks
-  after_create :send_verification_email, unless: :super_admin?
+  # Note: after_create :send_verification_email removed - handled by Admins::CreationService
+  after_create :assign_rbac_role_from_enum, if: -> { role.present? }
+  after_update :sync_rbac_role_from_enum, if: -> { saved_change_to_role? && role.present? }
 
   # Helper methods for role checking
   def can_manage_products?
@@ -87,35 +88,14 @@ class Admin < ApplicationRecord
     super # Uses RbacAuthorizable concern
   end
   
-  # Update last login
+  # Update last login timestamp
+  # NOTE: Using update_column for timestamp tracking only (no validations/callbacks needed)
+  # This is acceptable for performance-critical timestamp updates
   def update_last_login!
     update_column(:last_login_at, Time.current)
   end
   
-  # Block admin and log out all sessions
-  def block!
-    transaction do
-      update(is_blocked: true, is_active: false)
-      
-      # Invalidate all active login sessions for this admin
-      LoginSession.for_user(self)
-                  .active
-                  .where(logged_out_at: nil)
-                  .update_all(
-                    logged_out_at: Time.current,
-                    is_active: false
-                  )
-      
-      # Note: Rails sessions and cookies are cleared when the blocked admin
-      # tries to access the system (handled in authentication middleware)
-      # This ensures they must re-enter credentials on next request
-    end
-  end
-  
-  # Unblock admin
-  def unblock!
-    update(is_blocked: false, is_active: true)
-  end
+  # Note: block! and unblock! methods removed - use Admins::BlockService and Admins::UnblockService instead
 
   def full_name
     if first_name.present? && last_name.present?
@@ -131,45 +111,33 @@ class Admin < ApplicationRecord
 
   # Verification methods inherited from Verifiable concern
 
-  # Generic verification methods
-  def send_verification_email_with_temp_password
-    temp_password = TempPasswordService.generate_for(self)
-    VerificationMailer.verification_email(self, temp_password, 'admin').deliver_now
-    temp_password
-  end
-
-  def send_password_reset_email
-    temp_password = TempPasswordService.generate_for(self)
-    VerificationMailer.password_reset_email(self, temp_password, 'admin').deliver_now
-    temp_password
-  end
-
+  # Business logic methods - delegate to services
+  # Note: Email sending is handled by services (EmailVerificationService, PasswordResetService)
+  
   def authenticate_with_temp_password(temp_password)
-    TempPasswordService.authenticate_temp_password(self, temp_password)
+    Authentication::TempPasswordService.authenticate_temp_password(self, temp_password)
   end
 
+  # Deprecated: Use PasswordResetCompletionService instead
   def reset_password_with_temp_password(temp_password, new_password)
-    return false unless authenticate_with_temp_password(temp_password)
-    return false unless PasswordValidationService.valid?(new_password)
-    
-    update!(password: new_password)
-    TempPasswordService.clear_temp_password(self)
-    true
+    service = Authentication::PasswordResetCompletionService.new(self, temp_password, new_password)
+    service.call
+    service.success?
   end
 
   def temp_password_expired?
-    TempPasswordService.temp_password_expired?(self)
+    Authentication::TempPasswordService.temp_password_expired?(self)
   end
 
   # Password authentication methods
   def authenticate(password)
     return false if password_digest.blank?
-    PasswordHashingService.verify_password(password, password_digest)
+    Authentication::PasswordHashingService.verify_password(password, password_digest)
   end
 
   def password=(new_password)
     @password = new_password
-    self.password_digest = PasswordHashingService.hash_password(new_password) if new_password.present?
+    self.password_digest = Authentication::PasswordHashingService.hash_password(new_password) if new_password.present?
   end
 
   # Invitation methods (public for use in views)
@@ -190,7 +158,7 @@ class Admin < ApplicationRecord
   def password_requirements
     return unless password.present?
     
-    errors = PasswordValidationService.errors(password)
+    errors = Authentication::PasswordValidationService.errors(password)
     errors.each { |error| self.errors.add(:password, error) }
   end
 
@@ -199,6 +167,43 @@ class Admin < ApplicationRecord
   end
 
   def send_verification_email
-    EmailVerificationService.new(self).send_verification_email
+    Authentication::EmailVerificationService.new(self).send_verification_email
+  end
+  
+  # Automatically assign RBAC role based on enum role
+  def assign_rbac_role_from_enum
+    return unless defined?(Rbac::RoleService)
+    
+    role_slug = Rbac::RoleService.map_legacy_admin_role(role)
+    return unless role_slug
+    
+    # Check if role assignment already exists
+    rbac_role = RbacRole.find_by(slug: role_slug)
+    return unless rbac_role
+    
+    existing_assignment = AdminRoleAssignment.find_by(admin: self, rbac_role: rbac_role)
+    return if existing_assignment&.active?
+    
+    Rbac::RoleService.assign_role_to_admin(
+      admin: self,
+      role_slug: role_slug,
+      assigned_by: self
+    )
+  rescue => e
+    Rails.logger.warn "Failed to assign RBAC role to admin #{id}: #{e.message}"
+    # Don't fail admin creation if RBAC assignment fails
+  end
+  
+  # Sync RBAC role when enum role changes
+  def sync_rbac_role_from_enum
+    return unless defined?(Rbac::RoleService)
+    
+    # Deactivate old role assignments
+    admin_role_assignments.current.update_all(is_active: false)
+    
+    # Assign new role
+    assign_rbac_role_from_enum
+  rescue => e
+    Rails.logger.warn "Failed to sync RBAC role for admin #{id}: #{e.message}"
   end
 end

@@ -60,3 +60,7 @@ RSpec.describe RangeScopes, type: :concern do
   end
 end
 
+
+
+
+

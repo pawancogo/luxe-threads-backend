@@ -27,55 +27,57 @@ class Api::V1::NotificationsController < ApplicationController
     # Pagination
     @notifications = @notifications.limit(params[:limit] || 50).offset(params[:offset] || 0)
     
-    render_success(format_notifications_data(@notifications), 'Notifications retrieved successfully')
+    render_success(
+      NotificationSerializer.collection(@notifications),
+      'Notifications retrieved successfully'
+    )
   end
-  
+
   # GET /api/v1/notifications/:id
   def show
     @notification = current_user.notifications.find(params[:id])
-    render_success(format_notification_data(@notification), 'Notification retrieved successfully')
+    render_success(
+      NotificationSerializer.new(@notification).as_json,
+      'Notification retrieved successfully'
+    )
   rescue ActiveRecord::RecordNotFound
     render_not_found('Notification not found')
   end
-  
+
   # PATCH /api/v1/notifications/:id/read
   def mark_as_read
     @notification = current_user.notifications.find(params[:id])
-    @notification.mark_as_read!
-    render_success(format_notification_data(@notification), 'Notification marked as read')
+    service = Notifications::MarkReadService.new(@notification)
+    service.call
+    
+    if service.success?
+      render_success(
+        NotificationSerializer.new(@notification.reload).as_json,
+        'Notification marked as read'
+      )
+    else
+      render_validation_errors(service.errors, 'Failed to mark notification as read')
+    end
   rescue ActiveRecord::RecordNotFound
     render_not_found('Notification not found')
   end
-  
+
   # PATCH /api/v1/notifications/mark_all_read
   def mark_all_read
-    current_user.notifications.unread.update_all(is_read: true, read_at: Time.current)
-    render_success({ count: current_user.notifications.unread.count }, 'All notifications marked as read')
+    service = Notifications::MarkAllReadService.new(current_user)
+    service.call
+    
+    if service.success?
+      render_success(service.result, 'All notifications marked as read')
+    else
+      render_validation_errors(service.errors, 'Failed to mark all notifications as read')
+    end
   end
-  
+
   # GET /api/v1/notifications/unread_count
   def unread_count
     count = current_user.notifications.unread.count
     render_success({ count: count }, 'Unread count retrieved successfully')
-  end
-  
-  private
-  
-  def format_notifications_data(notifications)
-    notifications.map { |notification| format_notification_data(notification) }
-  end
-  
-  def format_notification_data(notification)
-    {
-      id: notification.id,
-      title: notification.title,
-      message: notification.message,
-      notification_type: notification.notification_type,
-      data: notification.data_hash,
-      is_read: notification.is_read,
-      read_at: notification.read_at,
-      created_at: notification.created_at
-    }
   end
 end
 

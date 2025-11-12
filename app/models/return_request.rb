@@ -1,4 +1,7 @@
 class ReturnRequest < ApplicationRecord
+  # Include concerns
+  include StatusTrackable
+  
   belongs_to :user
   belongs_to :order
   belongs_to :order_item, optional: true
@@ -34,27 +37,17 @@ class ReturnRequest < ApplicationRecord
   
   # Update status_updated_at when status changes
   before_save :update_status_timestamp, if: :status_changed?
+
+  # Ecommerce-specific scopes
+  scope :for_customer, ->(customer) { where(user: customer) }
+  scope :with_full_details, -> { includes(order: [:order_items, :user], return_items: [:order_item, :return_media]) }
+  scope :pending_approval, -> { where(status: 'requested') }
+  scope :approved, -> { where(status: 'approved') }
+  scope :rejected, -> { where(status: 'rejected') }
+  scope :completed, -> { where(status: 'completed') }
   
-  # Parse status_history JSON
-  def status_history_data
-    return [] if status_history.blank?
-    JSON.parse(status_history) rescue []
-  end
-  
-  def status_history_data=(data)
-    self.status_history = data.to_json
-  end
-  
-  # Add status to history
-  def add_status_to_history(new_status, notes = nil)
-    history = status_history_data
-    history << {
-      status: new_status,
-      timestamp: Time.current.iso8601,
-      notes: notes
-    }
-    self.status_history_data = history
-  end
+  # Status history is handled by StatusTrackable concern
+  # status_history_data and status_history_data= are provided by the concern
   
   # Parse return_images JSON
   def return_images_list

@@ -41,12 +41,7 @@ class Review < ApplicationRecord
     self.review_images = list.to_json
   end
   
-  # Update helpful counts
-  def update_helpful_counts
-    self.helpful_count = review_helpful_votes.where(is_helpful: true).count
-    self.not_helpful_count = review_helpful_votes.where(is_helpful: false).count
-    save
-  end
+  # Note: update_helpful_counts method removed - use Reviews::HelpfulCountsUpdateService instead
   
   private
   

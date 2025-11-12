@@ -193,8 +193,37 @@ Rails.application.routes.draw do
       # ------------------------------------------------------------------------
       resources :users, only: [:show, :update, :destroy] do
         collection do
+          get 'me', to: 'users#me'
           post 'bulk_delete', to: 'users#bulk_delete'
         end
+      end
+      
+      # User Profile & Activity
+      namespace :user do
+        get 'statistics', to: 'statistics#index'
+        get 'activity', to: 'activity#index'
+        resources :searches, only: [:index, :create, :destroy], controller: 'user_searches' do
+          collection do
+            delete 'clear', to: 'user_searches#clear'
+            get 'popular', to: 'user_searches#popular'
+          end
+        end
+      end
+      
+      # Referrals
+      resources :referrals, only: [:index] do
+        collection do
+          get 'code', to: 'referrals#code'
+          get 'stats', to: 'referrals#stats'
+        end
+      end
+      
+      # Email Verification
+      scope :email, controller: 'email_verification' do
+        get 'verify', action: 'verify'
+        post 'resend', action: 'resend'
+        post 'resend_authenticated', action: 'resend_authenticated'
+        get 'status', action: 'status'
       end
 
       # ------------------------------------------------------------------------
@@ -409,6 +438,7 @@ Rails.application.routes.draw do
         post 'login', to: 'authentication#create'
         delete 'logout', to: 'authentication#destroy'
         get 'me', to: 'authentication#me'
+        get 'search', to: 'search#search'
         
         # Admin management (super admin only)
         resources :admins, only: [:index, :show, :update, :destroy] do

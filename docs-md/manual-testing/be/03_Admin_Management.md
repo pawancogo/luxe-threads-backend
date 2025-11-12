@@ -10,7 +10,8 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.1: View All Admins - Super Admin
+## Test Case 3.1: View All Admins - Super Admin => Tested by pawan
+
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -30,7 +31,8 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.2: View All Admins - Non-Super Admin
+## Test Case 3.2: View All Admins - Non-Super Admin => Tested by pawan
+
 
 **Prerequisites**: 
 - Logged in as Product Admin (or any non-super admin)
@@ -48,7 +50,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.3: Create New Admin - Valid Data
+## Test Case 3.3: Create New Admin - Valid Data => tested by pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -78,7 +80,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.4: Create New Admin - Duplicate Email
+## Test Case 3.4: Create New Admin - Duplicate Email => Tested
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -100,7 +102,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.5: Create New Admin - Invalid Email Format
+## Test Case 3.5: Create New Admin - Invalid Email Format=> Tested
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -120,7 +122,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.6: Create New Admin - Weak Password
+## Test Case 3.6: Create New Admin - Weak Password=> Tested
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -140,7 +142,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.7: Create New Admin - Missing Required Fields
+## Test Case 3.7: Create New Admin - Missing Required => TestedFields
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -159,7 +161,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.8: View Admin Details
+## Test Case 3.8: View Admin Details => Tested
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -180,7 +182,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.9: Update Admin - Valid Data
+## Test Case 3.9: Update Admin - Valid Data => Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -226,7 +228,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.11: Update Admin - Change Role
+## Test Case 3.11: Update Admin - Change Role=> Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -249,7 +251,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.12: Update Admin - Change Password
+## Test Case 3.12: Update Admin - Change Password=> Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -273,7 +275,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.13: Delete Admin - Confirm Delete
+## Test Case 3.13: Delete Admin - Confirm Delete => Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -335,7 +337,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.16: Block Admin Account
+## Test Case 3.16: Block Admin Account=> Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -357,7 +359,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.17: Unblock Admin Account
+## Test Case 3.17: Unblock Admin Account=> Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -379,7 +381,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.18: Activate Admin Account
+## Test Case 3.18: Activate Admin Account=> Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -399,7 +401,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.19: Deactivate Admin Account
+## Test Case 3.19: Deactivate Admin Account=> Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -490,7 +492,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 3.23: View Admin Activity Log
+## Test Case 3.23: View Admin Activity Log=> Tested bye pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin

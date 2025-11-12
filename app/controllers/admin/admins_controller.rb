@@ -29,11 +29,13 @@ class Admin::AdminsController < Admin::BaseController
   end
 
   def create
-    @admin = Admin.new(admin_params)
+    service = Admins::CreationService.new(admin_params)
+    service.call
     
-    if @admin.save
+    if service.success?
       redirect_to admin_admins_path, notice: 'Admin created successfully.'
     else
+      @admin = service.admin || Admin.new(admin_params)
       render :new, status: :unprocessable_entity
     end
   end
@@ -47,7 +49,7 @@ class Admin::AdminsController < Admin::BaseController
     @admin = Admin.find_or_initialize_by(email: params[:admin][:email])
     role = params[:admin][:role]
     
-    service = InvitationService.new(@admin, current_admin)
+    service = Invitations::Service.new(@admin, current_admin)
     
     if service.send_admin_invitation(role)
       redirect_to admin_admins_path, notice: "Invitation sent to #{@admin.email} successfully."
@@ -59,7 +61,7 @@ class Admin::AdminsController < Admin::BaseController
   end
 
   def resend_invitation
-    service = InvitationService.new(@admin, current_admin)
+    service = Invitations::Service.new(@admin, current_admin)
     
     if service.resend_invitation
       redirect_to admin_admins_path, notice: "Invitation resent to #{@admin.email}."
@@ -72,7 +74,10 @@ class Admin::AdminsController < Admin::BaseController
   end
 
   def update
-    if @admin.update(admin_params)
+    service = Admins::UpdateService.new(@admin, admin_params)
+    service.call
+    
+    if service.success?
       # Redirect to own profile if editing own account, otherwise to admins list
       if @admin == current_admin
         redirect_to admin_admin_path(@admin), notice: 'Profile updated successfully.'
@@ -91,8 +96,31 @@ class Admin::AdminsController < Admin::BaseController
       return
     end
     
-    @admin.destroy
-    redirect_to admin_admins_path, notice: 'Admin deleted successfully.'
+    # Store admin details before deletion for logging
+    admin_id = @admin.id
+    admin_name = @admin.full_name
+    admin_email = @admin.email
+    
+    service = Admins::DeletionService.new(@admin)
+    service.call
+    
+    if service.success?
+      # Log admin activity for deletion
+      AdminActivity.log_activity(
+        current_admin,
+        'destroy',
+        'Admin',
+        admin_id,
+        {
+          description: "Deleted admin: #{admin_name} (#{admin_email})",
+          ip_address: request.remote_ip,
+          user_agent: request.user_agent
+        }
+      )
+      redirect_to admin_admins_path, notice: 'Admin deleted successfully.'
+    else
+      redirect_to admin_admin_path(@admin), alert: service.errors.first || 'Failed to delete admin'
+    end
   end
 
   def block
@@ -102,7 +130,10 @@ class Admin::AdminsController < Admin::BaseController
       return
     end
     
-    if @admin.block!
+    service = Admins::BlockService.new(@admin)
+    service.call
+    
+    if service.success?
       # Log admin activity for blocking
       AdminActivity.log_activity(
         current_admin,
@@ -118,15 +149,18 @@ class Admin::AdminsController < Admin::BaseController
       
       redirect_back(fallback_location: admin_admins_path, notice: "#{@admin.full_name} has been blocked successfully. All their active sessions have been terminated.")
     else
-      redirect_back(fallback_location: admin_admins_path, alert: 'Failed to block admin.')
+      redirect_back(fallback_location: admin_admins_path, alert: service.errors.first || 'Failed to block admin')
     end
   end
 
   def unblock
-    if @admin.unblock!
+    service = Admins::UnblockService.new(@admin)
+    service.call
+    
+    if service.success?
       redirect_back(fallback_location: admin_admins_path, notice: "#{@admin.full_name} has been unblocked successfully.")
     else
-      redirect_back(fallback_location: admin_admins_path, alert: 'Failed to unblock admin.')
+      redirect_back(fallback_location: admin_admins_path, alert: service.errors.first || 'Failed to unblock admin')
     end
   end
 
@@ -155,18 +189,15 @@ class Admin::AdminsController < Admin::BaseController
   end
 
   def activate_resource(resource)
-    resource.update(is_active: true)
+    service = Admins::ActivationService.new(resource)
+    service.call
+    service.success?
   end
 
   def deactivate_resource(resource)
-    # When admin is deactivated, reset email verification status and require re-verification via OTP
-    if resource.update(is_active: false, email_verified: false)
-      # Always send verification email to require re-verification for reactivation
-      EmailVerificationService.new(resource).send_verification_email unless resource.email_verifications.pending.active.exists?
-      true
-    else
-      false
-    end
+    service = Admins::DeactivationService.new(resource)
+    service.call
+    service.success?
   end
 
   def prevent_self_modification?(resource)

@@ -18,3 +18,7 @@ RSpec.describe ProductAttribute, type: :model do
   end
 end
 
+
+
+
+

@@ -1,40 +1,51 @@
+# frozen_string_literal: true
+
+# Refactored CartItemsController using Clean Architecture
+# Controller → Service → Model → Serializer
 class Api::V1::CartItemsController < ApplicationController
-  include ApiFormatters
   include CustomerOnly
+  include ServiceResponseHandler
   
   before_action :set_cart
 
   def create
-    # Find item if it already exists to update quantity
-    @cart_item = @cart.cart_items.find_or_initialize_by(product_variant_id: params[:product_variant_id])
-    @cart_item.quantity = (@cart_item.quantity || 0) + params[:quantity].to_i
+      service = Carts::ItemCreationService.new(
+      @cart,
+      params[:product_variant_id],
+      params[:quantity]
+    )
+    service.call
     
-    if @cart_item.save
-      @cart_items = @cart.cart_items.includes(product_variant: { product: [:brand, :category, product_variants: :product_images] })
-      total_price = @cart_items.sum { |item| (item.product_variant.discounted_price || item.product_variant.price) * item.quantity }
-      render_created(format_cart_response(@cart_items, total_price), 'Item added to cart successfully')
+    if service.success?
+      render_cart_response('Item added to cart successfully', :created)
     else
-      render_validation_errors(@cart_item.errors.full_messages, 'Failed to add item to cart')
+      render_validation_errors(service.errors, 'Failed to add item to cart')
     end
   end
 
   def update
     @cart_item = @cart.cart_items.find(params[:id])
-    if @cart_item.update(quantity: params[:quantity].to_i)
-      @cart_items = @cart.cart_items.includes(product_variant: { product: [:brand, :category, product_variants: :product_images] })
-      total_price = @cart_items.sum { |item| (item.product_variant.discounted_price || item.product_variant.price) * item.quantity }
-      render_success(format_cart_response(@cart_items, total_price), 'Cart item updated successfully')
+    service = Carts::ItemUpdateService.new(@cart_item, params[:quantity])
+    service.call
+    
+    if service.success?
+      render_cart_response('Cart item updated successfully')
     else
-      render_validation_errors(@cart_item.errors.full_messages, 'Failed to update cart item')
+      render_validation_errors(service.errors, 'Failed to update cart item')
     end
   end
 
   def destroy
     @cart_item = @cart.cart_items.find(params[:id])
-    @cart_item.destroy
-    @cart_items = @cart.cart_items.includes(product_variant: { product: [:brand, :category, product_variants: :product_images] })
-    total_price = @cart_items.sum { |item| (item.product_variant.discounted_price || item.product_variant.price) * item.quantity }
-    render_success(format_cart_response(@cart_items, total_price), 'Item removed from cart successfully')
+    
+    service = Carts::ItemDeletionService.new(@cart_item)
+    service.call
+    
+    if service.success?
+      render_cart_response('Item removed from cart successfully')
+    else
+      render_validation_errors(service.errors, 'Failed to remove item from cart')
+    end
   end
 
   private
@@ -43,11 +54,12 @@ class Api::V1::CartItemsController < ApplicationController
     @cart = current_user.cart || current_user.create_cart
   end
 
-  def format_cart_response(cart_items, total_price)
-    {
-      cart_items: cart_items.map { |item| format_cart_item_data(item) },
-      total_price: total_price,
-      item_count: cart_items.sum(&:quantity)
-    }
+  def render_cart_response(message, status = :ok)
+    cart = Cart.with_cart_items.find(@cart.id)
+    render_success(
+      CartSerializer.new(cart).as_json,
+      message,
+      status
+    )
   end
 end

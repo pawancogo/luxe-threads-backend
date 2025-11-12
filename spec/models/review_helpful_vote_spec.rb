@@ -25,3 +25,7 @@ RSpec.describe ReviewHelpfulVote, type: :model do
   end
 end
 
+
+
+
+

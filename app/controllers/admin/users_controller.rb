@@ -2,6 +2,7 @@
 
 class Admin::UsersController < Admin::BaseController
     include StatusManageable
+    include EagerLoading
     
     before_action :require_user_admin_role!, only: [:index, :show, :update, :destroy, :update_status]
     before_action :enable_date_filter, only: [:index]
@@ -10,28 +11,51 @@ class Admin::UsersController < Admin::BaseController
     def index
       search_options = { date_range_column: :created_at }
       search_options[:range_field] = @filters[:range_field] if @filters[:range_field].present?
-      @users = User.where.not(role: 'supplier')._search(params, **search_options).order(created_at: :desc)
-      @filters.merge!(@users.filter_with_aggs)
+      
+      service = Admins::HtmlUserListingService.new(User.customers_only, params, search_options)
+      service.call
+      
+      if service.success?
+        @users = service.users
+        @filters.merge!(service.filters)
+        @user_presenters = @users.map { |user| UserPresenter.new(user) }
+      else
+        @users = User.none
+        @filters = {}
+        @user_presenters = []
+        flash[:alert] = service.errors.join(', ')
+      end
     end
 
     def show
+      @user_presenter = UserPresenter.new(@user)
     end
 
     def edit
+      @user_presenter = UserPresenter.new(@user)
     end
 
     def update
-      if @user.update(user_params)
+      service = Users::UpdateService.new(@user, user_params)
+      service.call
+      
+      if service.success?
         redirect_to admin_user_path(@user), notice: 'User updated successfully.'
       else
+        @user_presenter = UserPresenter.new(@user)
         render :edit, status: :unprocessable_entity
       end
     end
 
     def destroy
-      user_id = @user.id
-      @user.destroy
-      redirect_to admin_users_path, notice: 'User deleted successfully.'
+      service = Users::DeletionService.new(@user)
+      service.call
+      
+      if service.success?
+        redirect_to admin_users_path, notice: 'User deleted successfully.'
+      else
+        redirect_to admin_users_path, alert: service.errors.first || 'Failed to delete user'
+      end
     end
 
     # Uses StatusManageable concern
@@ -40,7 +64,14 @@ class Admin::UsersController < Admin::BaseController
     end
 
     def orders
-      @orders = @user.orders.order(created_at: :desc).page(params[:page])
+      service = UserOrderListingService.new(@user.orders, params)
+      service.call
+      
+      if service.success?
+        @orders = service.orders
+      else
+        @orders = Order.none
+      end
     end
 
     def activity
@@ -49,44 +80,36 @@ class Admin::UsersController < Admin::BaseController
     end
 
     def bulk_action
-      user_ids = params[:user_ids]&.split(',')&.reject(&:blank?) || []
-      action = params[:bulk_action]
+      service = Users::BulkActionService.new(
+        params[:user_ids]&.split(','),
+        params[:bulk_action],
+        admin: current_admin
+      )
+      service.call
       
-      return redirect_to admin_users_path(request.query_parameters), alert: 'Please select at least one user.' if user_ids.empty?
-      
-      users = User.where(id: user_ids)
-      count = 0
-      
-      case action
+      if service.success?
+        count = service.result.count
+        action = params[:bulk_action]
+        notice = case action
       when 'activate'
-        users.update_all(is_active: true, deleted_at: nil)
-        count = users.count
-        notice = "#{count} user(s) activated successfully."
+          "#{count} user(s) activated successfully."
       when 'deactivate'
-        users.find_each do |user|
-          user.update(is_active: false, deleted_at: Time.current)
-          # Send verification email to each user
-          unless user.email_verifications.pending.active.exists?
-            EmailVerificationService.new(user).send_verification_email
-          end
-        end
-        count = users.count
-        notice = "#{count} user(s) deactivated successfully. Verification emails have been sent to reactivate their accounts."
+          "#{count} user(s) deactivated successfully. Verification emails have been sent to reactivate their accounts."
       when 'delete'
-        users.destroy_all
-        count = users.count
-        notice = "#{count} user(s) deleted successfully."
+          "#{count} user(s) deleted successfully."
+        end
+        redirect_to admin_users_path(request.query_parameters), notice: notice
       else
-        return redirect_to admin_users_path(request.query_parameters), alert: 'Invalid action.'
+        redirect_to admin_users_path(request.query_parameters), alert: service.errors.join(', ')
       end
-      
-      redirect_to admin_users_path(request.query_parameters), notice: notice
     end
 
     private
 
     def set_user
-      @user = User.find(params[:id])
+      @user = with_eager_loading(User.all, additional_includes: user_includes).find(params[:id])
+    rescue ActiveRecord::RecordNotFound
+      redirect_to admin_users_path, alert: 'User not found.'
     end
 
     def user_params
@@ -105,16 +128,15 @@ class Admin::UsersController < Admin::BaseController
     end
 
     def activate_resource(resource)
-      resource.update(is_active: true, deleted_at: nil)
+      service = Users::ActivationService.new(resource)
+      service.call
+      service.success?
     end
 
     def deactivate_resource(resource)
-      resource.update(is_active: false, deleted_at: Time.current)
-      
-      # Send verification email to user so they can reactivate their account
-      unless resource.email_verifications.pending.active.exists?
-        EmailVerificationService.new(resource).send_verification_email
-      end
+      service = Users::DeactivationService.new(resource)
+      service.call
+      service.success?
     end
 
     def prevent_self_modification?(resource)

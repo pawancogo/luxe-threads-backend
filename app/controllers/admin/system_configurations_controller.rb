@@ -50,12 +50,13 @@ class Admin::SystemConfigurationsController < Admin::BaseController
   end
 
   def create
-    @system_configuration = SystemConfiguration.new(system_configuration_params)
-    @system_configuration.created_by = current_admin
+    service = System::ConfigurationCreationService.new(system_configuration_params, current_admin)
+    service.call
     
-    if @system_configuration.save
-      redirect_to admin_system_configuration_path(@system_configuration), notice: 'System Configuration created successfully.'
+    if service.success?
+      redirect_to admin_system_configuration_path(service.system_configuration), notice: 'System Configuration created successfully.'
     else
+      @system_configuration = service.system_configuration || SystemConfiguration.new(system_configuration_params)
       render :new, status: :unprocessable_entity
     end
   end
@@ -64,7 +65,10 @@ class Admin::SystemConfigurationsController < Admin::BaseController
   end
 
   def update
-    if @system_configuration.update(system_configuration_params)
+    service = System::ConfigurationUpdateService.new(@system_configuration, system_configuration_params)
+    service.call
+    
+    if service.success?
       redirect_to admin_system_configuration_path(@system_configuration), notice: 'System Configuration updated successfully.'
     else
       render :edit, status: :unprocessable_entity
@@ -72,18 +76,36 @@ class Admin::SystemConfigurationsController < Admin::BaseController
   end
 
   def destroy
-    @system_configuration.destroy
-    redirect_to admin_system_configurations_path, notice: 'System Configuration deleted successfully.'
+    service = System::ConfigurationDeletionService.new(@system_configuration)
+    service.call
+    
+    if service.success?
+      redirect_to admin_system_configurations_path, notice: 'System Configuration deleted successfully.'
+    else
+      redirect_to admin_system_configurations_path, alert: service.errors.first || 'Failed to delete system configuration'
+    end
   end
 
   def activate
-    @system_configuration.activate!
-    redirect_to admin_system_configuration_path(@system_configuration), notice: 'System Configuration activated successfully.'
+    service = System::ConfigurationActivationService.new(@system_configuration)
+    service.call
+    
+    if service.success?
+      redirect_to admin_system_configuration_path(@system_configuration), notice: 'System Configuration activated successfully.'
+    else
+      redirect_to admin_system_configuration_path(@system_configuration), alert: service.errors.first || 'Failed to activate system configuration'
+    end
   end
 
   def deactivate
-    @system_configuration.deactivate!
-    redirect_to admin_system_configuration_path(@system_configuration), notice: 'System Configuration deactivated successfully.'
+    service = System::ConfigurationDeactivationService.new(@system_configuration)
+    service.call
+    
+    if service.success?
+      redirect_to admin_system_configuration_path(@system_configuration), notice: 'System Configuration deactivated successfully.'
+    else
+      redirect_to admin_system_configuration_path(@system_configuration), alert: service.errors.first || 'Failed to deactivate system configuration'
+    end
   end
 
   private

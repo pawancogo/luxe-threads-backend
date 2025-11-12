@@ -72,14 +72,18 @@ module RbacAuthorizable
       return true if super_admin?
       # Map common permissions to legacy methods
       case permission_slug
-      when 'products:manage', 'products:create', 'products:update', 'products:delete'
+      when 'products:manage', 'products:create', 'products:update', 'products:delete', 'products:read', 'products:view'
         can_manage_products?
-      when 'orders:manage', 'orders:update', 'orders:cancel'
+      when 'categories:view', 'categories:read', 'categories:manage', 'categories:create', 'categories:update', 'categories:delete'
+        can_manage_products? # Categories are part of product management
+      when 'orders:manage', 'orders:update', 'orders:cancel', 'orders:view', 'orders:read'
         can_manage_orders?
-      when 'users:manage', 'users:create', 'users:update', 'users:delete'
+      when 'users:manage', 'users:create', 'users:update', 'users:delete', 'users:view', 'users:read'
         can_manage_users?
-      when 'suppliers:manage', 'suppliers:approve', 'suppliers:suspend'
+      when 'suppliers:manage', 'suppliers:approve', 'suppliers:suspend', 'suppliers:view', 'suppliers:read'
         can_manage_suppliers?
+      when 'dashboard:view'
+        true # All admins can view dashboard
       else
         # Try JSON permissions
         has_permission_from_json?(permission_slug)
@@ -87,7 +91,7 @@ module RbacAuthorizable
     elsif self.is_a?(SupplierAccountUser)
       # Legacy supplier permission checking
       case permission_slug
-      when 'products:manage', 'products:create', 'products:update', 'products:delete'
+      when 'products:manage', 'products:create', 'products:update', 'products:delete', 'products:read', 'products:view'
         can_manage_products?
       when 'orders:manage', 'orders:update'
         can_manage_orders?

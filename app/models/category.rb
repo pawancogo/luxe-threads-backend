@@ -41,12 +41,8 @@ class Category < ApplicationRecord
   end
 
   def update_path_and_level
-    if parent_id.present? && parent
-      self.level = parent.level + 1
-      self.path = "#{parent.path} > #{name}"
-    else
-      self.level = 0
-      self.path = name
-    end
+    service = Categories::PathService.new(self)
+    service.call
+    # Service updates path and level directly on the category
   end
 end

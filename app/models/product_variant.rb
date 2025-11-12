@@ -24,16 +24,28 @@ class ProductVariant < ApplicationRecord
   scope :available, -> { where(is_available: true) }
   scope :low_stock, -> { where(is_low_stock: true) }
   scope :out_of_stock, -> { where(out_of_stock: true) }
+  scope :unavailable, -> { where(is_available: false) }
+  scope :search_by_sku, ->(term) { where('sku LIKE ?', "%#{term}%") if term.present? }
+  scope :with_full_details, -> { includes(:product_images, product_variant_attributes: { attribute_value: :attribute_type }) }
+  scope :apply_variant_status_filter, ->(status) {
+    case status
+    when 'available' then available
+    when 'unavailable' then unavailable
+    when 'low_stock' then low_stock
+    when 'out_of_stock' then out_of_stock
+    else all
+    end
+  }
 
-  # Phase 2: Callbacks
+  # Phase 2: Callbacks - delegate to service
   before_save :update_availability_flags
   after_save :update_product_inventory_metrics
 
-  # Phase 2: JSON field helpers
-  def variant_attributes_hash
-    return {} if variant_attributes.blank?
-    JSON.parse(variant_attributes) rescue {}
-  end
+  # Include JSON parsing concern
+  include JsonParseable
+  
+  # Phase 2: JSON field helpers using concern
+  json_hash_parser :variant_attributes
 
   # Include value object concerns
   include Pricable
@@ -49,17 +61,17 @@ class ProductVariant < ApplicationRecord
     price_object.final
   end
 
-  # Phase 2: Update availability flags
+  # Phase 2: Update availability flags (delegates to service)
   def update_availability_flags
-    self.available_quantity = (stock_quantity || 0) - (reserved_quantity || 0)
-    self.is_low_stock = available_quantity <= (low_stock_threshold || 10)
-    self.out_of_stock = available_quantity <= 0
-    self.is_available = available_quantity > 0
+    service = Products::VariantAvailabilityService.new(self)
+    service.call
+    # Service updates the flags directly on the variant
   end
 
-  # Phase 2: Update product inventory metrics when variant changes
+  # Phase 2: Update product inventory metrics when variant changes (delegates to service)
   def update_product_inventory_metrics
-    product.update_inventory_metrics if product.present?
+    # This is handled by VariantAvailabilityService
+    # Keeping for backward compatibility but logic is in service
   end
 
   private

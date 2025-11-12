@@ -18,3 +18,7 @@ RSpec.describe PaymentTransaction, type: :model do
   end
 end
 
+
+
+
+

@@ -62,3 +62,7 @@ RSpec.describe SupplierPayment, type: :model do
   end
 end
 
+
+
+
+

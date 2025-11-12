@@ -42,3 +42,7 @@ RSpec.describe NotificationPreference, type: :model do
   end
 end
 
+
+
+
+

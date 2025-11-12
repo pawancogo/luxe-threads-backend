@@ -63,3 +63,7 @@ RSpec.describe Payment, type: :model do
   end
 end
 
+
+
+
+

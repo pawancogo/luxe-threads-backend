@@ -45,3 +45,7 @@ RSpec.describe EmailTemplate, type: :model do
   end
 end
 
+
+
+
+

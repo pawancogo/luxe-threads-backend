@@ -8,78 +8,25 @@ class AdminController < BaseController
 
   def login
     if request.post?
-      admin = ::Admin.find_by(email: params[:email])
+      service = Admins::HtmlAuthenticationService.new(
+        params[:email],
+        params[:password],
+        request,
+        session.id
+      )
+      service.call
       
-      if admin&.authenticate(params[:password])
-        # Check if admin is blocked
-        if admin.is_blocked?
-          flash.now[:alert] = 'Your account has been blocked. Please contact the administrator.'
-          render :login, layout: false
-          return
-        end
-        
-        # Check if admin is inactive (but not blocked)
-        unless admin.is_active
-          # If email is not verified, redirect to verification flow
-          unless admin.email_verified?
-            # Send verification OTP if not already sent
-            EmailVerificationService.new(admin).send_verification_email unless admin.email_verifications.pending.active.exists?
-            redirect_to "/verify-email?type=admin&id=#{admin.id}&email=#{CGI.escape(admin.email)}&reason=inactive", 
-                        notice: 'Your account is inactive. Please verify your email to activate your account.'
-            return
-          else
-            # Email verified but account inactive - need to activate
-            flash.now[:alert] = 'Your account is inactive. Please contact the administrator to activate your account.'
-            render :login, layout: false
-            return
-          end
-        end
-        
-        session[:admin_id] = admin.id
-        
-        # Update last login
-        admin.update_last_login!
-        
-        # Create login session with device and location info
-        LoginSessionService.create_session(
-          admin,
-          request,
-          {
-            login_method: 'password',
-            platform: 'web',
-            jwt_token_id: "session_#{session.id}" # Use session ID as reference
-          }
-        )
-        
-        # Log admin activity
-        AdminActivity.log_activity(
-          admin,
-          'login',
-          nil,
-          nil,
-          {
-            description: 'Admin logged in via HTML interface',
-            ip_address: request.remote_ip,
-            user_agent: request.user_agent
-          }
-        )
-        
+      if service.success?
+        session[:admin_id] = service.admin.id
         redirect_to admin_root_path, notice: 'Successfully logged in!'
       else
-        # Log failed login attempt
-        if admin
-          LoginSessionService.create_session(
-            admin,
-            request,
-            {
-              login_method: 'password',
-              is_successful: false,
-              failure_reason: 'Invalid password'
-            }
-          )
+        # Check if there's a special result (for inactive accounts)
+        if service.result.is_a?(Hash) && service.result[:error_code]
+          redirect_to service.result[:verification_url], notice: service.errors.first
+        else
+          flash.now[:alert] = service.errors.first || 'Invalid email or password'
+          render :login, layout: false
         end
-        flash.now[:alert] = 'Invalid email or password'
-        render :login, layout: false
       end
     else
       render :login, layout: false
@@ -92,24 +39,8 @@ class AdminController < BaseController
     
     # Mark login session as logged out
     if admin
-      LoginSession.for_user(admin)
-                  .active
-                  .where(logged_out_at: nil)
-                  .where("session_token LIKE ?", "session_#{session.id}%")
-                  .update_all(logged_out_at: Time.current, is_active: false)
-      
-      # Log admin activity
-      AdminActivity.log_activity(
-        admin,
-        'logout',
-        nil,
-        nil,
-        {
-          description: 'Admin logged out via HTML interface',
-          ip_address: request.remote_ip,
-          user_agent: request.user_agent
-        }
-      )
+      service = Admins::LogoutService.new(admin, request, session_token: "session_#{session.id}")
+      service.call
     end
     
     session[:admin_id] = nil
@@ -152,24 +83,9 @@ class AdminController < BaseController
       # Clear Rails session completely
       reset_session
       
-      # Invalidate all active login sessions
-      LoginSession.for_user(current_admin)
-                  .active
-                  .where(logged_out_at: nil)
-                  .update_all(logged_out_at: Time.current, is_active: false)
-      
-      # Log the forced logout
-      AdminActivity.log_activity(
-        current_admin,
-        'logout',
-        nil,
-        nil,
-        {
-          description: 'Admin automatically logged out due to account being blocked',
-          ip_address: request.remote_ip,
-          user_agent: request.user_agent
-        }
-      )
+      # Invalidate all active login sessions using service
+      service = Admins::LogoutService.new(current_admin, request)
+      service.call
       
       redirect_to admin_login_path, alert: 'Your account has been blocked. Please contact the administrator.'
       return

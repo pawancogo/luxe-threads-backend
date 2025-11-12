@@ -2,28 +2,35 @@
 
 # Service for bulk deletion operations
 # Handles deletion of multiple records with proper error handling and reporting
-class BulkDeletionService
-  attr_reader :model_class, :errors, :deleted_count, :failed_count
+class BulkDeletionService < BaseService
+  attr_reader :model_class, :deleted_count, :failed_count
 
   def initialize(model_class)
+    super()
     @model_class = model_class
-    @errors = []
     @deleted_count = 0
     @failed_count = 0
   end
 
-  def delete(ids)
+  def call(ids)
     validate_ids!(ids)
 
+    # Process each deletion individually (no transaction) to allow partial success
     ids.each do |id|
       delete_record(id)
     end
 
-    build_result
+    set_result(build_result)
+    self
+  rescue ArgumentError => e
+    add_error(e.message)
+    set_result(build_result)
+    self
   end
 
-  def success?
-    @failed_count.zero?
+  # Backward compatibility - alias for call
+  def delete(ids)
+    call(ids)
   end
 
   def partial_success?
@@ -59,32 +66,31 @@ class BulkDeletionService
     error_message = record.errors.full_messages.any? ? 
                     record.errors.full_messages.join(', ') : 
                     'Deletion failed'
-    @errors << "Record #{id}: #{error_message}"
+    add_error("Record #{id}: #{error_message}")
   end
 
   def handle_not_found(id)
     @failed_count += 1
-    @errors << "Record #{id}: not found"
+    add_error("Record #{id}: not found")
   end
 
   def handle_constraint_error(id, error)
     @failed_count += 1
-    @errors << "Record #{id}: cannot be deleted due to existing references"
-    Rails.logger.error "Constraint error deleting #{@model_class.name} #{id}: #{error.message}"
+    add_error("Record #{id}: cannot be deleted due to existing references")
+    set_last_error(error)
   end
 
   def handle_generic_error(id, error)
     @failed_count += 1
-    @errors << "Record #{id}: #{error.message}"
-    Rails.logger.error "Error deleting #{@model_class.name} #{id}: #{error.message}"
-    Rails.logger.error error.backtrace.join("\n") if error.backtrace
+    add_error("Record #{id}: #{error.message}")
+    set_last_error(error)
   end
 
   def build_result
     {
       deleted_count: @deleted_count,
       failed_count: @failed_count,
-      errors: @errors,
+      errors: errors,
       success: success?,
       partial_success: partial_success?
     }

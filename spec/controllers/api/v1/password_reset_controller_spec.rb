@@ -77,3 +77,7 @@ RSpec.describe Api::V1::PasswordResetController, type: :controller do
   end
 end
 
+
+
+
+

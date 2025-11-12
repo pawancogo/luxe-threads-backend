@@ -43,3 +43,7 @@ RSpec.describe WarehouseInventory, type: :model do
   end
 end
 
+
+
+
+

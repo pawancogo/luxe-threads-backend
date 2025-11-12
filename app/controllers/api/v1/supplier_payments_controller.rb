@@ -16,7 +16,10 @@ class Api::V1::SupplierPaymentsController < ApplicationController
     # Filter by status if provided
     @supplier_payments = @supplier_payments.where(status: params[:status]) if params[:status].present?
     
-    render_success(format_supplier_payments_data(@supplier_payments), 'Supplier payments retrieved successfully')
+    render_success(
+      SupplierPaymentSerializer.collection(@supplier_payments),
+      'Supplier payments retrieved successfully'
+    )
   end
 
   # GET /api/v1/supplier/payments/:id
@@ -29,7 +32,10 @@ class Api::V1::SupplierPaymentsController < ApplicationController
       return
     end
     
-    render_success(format_supplier_payment_detail_data(@supplier_payment), 'Supplier payment retrieved successfully')
+    render_success(
+      SupplierPaymentSerializer.new(@supplier_payment).as_json,
+      'Supplier payment retrieved successfully'
+    )
   end
 
   # GET /api/v1/admin/supplier_payments
@@ -43,7 +49,10 @@ class Api::V1::SupplierPaymentsController < ApplicationController
     # Filter by supplier_profile_id if provided
     @supplier_payments = @supplier_payments.where(supplier_profile_id: params[:supplier_profile_id]) if params[:supplier_profile_id].present?
     
-    render_success(format_supplier_payments_data(@supplier_payments), 'Supplier payments retrieved successfully')
+    render_success(
+      SupplierPaymentSerializer.collection(@supplier_payments),
+      'Supplier payments retrieved successfully'
+    )
   end
 
   # POST /api/v1/admin/supplier_payments
@@ -66,7 +75,10 @@ class Api::V1::SupplierPaymentsController < ApplicationController
     )
     
     if @supplier_payment.save
-      render_created(format_supplier_payment_detail_data(@supplier_payment), 'Supplier payment created successfully')
+      render_created(
+        SupplierPaymentSerializer.new(@supplier_payment).as_json,
+        'Supplier payment created successfully'
+      )
     else
       render_validation_errors(@supplier_payment.errors.full_messages, 'Supplier payment creation failed')
     end
@@ -100,46 +112,5 @@ class Api::V1::SupplierPaymentsController < ApplicationController
     end
   end
 
-  def format_supplier_payments_data(payments)
-    payments.map { |payment| format_supplier_payment_data(payment) }
-  end
-
-  def format_supplier_payment_data(payment)
-    {
-      id: payment.id,
-      payment_id: payment.payment_id,
-      supplier_profile_id: payment.supplier_profile_id,
-      amount: payment.amount.to_f,
-      net_amount: payment.net_amount.to_f,
-      currency: payment.currency,
-      payment_method: payment.payment_method,
-      status: payment.status,
-      period_start_date: payment.period_start_date&.iso8601,
-      period_end_date: payment.period_end_date&.iso8601,
-      created_at: payment.created_at&.iso8601,
-      processed_at: payment.processed_at&.iso8601,
-      commission_deducted: payment.commission_deducted.to_f,
-      commission_rate: payment.commission_rate
-    }
-  end
-
-  def format_supplier_payment_detail_data(payment)
-    format_supplier_payment_data(payment).merge(
-      commission_deducted: payment.commission_deducted.to_f,
-      commission_rate: payment.commission_rate,
-      notes: payment.notes,
-      bank_account_details: payment.bank_account_details_data,
-      transaction_reference: payment.transaction_reference,
-      failure_reason: payment.failure_reason,
-      processed_by: payment.processed_by ? {
-        id: payment.processed_by.id,
-        name: payment.processed_by.full_name || payment.processed_by.email
-      } : nil,
-      supplier_profile: {
-        id: payment.supplier_profile.id,
-        company_name: payment.supplier_profile.company_name
-      }
-    )
-  end
 end
 

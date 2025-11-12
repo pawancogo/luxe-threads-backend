@@ -10,6 +10,11 @@ class Rack::Attack
     Rails.env.development? && (req.ip == '127.0.0.1' || req.ip == '::1')
   end
 
+  # Always allow OPTIONS requests (CORS preflight)
+  safelist('allow-options') do |req|
+    req.method == 'OPTIONS'
+  end
+
   # Rate limit API requests by IP
   # Limit: 100 requests per minute per IP
   throttle('api/ip', limit: 100, period: 1.minute) do |req|

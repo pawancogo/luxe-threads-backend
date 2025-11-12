@@ -38,17 +38,8 @@ Rails.application.configure do
   ENV['FEATURE_PRODUCT_VIEWS_TRACKING'] ||= 'true'
   ENV['FEATURE_CACHING'] ||= 'true'
   
-  # Staging-specific CORS
-  config.middleware.insert_before 0, Rack::Cors do
-    allow do
-      origins ENV.fetch('STAGING_FRONTEND_URL', 'https://staging-frontend.yourdomain.com')
-      resource '*',
-        headers: :any,
-        methods: [:get, :post, :put, :patch, :delete, :options, :head],
-        expose: ['Authorization'],
-        credentials: true
-    end
-  end
+  # CORS Configuration is handled in config/initializers/cors.rb
+  # No need to duplicate here
   
   # Staging cache store (can use memory store for simplicity)
   config.cache_store = :memory_store, { size: 64.megabytes }

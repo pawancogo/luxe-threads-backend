@@ -39,21 +39,13 @@ module AdminApiAuthorization
     end
   end
   
-  def log_admin_activity(action_type, resource_type = nil, resource_id = nil, changes = {})
-    return unless @current_admin
-    
-    AdminActivity.log_activity(
-      @current_admin,
-      action_type,
-      resource_type,
-      resource_id,
-      {
-        description: "#{action_type.capitalize} #{resource_type || controller_name.singularize}",
-        changes: changes,
-        ip_address: request.remote_ip,
-        user_agent: request.user_agent
-      }
-    )
+  # Delegates to AdminActivityLogger concern for consistency
+  def log_admin_activity(action_type = nil, resource_type = nil, resource_id = nil, changes = {})
+    # Include AdminActivityLogger methods if not already included
+    unless self.class.included_modules.include?(AdminActivityLogger)
+      self.class.include(AdminActivityLogger)
+    end
+    super
   end
   
   attr_reader :current_admin

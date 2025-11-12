@@ -1,4 +1,9 @@
+# frozen_string_literal: true
+
+# Refactored Admin::ProductsController using Clean Architecture
+# Controller → Service → Model → Presenter → View
 class Admin::ProductsController < Admin::BaseController
+    include EagerLoading
     before_action :require_product_admin_or_super_admin!
     before_action :enable_date_filter, only: [:index]
     before_action :set_range_filter_options, only: [:index]
@@ -7,157 +12,141 @@ class Admin::ProductsController < Admin::BaseController
     def index
       @status = params[:status] || 'pending'
       
-      # Build base query
-      @products = Product.includes(:supplier_profile, :category, :brand, :product_variants, verified_by_admin: [])
+      search_options = { date_range_column: :created_at }
+      search_options[:range_field] = @filters[:range_field] if @filters[:range_field].present?
       
-      # Apply status filter before search (for tabs)
-      # When 'all' is selected, show all products regardless of status
-      if @status != 'all'
-        @products = @products.where(status: @status)
-      end
+      service = Products::AdminHtmlListingService.new(Product.all, params, search_options)
+      service.call
       
-      # Apply search and other filters (exclude status from search params to avoid double filtering)
-      search_params = params.except(:status).permit!
-      @products = @products._search(search_params, date_range_column: :created_at, range_field: @filters[:range_field])
-                          .order(created_at: :desc)
-      
-      # Merge filters (this will include status aggregations)
-      begin
-        filter_aggs = @products.filter_with_aggs if @products.respond_to?(:filter_with_aggs)
-        @filters.merge!(filter_aggs) if filter_aggs.present?
-      rescue => e
-        Rails.logger.error "Error merging filters: #{e.message}"
-        # Ensure @filters is at least initialized
-        @filters ||= { search: [nil] }
-      end
-    end
-
-    def edit
-    end
-
-    def update
-      if @product.update(product_params)
-        redirect_to admin_product_path(@product), notice: 'Product updated successfully.'
+      if service.success?
+        @products = service.products
+        @filters.merge!(service.filters)
+        @product_presenters = @products.map { |product| ProductPresenter.new(product) }
       else
-        render :edit, status: :unprocessable_entity
+        @products = Product.none
+        @filters = {}
+        @product_presenters = []
+        flash[:alert] = service.errors.join(', ')
       end
     end
 
-    def destroy
-      product_id = @product.id
-      @product.destroy
+  def show
+    @product_presenter = ProductPresenter.new(@product)
+    
+    service = Products::VariantListingService.new(@product.product_variants, params)
+    service.call
+    
+    if service.success?
+      @product_variants = service.variants
+    else
+      @product_variants = ProductVariant.none
+    end
+  end
+
+  def edit
+    @product_presenter = ProductPresenter.new(@product)
+  end
+
+  def update
+    service = Products::UpdateService.new(@product, product_params)
+    service.call
+    
+    if service.success?
+      redirect_to admin_product_path(@product), notice: 'Product updated successfully.'
+    else
+      @product_presenter = ProductPresenter.new(@product)
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    service = Products::DeletionService.new(@product)
+    service.call
+    
+    if service.success?
       redirect_to admin_products_path, notice: 'Product deleted successfully.'
+    else
+      redirect_to admin_products_path, alert: service.errors.first || 'Failed to delete product'
     end
+  end
 
-    def bulk_approve
-      product_ids = params[:product_ids] || []
-      Product.where(id: product_ids).update_all(
-        status: 'active',
-        verified_by_admin_id: current_admin.id,
-        verified_at: Time.current
-      )
-      redirect_to admin_products_path, notice: "#{product_ids.count} products approved successfully."
+  def bulk_approve
+    service = Products::BulkApprovalService.new(params[:product_ids], current_admin)
+    service.call
+    
+    if service.success?
+      count = service.result.count
+      redirect_to admin_products_path, notice: "#{count} products approved successfully."
+    else
+      redirect_to admin_products_path, alert: service.errors.join(', ')
     end
+  end
 
-    def bulk_reject
-      product_ids = params[:product_ids] || []
-      rejection_reason = params[:rejection_reason]
-      Product.where(id: product_ids).update_all(
-        status: 'rejected',
-        verified_by_admin_id: current_admin.id,
-        verified_at: Time.current,
-        rejection_reason: rejection_reason
-      )
-      redirect_to admin_products_path, notice: "#{product_ids.count} products rejected successfully."
+  def bulk_reject
+    service = Products::BulkRejectionService.new(
+      params[:product_ids],
+      current_admin,
+      rejection_reason: params[:rejection_reason]
+    )
+    service.call
+    
+    if service.success?
+      count = service.result.count
+      redirect_to admin_products_path, notice: "#{count} products rejected successfully."
+    else
+      redirect_to admin_products_path, alert: service.errors.join(', ')
     end
+  end
 
-    def export
-      # CSV export functionality
-      require 'csv'
-      csv_data = CSV.generate(headers: true) do |csv|
-        csv << ['ID', 'Name', 'Status', 'Supplier', 'Category', 'Price', 'Created At']
-        Product.includes(:supplier_profile, :category).find_each do |product|
-          csv << [
-            product.id,
-            product.name,
-            product.status,
-            product.supplier_profile&.company_name,
-            product.category&.name,
-            product.product_variants&.first&.price,
-            product.created_at
-          ]
-        end
-      end
-      
-      send_data csv_data,
-                filename: "products_export_#{Time.current.strftime('%Y%m%d')}.csv",
+  def export
+    service = Products::ExportService.new(Product.all)
+    service.call
+    
+    if service.success?
+      send_data service.result,
+                filename: service.filename,
                 type: 'text/csv'
+    else
+      redirect_to admin_products_path, alert: 'Failed to export products.'
     end
-
-    def show
-      @product_variants = @product.product_variants
-                                  .includes(:product_images, product_variant_attributes: { attribute_value: :attribute_type })
-                                  .order(created_at: :desc)
-      
-      # Filter by SKU search
-      if params[:variant_search].present?
-        @product_variants = @product_variants.where('sku LIKE ?', "%#{params[:variant_search]}%")
-      end
-      
-      # Filter by status
-      if params[:variant_status].present?
-        case params[:variant_status]
-        when 'available'
-          @product_variants = @product_variants.where(is_available: true)
-        when 'unavailable'
-          @product_variants = @product_variants.where(is_available: false)
-        when 'low_stock'
-          @product_variants = @product_variants.where(is_low_stock: true)
-        when 'out_of_stock'
-          @product_variants = @product_variants.where(out_of_stock: true)
-        end
-      end
-      
-      @product_variants = @product_variants.page(params[:variant_page])
-    end
+  end
 
     def approve
-      if @product.update(
-        status: :active,
-        verified_by_admin_id: current_admin.id,
-        verified_at: Time.current
-      )
+    service = Products::ApprovalService.new(@product, current_admin)
+    service.call
+    
+    if service.success?
         redirect_to admin_product_path(@product), notice: 'Product approved successfully.'
       else
-        redirect_to admin_product_path(@product), alert: 'Failed to approve product.'
+      redirect_to admin_product_path(@product), alert: service.errors.join(', ')
       end
     end
 
     def reject
-      rejection_reason = params[:rejection_reason]
-      
-      if @product.update(
-        status: :rejected,
-        verified_by_admin_id: current_admin.id,
-        verified_at: Time.current
-      )
-        # Store rejection reason in a note or separate table if needed
-        # For now, we'll use a simple approach
+    service = Products::RejectionService.new(
+      @product,
+      current_admin,
+      rejection_reason: params[:rejection_reason]
+    )
+    service.call
+    
+    if service.success?
         redirect_to admin_product_path(@product), notice: 'Product rejected successfully.'
       else
-        redirect_to admin_product_path(@product), alert: 'Failed to reject product.'
+      redirect_to admin_product_path(@product), alert: service.errors.join(', ')
       end
     end
 
     private
 
     def set_range_filter_options
-      # Enable price range filter for products (using base_price field)
       enable_range_filter(:base_price)
     end
 
     def set_product
-      @product = Product.find(params[:id])
+      @product = with_eager_loading(Product.all, additional_includes: product_includes).find(params[:id])
+    rescue ActiveRecord::RecordNotFound
+      redirect_to admin_products_path, alert: 'Product not found.'
     end
 
     def product_params

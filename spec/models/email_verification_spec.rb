@@ -67,3 +67,7 @@ RSpec.describe EmailVerification, type: :model do
   end
 end
 
+
+
+
+

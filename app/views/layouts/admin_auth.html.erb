@@ -151,6 +151,12 @@
           autohide: true,
           delay: 5000
         });
+        
+        // Remove toast from DOM after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', function() {
+          toastElement.remove();
+        });
+        
         bsToast.show();
       });
     });

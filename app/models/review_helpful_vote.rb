@@ -6,15 +6,8 @@ class ReviewHelpfulVote < ApplicationRecord
   
   validates :user_id, uniqueness: { scope: :review_id, message: "has already voted on this review" }
   
-  # Update helpful counts after save
-  after_save :update_review_counts
-  after_destroy :update_review_counts
-  
-  private
-  
-  def update_review_counts
-    review.update_helpful_counts
-  end
+  # Note: Callbacks removed - use Reviews::HelpfulCountsUpdateService instead
+  # Call the service after creating/updating/destroying votes
 end
 
 

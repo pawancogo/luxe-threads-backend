@@ -26,21 +26,12 @@ class AttributeType < ApplicationRecord
     end
   end
 
-  # Phase 2: JSON field helpers
-  def applicable_product_types_array
-    return [] if applicable_product_types.blank?
-    JSON.parse(applicable_product_types) rescue []
-  end
-
-  def applicable_categories_array
-    return [] if applicable_categories.blank?
-    JSON.parse(applicable_categories) rescue []
-  end
-
-  def validation_rules_hash
-    return {} if validation_rules.blank?
-    JSON.parse(validation_rules) rescue {}
-  end
+  # Include JSON parsing concern
+  include JsonParseable
+  
+  # Phase 2: JSON field helpers using concern
+  json_array_parser :applicable_product_types, :applicable_categories
+  json_hash_parser :validation_rules
 
   # Phase 2: Scopes
   scope :variant_attributes, -> { where(is_variant_attribute: true) }

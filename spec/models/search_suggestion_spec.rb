@@ -42,3 +42,7 @@ RSpec.describe SearchSuggestion, type: :model do
   end
 end
 
+
+
+
+

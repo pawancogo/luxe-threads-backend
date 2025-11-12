@@ -29,11 +29,11 @@ class UserResourceCreationService < BaseService
   private
 
   def create_cart
-    CartCreationService.new(@user).call
+    Carts::CreationService.new(@user).call
   end
 
   def create_wishlist
-    WishlistCreationService.new(@user).call
+    Wishlists::CreationService.new(@user).call
   end
 
   def create_supplier_resources
@@ -42,12 +42,12 @@ class UserResourceCreationService < BaseService
   end
 
   def create_supplier_profile
-    service = SupplierProfileCreationService.new(@user, @options)
-    profile = service.call
+    service = Suppliers::ProfileCreationService.new(@user, @options)
+    service.call
     
-    if profile.nil?
+    if service.profile.nil?
       add_error('Failed to create supplier profile')
-      set_last_error(StandardError.new('SupplierProfileCreationService returned nil'))
+      set_last_error(StandardError.new('Suppliers::ProfileCreationService returned nil'))
     else
       @user.reload
     end
@@ -63,7 +63,7 @@ class UserResourceCreationService < BaseService
     profile = @user.supplier_profile
     profile.update!(owner_id: @user.id, user_id: @user.id) if profile.owner_id.blank?
 
-    service = SupplierAccountUserCreationService.new(profile, @user, role: 'owner')
+    service = Suppliers::AccountUserCreationService.new(profile, @user, role: 'owner')
     service.call
 
     unless service.success?
@@ -76,7 +76,7 @@ class UserResourceCreationService < BaseService
   end
 
   def send_verification_email
-    EmailVerificationService.new(@user).send_verification_email
+    Authentication::EmailVerificationService.new(@user).send_verification_email
   rescue StandardError => e
     # Don't fail user creation if email fails
     Rails.logger.warn "Failed to send verification email: #{e.message}"

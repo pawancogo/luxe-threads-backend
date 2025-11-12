@@ -4,18 +4,21 @@ class EmailVerification < ApplicationRecord
 
   # Validations
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
-  validates :otp, presence: true, length: { is: 6 }
+  validates :verification_token, presence: true
   validates :verifiable_type, presence: true
   validates :verifiable_id, presence: true
 
   # Scopes
   scope :pending, -> { where(verified_at: nil) }
   scope :verified, -> { where.not(verified_at: nil) }
-  scope :expired, -> { where('created_at < ?', 15.minutes.ago) }
-  scope :active, -> { where('created_at >= ?', 15.minutes.ago) }
+  scope :expired, -> { where('created_at < ?', 24.hours.ago) }
+  scope :active, -> { where('created_at >= ?', 24.hours.ago) }
 
+  # Include token generation concern
+  include TokenGeneratable
+  
   # Callbacks
-  before_validation :generate_otp, on: :create
+  before_validation :generate_verification_token, on: :create
   before_validation :downcase_email
 
   # Instance methods
@@ -24,52 +27,37 @@ class EmailVerification < ApplicationRecord
   end
 
   def expired?
-    created_at < 15.minutes.ago
+    created_at < 24.hours.ago
   end
 
   def active?
     !expired? && !verified?
   end
 
-  def verify!(entered_otp)
+  # Note: verify_with_token! method removed - business logic moved to EmailVerificationService
+  # The service now handles token validation, verification marking, and verifiable attribute updates
+  # This method is kept for backward compatibility but should not be used directly
+  # Use EmailVerificationService#verify_email_with_token instead
+  def verify_with_token!(token)
     return false if expired? || verified?
-    return false if otp != entered_otp.to_s
+    return false if verification_token.blank? || token.blank?
+    return false unless ActiveSupport::SecurityUtils.secure_compare(verification_token, token)
 
     update!(verified_at: Time.current)
-    
-    # Update verifiable attributes
-    if verifiable.respond_to?(:email_verified=)
-      verifiable.update!(email_verified: true)
-    end
-    
-    # Activate the account when email is verified
-    if verifiable.respond_to?(:is_active=)
-      verifiable.update!(is_active: true) unless verifiable.is_active?
-    end
-    
-    # For users, also reactivate if they were soft deleted
-    if verifiable.is_a?(User) && verifiable.respond_to?(:deleted_at=)
-      verifiable.update!(deleted_at: nil) if verifiable.deleted_at.present?
-    end
-    
     true
   end
 
-  def resend_otp!
+  def resend_verification!
     return false if verified?
     
-    update!(otp: generate_otp_code, created_at: Time.current)
+    update!(verification_token: generate_unique_token_for(:verification_token), created_at: Time.current)
     true
   end
 
   private
 
-  def generate_otp
-    self.otp = generate_otp_code if otp.blank?
-  end
-
-  def generate_otp_code
-    rand(100000..999999).to_s
+  def generate_verification_token
+    self.verification_token = generate_unique_token_for(:verification_token) if verification_token.blank?
   end
 
   def downcase_email

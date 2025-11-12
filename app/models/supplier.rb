@@ -3,6 +3,8 @@ class Supplier < ApplicationRecord
   include Passwordable
   include Verifiable
   include Auditable
+  include Roleable
+  include Nameable
 
   # Define supplier roles using an enum
   enum :role, {
@@ -23,8 +25,8 @@ class Supplier < ApplicationRecord
   validates :phone_number, presence: true, uniqueness: true
   validates :role, presence: true
 
-  # Callback replaced by service
-  after_create :send_verification_email
+  # Note: Email sending is handled by services, not callbacks
+  # This follows Clean Architecture - business logic in services, not models
 
   # Helper methods for role checking
   def verified?
@@ -51,43 +53,21 @@ class Supplier < ApplicationRecord
     partner_supplier?
   end
 
-  def full_name
-    "#{first_name} #{last_name}"
-  end
-
-  # Business logic methods
-  def send_verification_email_with_temp_password
-    temp_password = TempPasswordService.generate_for(self)
-    VerificationMailer.verification_email(self, temp_password, 'supplier').deliver_now
-    temp_password
-  end
-
-  def send_password_reset_email
-    temp_password = TempPasswordService.generate_for(self)
-    VerificationMailer.password_reset_email(self, temp_password, 'supplier').deliver_now
-    temp_password
-  end
-
+  # Business logic methods - delegate to services
+  # Note: Email sending is handled by services (EmailVerificationService, PasswordResetService)
+  
   def authenticate_with_temp_password(temp_password)
-    TempPasswordService.authenticate_temp_password(self, temp_password)
+    Authentication::TempPasswordService.authenticate_temp_password(self, temp_password)
   end
 
+  # Deprecated: Use PasswordResetCompletionService instead
   def reset_password_with_temp_password(temp_password, new_password)
-    return false unless authenticate_with_temp_password(temp_password)
-    return false unless PasswordValidationService.valid?(new_password)
-    
-    update!(password: new_password)
-    TempPasswordService.clear_temp_password(self)
-    true
+    service = Authentication::PasswordResetCompletionService.new(self, temp_password, new_password)
+    service.call
+    service.success?
   end
 
   def temp_password_expired?
-    TempPasswordService.temp_password_expired?(self)
-  end
-
-  private
-
-  def send_verification_email
-    EmailVerificationService.new(self).send_verification_email
+    Authentication::TempPasswordService.temp_password_expired?(self)
   end
 end

@@ -241,8 +241,21 @@
         <div class="card-body">
           <div class="d-grid gap-2">
             <%= link_to "Edit Supplier", edit_admin_supplier_path(@supplier), class: "btn btn-primary" %>
+            <%= link_to "View Statistics", stats_admin_supplier_path(@supplier), class: "btn btn-outline-info" %>
             <%= link_to "View in RailsAdmin", rails_admin_path, class: "btn btn-outline-secondary", target: "_blank" %>
             <hr>
+            <% if @supplier.deleted_at.nil? %>
+              <%= button_to "Suspend Supplier", suspend_admin_supplier_path(@supplier), 
+                  method: :patch,
+                  class: "btn btn-outline-warning",
+                  data: { confirm: "Are you sure you want to suspend #{@supplier.full_name.presence || @supplier.email}?" } %>
+            <% else %>
+              <%= button_to "Activate Supplier", status_admin_supplier_path(@supplier), 
+                  method: :patch,
+                  params: { status: 'active' },
+                  class: "btn btn-outline-success",
+                  data: { confirm: "Are you sure you want to activate #{@supplier.full_name.presence || @supplier.email}?" } %>
+            <% end %>
             <%= link_to "Delete Supplier", admin_supplier_path(@supplier), method: :delete, 
                 class: "btn btn-outline-danger",
                 data: { confirm: "Are you sure you want to delete #{@supplier.full_name.presence || @supplier.email}? This action cannot be undone." } %>

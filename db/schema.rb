@@ -133,12 +133,15 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_08_043510) do
     t.integer "invited_by_id"
     t.datetime "invitation_accepted_at"
     t.string "invitation_status"
+    t.string "password_reset_token"
+    t.datetime "password_reset_token_expires_at"
     t.index ["deleted_at"], name: "index_admins_on_deleted_at"
     t.index ["email"], name: "index_admins_on_email", unique: true
     t.index ["invitation_status"], name: "index_admins_on_invitation_status"
     t.index ["invitation_token"], name: "index_admins_on_invitation_token", unique: true
     t.index ["invited_by_id"], name: "index_admins_on_invited_by_id"
     t.index ["is_active"], name: "index_admins_on_is_active"
+    t.index ["password_reset_token"], name: "index_admins_on_password_reset_token"
     t.index ["phone_number"], name: "index_admins_on_phone_number", unique: true
   end
 
@@ -335,10 +338,12 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_08_043510) do
     t.string "verifiable_type"
     t.integer "verifiable_id"
     t.datetime "verified_at"
+    t.string "verification_token"
     t.index ["email"], name: "index_email_verifications_on_email", unique: true
     t.index ["expires_at"], name: "index_email_verifications_on_expires_at"
     t.index ["verifiable_type", "verifiable_id"], name: "index_email_verifications_on_verifiable"
     t.index ["verifiable_type", "verifiable_id"], name: "index_email_verifications_on_verifiable_type_and_verifiable_id"
+    t.index ["verification_token"], name: "index_email_verifications_on_verification_token"
   end
 
   create_table "inventory_transactions", force: :cascade do |t|
@@ -1387,6 +1392,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_08_043510) do
     t.datetime "invitation_accepted_at"
     t.string "invitation_role"
     t.string "invitation_status"
+    t.string "password_reset_token"
+    t.datetime "password_reset_token_expires_at"
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["invitation_status"], name: "index_users_on_invitation_status"
@@ -1395,6 +1402,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_08_043510) do
     t.index ["is_active"], name: "index_users_on_is_active"
     t.index ["last_active_at"], name: "index_users_on_last_active_at"
     t.index ["notification_preferences"], name: "index_users_on_notification_preferences"
+    t.index ["password_reset_token"], name: "index_users_on_password_reset_token"
     t.index ["phone_number"], name: "index_users_on_phone_number", unique: true
     t.index ["referral_code"], name: "index_users_on_referral_code", unique: true
     t.index ["referred_by_id"], name: "index_users_on_referred_by_id"

@@ -8,19 +8,29 @@ module Api::V1::Admin
     
     # GET /api/v1/admin/settings
     def index
-      category = params[:category]
-      @settings = category.present? ? Setting.by_category(category) : Setting.all
-      @settings = @settings.order(:category, :key)
+      service = SettingListingService.new(Setting.all, params)
+      service.call
       
-      render_success(format_settings_data(@settings), 'Settings retrieved successfully')
+      if service.success?
+        render_success(
+          SettingSerializer.collection(service.settings),
+          'Settings retrieved successfully'
+        )
+      else
+        render_validation_errors(service.errors, 'Failed to retrieve settings')
+      end
     end
     
     # GET /api/v1/admin/settings/:key
     def show
-      @setting = Setting.find_by(key: params[:key])
+      service = SettingLookupService.new(params[:key])
+      service.call
       
-      if @setting
-        render_success(format_setting_detail_data(@setting), 'Setting retrieved successfully')
+      if service.success?
+        render_success(
+          SettingSerializer.new(service.setting).as_json,
+          'Setting retrieved successfully'
+        )
       else
         render_not_found('Setting not found')
       end
@@ -28,13 +38,17 @@ module Api::V1::Admin
     
     # POST /api/v1/admin/settings
     def create
-      @setting = Setting.new(setting_params)
+      service = Settings::CreationService.new(setting_params)
+      service.call
       
-      if @setting.save
-        log_admin_activity('create', 'Setting', @setting.id, @setting.previous_changes)
-        render_created(format_setting_detail_data(@setting), 'Setting created successfully')
+      if service.success?
+        log_admin_activity('create', 'Setting', service.setting.id, service.setting.previous_changes)
+        render_created(
+          SettingSerializer.new(service.setting).as_json,
+          'Setting created successfully'
+        )
       else
-        render_validation_errors(@setting.errors.full_messages, 'Setting creation failed')
+        render_validation_errors(service.errors, 'Setting creation failed')
       end
     end
     
@@ -42,11 +56,17 @@ module Api::V1::Admin
     def update
       @setting = Setting.find(params[:id])
       
-      if @setting.update(setting_params)
+      service = Settings::UpdateService.new(@setting, setting_params)
+      service.call
+      
+      if service.success?
         log_admin_activity('update', 'Setting', @setting.id, @setting.previous_changes)
-        render_success(format_setting_detail_data(@setting), 'Setting updated successfully')
+        render_success(
+          SettingSerializer.new(@setting.reload).as_json,
+          'Setting updated successfully'
+        )
       else
-        render_validation_errors(@setting.errors.full_messages, 'Setting update failed')
+        render_validation_errors(service.errors, 'Setting update failed')
       end
     end
     
@@ -56,11 +76,14 @@ module Api::V1::Admin
       setting_id = @setting.id
       setting_key = @setting.key
       
-      if @setting.destroy
+      service = Settings::DeletionService.new(@setting)
+      service.call
+      
+      if service.success?
         log_admin_activity('destroy', 'Setting', setting_id, { key: setting_key })
         render_no_content('Setting deleted successfully')
       else
-        render_validation_errors(@setting.errors.full_messages, 'Setting deletion failed')
+        render_validation_errors(service.errors, 'Setting deletion failed')
       end
     end
     
@@ -72,24 +95,6 @@ module Api::V1::Admin
     
     def require_super_admin!
       require_role!(['super_admin'])
-    end
-    
-    def format_settings_data(settings)
-      settings.map { |s| format_setting_detail_data(s) }
-    end
-    
-    def format_setting_detail_data(setting)
-      {
-        id: setting.id,
-        key: setting.key,
-        value: setting.cast_value,
-        value_type: setting.value_type,
-        category: setting.category,
-        description: setting.description,
-        is_public: setting.is_public,
-        created_at: setting.created_at,
-        updated_at: setting.updated_at
-      }
     end
   end
 end

@@ -169,11 +169,13 @@
                         <% end %>
                       <% end %>
                     <% end %>
-                    <%= link_to admin_admin_path(admin), method: :delete, 
-                        class: "btn btn-outline-danger", 
-                        title: "Delete Admin",
-                        data: { confirm: "Are you sure you want to delete #{admin.full_name}? This action cannot be undone." } do %>
-                      <i class="fas fa-trash"></i>
+                    <%= form_with url: admin_admin_path(admin), method: :delete, 
+                        local: true,
+                        style: "display: inline-block;",
+                        data: { confirm: "Are you sure you want to delete #{admin.full_name}? This action cannot be undone." } do |f| %>
+                      <%= f.button type: :submit, class: "btn btn-outline-danger btn-sm", title: "Delete Admin" do %>
+                        <i class="fas fa-trash"></i>
+                      <% end %>
                     <% end %>
                   <% else %>
                     <button class="btn btn-outline-secondary" disabled title="Cannot modify your own account">

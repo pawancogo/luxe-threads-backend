@@ -18,8 +18,8 @@ module Verifiable
     EmailVerificationService.new(self).resend_verification_email
   end
 
-  def verify_email_with_otp(otp)
-    EmailVerificationService.new(self).verify_email_with_otp(otp)
+  def verify_email_with_token(token)
+    EmailVerificationService.new(self).verify_email_with_token(token)
   end
 
   def verification_status

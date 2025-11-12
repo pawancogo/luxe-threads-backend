@@ -22,6 +22,16 @@ class PaymentRefund < ApplicationRecord
   
   # Generate unique refund_id
   before_validation :generate_refund_id, on: :create
+
+  # Ecommerce-specific scopes
+  scope :for_customer, ->(customer_id) { joins(:payment).where(payments: { user_id: customer_id }) }
+  scope :with_full_details, -> { includes(:payment, :order, :processed_by) }
+  scope :by_status, ->(status) { where(status: status) }
+  scope :for_order, ->(order_id) { where(order_id: order_id) }
+  scope :pending, -> { where(status: 'pending') }
+  scope :processing, -> { where(status: 'processing') }
+  scope :completed, -> { where(status: 'completed') }
+  scope :failed, -> { where(status: 'failed') }
   
   # Parse gateway_response JSON
   def gateway_response_data

@@ -23,24 +23,9 @@ class Admin::BaseController < BaseController
       # Clear Rails session completely
       reset_session
       
-      # Invalidate all active login sessions
-      LoginSession.for_user(@current_admin)
-                  .active
-                  .where(logged_out_at: nil)
-                  .update_all(logged_out_at: Time.current, is_active: false)
-      
-      # Log the forced logout
-      AdminActivity.log_activity(
-        @current_admin,
-        'logout',
-        nil,
-        nil,
-        {
-          description: 'Admin automatically logged out due to account being blocked - all tokens and sessions cleared',
-          ip_address: request.remote_ip,
-          user_agent: request.user_agent
-        }
-      )
+      # Invalidate all active login sessions using service
+      service = Admins::LogoutService.new(@current_admin, request)
+      service.call
       
       redirect_to '/admin/login', alert: 'Your account has been blocked. Please contact the administrator.'
       return

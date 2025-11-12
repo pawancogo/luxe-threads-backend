@@ -14,7 +14,7 @@ module Api::V1::Admin
       roles = RbacRole.where(role_type: [role_type, 'system']).active
       
       render_success(
-        roles.map { |role| format_role(role) },
+        RbacRoleSerializer.collection(roles),
         'Roles retrieved successfully'
       )
     end
@@ -27,7 +27,7 @@ module Api::V1::Admin
       permissions = permissions.where(category: category) if category.present?
       
       render_success(
-        permissions.map { |perm| format_permission(perm) },
+        RbacPermissionSerializer.collection(permissions),
         'Permissions retrieved successfully'
       )
     end
@@ -39,7 +39,7 @@ module Api::V1::Admin
       assignments = admin.admin_role_assignments.current.includes(:rbac_role)
       
       render_success(
-        assignments.map { |assignment| format_assignment(assignment) },
+        AdminRoleAssignmentSerializer.collection(assignments),
         'Admin roles retrieved successfully'
       )
     end
@@ -65,7 +65,7 @@ module Api::V1::Admin
       })
       
       render_success(
-        format_assignment(assignment),
+        AdminRoleAssignmentSerializer.new(assignment).as_json,
         'Role assigned successfully'
       )
     rescue ArgumentError => e
@@ -96,74 +96,32 @@ module Api::V1::Admin
     # PATCH /api/v1/admin/rbac/admins/:id/update_permissions
     # Update custom permissions for an admin role assignment
     def update_permissions
-      role_slug = params[:role_slug]
-      custom_permissions = params[:custom_permissions] || {}
-      
-      assignment = AdminRoleAssignment.joins(:rbac_role)
-        .find_by(admin: @target_admin, rbac_roles: { slug: role_slug })
-      
-      unless assignment
-        render_not_found('Role assignment not found')
-        return
-      end
-      
-      assignment.update!(custom_permissions: custom_permissions)
-      
-      # Clear cache
-      Rbac::PermissionCacheService.clear_admin_cache(@target_admin.id)
-      
-      log_admin_activity('update_permissions', 'Admin', @target_admin.id, {
-        role_slug: role_slug,
-        custom_permissions: custom_permissions
-      })
-      
-      render_success(
-        format_assignment(assignment),
-        'Permissions updated successfully'
+      service = Rbac::AdminPermissionsUpdateService.new(
+        @target_admin,
+        params[:role_slug],
+        params[:custom_permissions]
       )
+      service.call
+      
+      if service.success?
+        log_admin_activity('update_permissions', 'Admin', @target_admin.id, {
+          role_slug: params[:role_slug],
+          custom_permissions: params[:custom_permissions] || {}
+        })
+        
+        render_success(
+          AdminRoleAssignmentSerializer.new(service.assignment.reload).as_json,
+          'Permissions updated successfully'
+        )
+      else
+        render_validation_errors(service.errors, 'Permissions update failed')
+      end
     end
     
     private
     
     def set_target_admin
       @target_admin = Admin.find(params[:id])
-    end
-    
-    def format_role(role)
-      {
-        id: role.id,
-        name: role.name,
-        slug: role.slug,
-        role_type: role.role_type,
-        description: role.description,
-        priority: role.priority,
-        permissions: role.rbac_permissions.active.pluck(:slug)
-      }
-    end
-    
-    def format_permission(permission)
-      {
-        id: permission.id,
-        name: permission.name,
-        slug: permission.slug,
-        resource_type: permission.resource_type,
-        action: permission.action,
-        category: permission.category,
-        full_permission: permission.full_permission
-      }
-    end
-    
-    def format_assignment(assignment)
-      {
-        id: assignment.id,
-        admin_id: assignment.admin_id,
-        role: format_role(assignment.rbac_role),
-        assigned_by: assignment.assigned_by&.full_name,
-        assigned_at: assignment.assigned_at,
-        expires_at: assignment.expires_at,
-        is_active: assignment.active?,
-        custom_permissions: assignment.custom_permissions_hash
-      }
     end
   end
 end

@@ -43,29 +43,37 @@ class SupportTicket < ApplicationRecord
   # Generate ticket_id
   before_validation :generate_ticket_id, on: :create
   
+  # Ecommerce-specific scopes
   scope :open_tickets, -> { where(status: ['open', 'in_progress', 'waiting_customer']) }
   scope :by_priority, ->(priority) { where(priority: priority) }
-  scope :assigned_to, ->(admin_id) { where(assigned_to_id: admin_id) }
+  scope :assigned_to_admin, ->(admin_id) { where(assigned_to_id: admin_id) }
   scope :recent, -> { order(created_at: :desc) }
+  scope :for_customer, ->(customer_id) { where(user_id: customer_id) }
+  scope :with_full_details, -> { includes(:user, :assigned_to, :support_ticket_messages) }
+  scope :by_status, ->(status) { where(status: status) }
+  scope :by_category, ->(category) { where(category: category) }
+  scope :unresolved, -> { where.not(status: ['resolved', 'closed']) }
+  scope :resolved, -> { where(status: 'resolved') }
   
-  # Assign ticket
+  # Assign ticket (delegates to service)
   def assign_to!(admin)
-    update(assigned_to: admin, assigned_at: Time.current, status: 'in_progress')
+    service = Support::AssignmentService.new(self, admin)
+    service.call
+    service.success?
   end
   
-  # Resolve ticket
+  # Resolve ticket (delegates to service)
   def resolve!(admin, resolution_text = nil)
-    update(
-      resolved_by: admin,
-      resolved_at: Time.current,
-      resolution: resolution_text,
-      status: 'resolved'
-    )
+    service = Support::ResolutionService.new(self, admin, resolution_text)
+    service.call
+    service.success?
   end
   
-  # Close ticket
+  # Close ticket (delegates to service)
   def close!
-    update(status: 'closed', closed_at: Time.current)
+    service = Support::ClosureService.new(self)
+    service.call
+    service.success?
   end
   
   private

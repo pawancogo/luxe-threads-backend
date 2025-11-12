@@ -222,6 +222,26 @@
       }
     }
     
+    .input-group .btn-outline-secondary {
+      border: 2px solid #e9ecef;
+      border-left: none;
+      background: #f8f9fa;
+      color: #6c757d;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .input-group .btn-outline-secondary:hover {
+      background: #e9ecef;
+      color: #495057;
+      border-color: #dee2e6;
+    }
+    
+    .input-group .btn-outline-secondary:focus {
+      box-shadow: none;
+      outline: none;
+    }
+    
     .invalid-feedback {
       font-size: 0.875rem;
       margin-top: 0.5rem;
@@ -302,14 +322,14 @@
             </div>
             <div class="card-body">
 
-              <%= form_with url: admin_login_path, method: :post, local: true, class: "needs-validation", novalidate: true do |form| %>
+              <%= form_with url: admin_login_path, method: :post, local: true, class: "needs-validation", novalidate: true, id: "admin-login-form" do |form| %>
                 <div class="mb-4">
                   <%= form.label :email, "Email Address", class: "form-label" %>
                   <div class="input-group">
                     <span class="input-group-text bg-light border-end-0">
                       <i class="fas fa-envelope text-muted"></i>
                     </span>
-                    <%= form.email_field :email, class: "form-control border-start-0", placeholder: "admin@luxethreads.com", required: true %>
+                    <%= form.email_field :email, class: "form-control border-start-0", placeholder: "admin@luxethreads.com", required: true, value: params[:email] %>
                   </div>
                   <div class="invalid-feedback">
                     Please provide a valid email address.
@@ -337,7 +357,7 @@
                 </div>
                 
                 <div class="text-center">
-                  <%= link_to "Forgot Password?", admin_auth_forgot_password_path, class: "text-decoration-none" %>
+                  <%= link_to "Forgot Password?", admin_auth_forgot_password_path(user_type: 'admin'), class: "text-decoration-none text-primary" %>
                 </div>
               <% end %>
               
@@ -428,9 +448,39 @@
         autohide: true,
         delay: 5000
       });
+      
+      // Remove toast from DOM after it's hidden
+      toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
+      });
+      
       bsToast.show();
     });
   });
+  
+  // Password toggle function
+  function togglePassword(fieldId, buttonId) {
+    const field = document.getElementById(fieldId);
+    const button = document.getElementById(buttonId);
+    const icon = button?.querySelector('i');
+    
+    if (field) {
+      if (field.type === 'password') {
+        field.type = 'text';
+        if (icon) {
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        }
+      } else {
+        field.type = 'password';
+        if (icon) {
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      }
+    }
+  }
+  
   </script>
 </body>
 </html>

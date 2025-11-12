@@ -25,7 +25,7 @@ class Api::V1::SupplierAnalyticsController < ApplicationController
       return
     end
 
-    service = SupplierAnalyticsService.new(supplier_profile, start_date: start_date, end_date: end_date)
+    service = Suppliers::AnalyticsService.new(supplier_profile, start_date: start_date, end_date: end_date)
     analytics_data = service.call
 
     render_success(analytics_data, 'Analytics retrieved successfully')

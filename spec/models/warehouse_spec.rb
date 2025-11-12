@@ -46,3 +46,7 @@ RSpec.describe Warehouse, type: :model do
   end
 end
 
+
+
+
+

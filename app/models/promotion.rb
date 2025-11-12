@@ -27,21 +27,11 @@ class Promotion < ApplicationRecord
     Time.current <= end_date
   end
   
-  # Parse JSON fields
-  def applicable_categories_list
-    return [] if applicable_categories.blank?
-    JSON.parse(applicable_categories) rescue []
-  end
+  # Include JSON parsing concern
+  include JsonParseable
   
-  def applicable_products_list
-    return [] if applicable_products.blank?
-    JSON.parse(applicable_products) rescue []
-  end
-  
-  def applicable_brands_list
-    return [] if applicable_brands.blank?
-    JSON.parse(applicable_brands) rescue []
-  end
+  # Parse JSON fields using concern
+  json_list_parser :applicable_categories, :applicable_products, :applicable_brands
   
   private
   

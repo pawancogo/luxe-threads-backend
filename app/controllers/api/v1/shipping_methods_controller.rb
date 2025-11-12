@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Refactored ShippingMethodsController using Clean Architecture
+# Controller → Model → Serializer
 class Api::V1::ShippingMethodsController < ApplicationController
   skip_before_action :authenticate_request, only: [:index]
   before_action :authorize_admin!, only: [:admin_index, :admin_create, :admin_update, :admin_destroy]
@@ -7,80 +9,69 @@ class Api::V1::ShippingMethodsController < ApplicationController
 
   # GET /api/v1/shipping_methods
   def index
-    @shipping_methods = ShippingMethod.active.order(:name)
+    service = ShippingMethodListingService.new(ShippingMethod.active, params)
+    service.call
     
-    render_success(format_shipping_methods_data(@shipping_methods), 'Shipping methods retrieved successfully')
+    if service.success?
+      serialized_methods = service.shipping_methods.map { |method| ShippingMethodSerializer.new(method).as_json }
+      render_success(serialized_methods, 'Shipping methods retrieved successfully')
+    else
+      render_validation_errors(service.errors, 'Failed to retrieve shipping methods')
+    end
   end
 
   # GET /api/v1/admin/shipping_methods
   def admin_index
-    @shipping_methods = ShippingMethod.order(:name)
+    service = ShippingMethodListingService.new(ShippingMethod.all, params)
+    service.call
     
-    # Filter by active status if provided
-    @shipping_methods = @shipping_methods.where(is_active: params[:is_active] == 'true') if params[:is_active].present?
-    
-    render_success(format_shipping_methods_data(@shipping_methods), 'Shipping methods retrieved successfully')
+    if service.success?
+      serialized_methods = service.shipping_methods.map { |method| ShippingMethodSerializer.new(method).as_json }
+      render_success(serialized_methods, 'Shipping methods retrieved successfully')
+    else
+      render_validation_errors(service.errors, 'Failed to retrieve shipping methods')
+    end
   end
 
   # POST /api/v1/admin/shipping_methods
   def admin_create
-    shipping_method_params_data = params[:shipping_method] || {}
+    service = Shipping::CreationService.new(shipping_method_params)
+    service.call
     
-    @shipping_method = ShippingMethod.new(
-      name: shipping_method_params_data[:name],
-      code: shipping_method_params_data[:code],
-      description: shipping_method_params_data[:description],
-      provider: shipping_method_params_data[:provider],
-      base_charge: shipping_method_params_data[:base_charge],
-      per_kg_charge: shipping_method_params_data[:per_kg_charge],
-      free_shipping_above: shipping_method_params_data[:free_shipping_above],
-      estimated_days_min: shipping_method_params_data[:estimated_days_min],
-      estimated_days_max: shipping_method_params_data[:estimated_days_max],
-      is_cod_available: shipping_method_params_data[:is_cod_available] || false,
-      is_active: shipping_method_params_data[:is_active] != false,
-      available_pincodes: shipping_method_params_data[:available_pincodes]&.to_json,
-      excluded_pincodes: shipping_method_params_data[:excluded_pincodes]&.to_json
-    )
-    
-    if @shipping_method.save
-      render_created(format_shipping_method_detail_data(@shipping_method), 'Shipping method created successfully')
+    if service.success?
+      render_created(
+        ShippingMethodSerializer.new(service.shipping_method).detailed,
+        'Shipping method created successfully'
+      )
     else
-      render_validation_errors(@shipping_method.errors.full_messages, 'Shipping method creation failed')
+      render_validation_errors(service.errors, 'Shipping method creation failed')
     end
   end
 
   # PATCH /api/v1/admin/shipping_methods/:id
   def admin_update
-    shipping_method_params_data = params[:shipping_method] || {}
+    service = Shipping::UpdateService.new(@shipping_method, shipping_method_update_params)
+    service.call
     
-    update_hash = {}
-    update_hash[:name] = shipping_method_params_data[:name] if shipping_method_params_data.key?(:name)
-    update_hash[:code] = shipping_method_params_data[:code] if shipping_method_params_data.key?(:code)
-    update_hash[:description] = shipping_method_params_data[:description] if shipping_method_params_data.key?(:description)
-    update_hash[:provider] = shipping_method_params_data[:provider] if shipping_method_params_data.key?(:provider)
-    update_hash[:base_charge] = shipping_method_params_data[:base_charge] if shipping_method_params_data.key?(:base_charge)
-    update_hash[:per_kg_charge] = shipping_method_params_data[:per_kg_charge] if shipping_method_params_data.key?(:per_kg_charge)
-    update_hash[:free_shipping_above] = shipping_method_params_data[:free_shipping_above] if shipping_method_params_data.key?(:free_shipping_above)
-    update_hash[:estimated_days_min] = shipping_method_params_data[:estimated_days_min] if shipping_method_params_data.key?(:estimated_days_min)
-    update_hash[:estimated_days_max] = shipping_method_params_data[:estimated_days_max] if shipping_method_params_data.key?(:estimated_days_max)
-    update_hash[:is_cod_available] = shipping_method_params_data[:is_cod_available] if shipping_method_params_data.key?(:is_cod_available)
-    update_hash[:is_active] = shipping_method_params_data[:is_active] if shipping_method_params_data.key?(:is_active)
-    update_hash[:available_pincodes] = shipping_method_params_data[:available_pincodes]&.to_json if shipping_method_params_data.key?(:available_pincodes)
-    update_hash[:excluded_pincodes] = shipping_method_params_data[:excluded_pincodes]&.to_json if shipping_method_params_data.key?(:excluded_pincodes)
-    
-    if @shipping_method.update(update_hash)
-      render_success(format_shipping_method_detail_data(@shipping_method), 'Shipping method updated successfully')
+    if service.success?
+      render_success(
+        ShippingMethodSerializer.new(@shipping_method.reload).detailed,
+        'Shipping method updated successfully'
+      )
     else
-      render_validation_errors(@shipping_method.errors.full_messages, 'Shipping method update failed')
+      render_validation_errors(service.errors, 'Shipping method update failed')
     end
   end
 
   # DELETE /api/v1/admin/shipping_methods/:id
   def admin_destroy
-    if @shipping_method.destroy
+    service = Shipping::DeletionService.new(@shipping_method)
+    service.call
+    
+    if service.success?
       render_success({ id: @shipping_method.id }, 'Shipping method deleted successfully')
     else
-      render_validation_errors(@shipping_method.errors.full_messages, 'Shipping method deletion failed')
+      render_validation_errors(service.errors, 'Shipping method deletion failed')
     end
   end
 
@@ -96,32 +87,38 @@ class Api::V1::ShippingMethodsController < ApplicationController
     render_unauthorized('Admin access required') unless current_user&.admin?
   end
 
-  def format_shipping_methods_data(methods)
-    methods.map do |method|
-      {
-        id: method.id,
-        name: method.name,
-        code: method.code,
-        description: method.description,
-        provider: method.provider,
-        base_charge: method.base_charge&.to_f || 0,
-        per_kg_charge: method.per_kg_charge&.to_f || 0,
-        free_shipping_above: method.free_shipping_above&.to_f,
-        estimated_days_min: method.estimated_days_min,
-        estimated_days_max: method.estimated_days_max,
-        is_cod_available: method.is_cod_available || false
-      }
-    end
+  def shipping_method_params
+    params_data = params[:shipping_method] || {}
+    {
+      name: params_data[:name],
+      code: params_data[:code],
+      description: params_data[:description],
+      provider: params_data[:provider],
+      base_charge: params_data[:base_charge],
+      per_kg_charge: params_data[:per_kg_charge],
+      free_shipping_above: params_data[:free_shipping_above],
+      estimated_days_min: params_data[:estimated_days_min],
+      estimated_days_max: params_data[:estimated_days_max],
+      is_cod_available: params_data[:is_cod_available] || false,
+      is_active: params_data[:is_active] != false,
+      available_pincodes: params_data[:available_pincodes]&.to_json,
+      excluded_pincodes: params_data[:excluded_pincodes]&.to_json
+    }
   end
 
-  def format_shipping_method_detail_data(method)
-    format_shipping_methods_data([method]).first.merge(
-      is_active: method.is_active,
-      available_pincodes: method.available_pincodes_list,
-      excluded_pincodes: method.excluded_pincodes_list,
-      created_at: method.created_at,
-      updated_at: method.updated_at
-    )
+  def shipping_method_update_params
+    params_data = params[:shipping_method] || {}
+    update_hash = {}
+    
+    %i[name code description provider base_charge per_kg_charge free_shipping_above
+       estimated_days_min estimated_days_max is_cod_available is_active].each do |key|
+      update_hash[key] = params_data[key] if params_data.key?(key)
+    end
+    
+    update_hash[:available_pincodes] = params_data[:available_pincodes]&.to_json if params_data.key?(:available_pincodes)
+    update_hash[:excluded_pincodes] = params_data[:excluded_pincodes]&.to_json if params_data.key?(:excluded_pincodes)
+    
+    update_hash
   end
 end
 

@@ -78,3 +78,7 @@ RSpec.describe Inventoriable, type: :concern do
   end
 end
 
+
+
+
+

@@ -61,3 +61,7 @@ RSpec.describe RbacAuthorizable, type: :concern do
   end
 end
 
+
+
+
+

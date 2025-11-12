@@ -26,7 +26,7 @@ class Api::V1::ProductBulkOperationsController < ApplicationController
     csv_file.rewind if csv_file.respond_to?(:rewind)
 
     # Import products
-    service = ProductBulkImportService.new(current_user.supplier_profile, csv_content)
+    service = Products::BulkImportService.new(current_user.supplier_profile, csv_content)
     result = service.call
 
     if service.success?
@@ -63,25 +63,33 @@ class Api::V1::ProductBulkOperationsController < ApplicationController
   def export
     supplier_profile = current_user.supplier_profile
     
-    products = ProductRepository.new.all_for_supplier_profile(supplier_profile.id)
+    products = Product.where(supplier_profile: supplier_profile)
+                      .includes(:category, :brand, product_variants: [:product_images, :product_variant_attributes])
     
-    # Generate CSV
-    csv = generate_products_csv(products)
+    service = Products::ExportService.new(products)
+    service.call
     
-    # Send CSV file
-    send_data csv,
-      type: 'text/csv; charset=utf-8',
-      disposition: "attachment; filename=products_export_#{Time.current.strftime('%Y%m%d_%H%M%S')}.csv"
+    if service.success?
+      send_data service.csv_data,
+        type: 'text/csv; charset=utf-8',
+        disposition: "attachment; filename=#{service.filename}"
+    else
+      render_error(service.errors.first || 'Failed to export products', :unprocessable_entity)
+    end
   end
 
   # GET /api/v1/products/export_template
   def export_template
-    # Generate CSV template with headers and example row
-    csv = generate_csv_template
+    service = Products::ExportTemplateService.new
+    service.call
     
-    send_data csv,
-      type: 'text/csv; charset=utf-8',
-      disposition: "attachment; filename=products_import_template.csv"
+    if service.success?
+      send_data service.csv_data,
+        type: 'text/csv; charset=utf-8',
+        disposition: "attachment; filename=#{service.filename}"
+    else
+      render_error(service.errors.first || 'Failed to generate template', :unprocessable_entity)
+    end
   end
 
   private
@@ -100,115 +108,5 @@ class Api::V1::ProductBulkOperationsController < ApplicationController
     end
   end
 
-  def generate_products_csv(products)
-    require 'csv'
-    
-    CSV.generate(headers: true) do |csv|
-      # Headers
-      csv << [
-        'name', 'description', 'short_description', 'category', 'brand',
-        'status', 'is_featured', 'is_bestseller', 'is_new_arrival', 'is_trending',
-        'sku', 'price', 'discounted_price', 'mrp', 'stock_quantity', 'weight_kg',
-        'barcode', 'image_urls', 'attributes'
-      ]
-
-      # Product rows (one row per variant)
-      products.each do |product|
-        if product.product_variants.any?
-          product.product_variants.each do |variant|
-            csv << [
-              product.name,
-              product.description,
-              product.short_description,
-              product.category.name,
-              product.brand.name,
-              product.status,
-              product.is_featured ? 'Yes' : 'No',
-              product.is_bestseller ? 'Yes' : 'No',
-              product.is_new_arrival ? 'Yes' : 'No',
-              product.is_trending ? 'Yes' : 'No',
-              variant.sku,
-              variant.price,
-              variant.discounted_price,
-              variant.mrp,
-              variant.stock_quantity,
-              variant.weight_kg,
-              variant.barcode,
-              variant.product_images.map(&:image_url).join(','),
-              format_variant_attributes(variant)
-            ]
-          end
-        else
-          # Product without variants
-          csv << [
-            product.name,
-            product.description,
-            product.short_description,
-            product.category.name,
-            product.brand.name,
-            product.status,
-            product.is_featured ? 'Yes' : 'No',
-            product.is_bestseller ? 'Yes' : 'No',
-            product.is_new_arrival ? 'Yes' : 'No',
-            product.is_trending ? 'Yes' : 'No',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
-          ]
-        end
-      end
-    end
-  end
-
-  def generate_csv_template
-    require 'csv'
-    
-    CSV.generate(headers: true) do |csv|
-      # Headers
-      csv << [
-        'name', 'description', 'short_description', 'category', 'brand',
-        'status', 'is_featured', 'is_bestseller', 'is_new_arrival', 'is_trending',
-        'sku', 'price', 'discounted_price', 'mrp', 'stock_quantity', 'weight_kg',
-        'barcode', 'image_urls', 'attributes'
-      ]
-
-      # Example row
-      csv << [
-        'Example Product Name',
-        'This is a detailed product description',
-        'Short product description',
-        'Category Name',
-        'Brand Name',
-        'pending',
-        'No',
-        'No',
-        'Yes',
-        'No',
-        'SKU123',
-        '99.99',
-        '79.99',
-        '129.99',
-        '100',
-        '0.5',
-        '1234567890123',
-        'https://example.com/image1.jpg,https://example.com/image2.jpg',
-        'Color:Red,Size:L'
-      ]
-    end
-  end
-
-  def format_variant_attributes(variant)
-    return '' unless variant.respond_to?(:product_variant_attributes) && variant.product_variant_attributes.any?
-    
-    variant.product_variant_attributes.map do |pva|
-      "#{pva.attribute_type.name}:#{pva.attribute_value.value}"
-    end.join(',')
-  end
 end
 

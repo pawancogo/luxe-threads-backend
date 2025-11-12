@@ -22,3 +22,7 @@ RSpec.describe SupplierDocument, type: :model do
   end
 end
 
+
+
+
+

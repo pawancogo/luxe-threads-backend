@@ -85,45 +85,61 @@ class EmailVerificationController < ActionController::Base
   end
 
   def verify
-    load_verifiable_for_view(params[:type], params[:id], params[:email])
+    token = params[:token]
     
-    result = EmailVerificationService.new(@verifiable).verify_email_with_otp(params[:otp])
+    unless token.present?
+      flash[:alert] = 'Invalid verification link. Please check your email for the correct link.'
+      redirect_to root_path
+      return
+    end
+    
+    # Find verification by token
+    verification = EmailVerification.find_by(verification_token: token)
+    
+    unless verification && verification.active?
+      flash[:alert] = 'Invalid or expired verification link. Please request a new verification email.'
+      redirect_to root_path
+      return
+    end
+    
+    @verifiable = verification.verifiable
+    result = Authentication::EmailVerificationService.new(@verifiable).verify_email_with_token(token)
     
     if result[:success]
       @verification_successful = true
       
-      # Account activation is now handled automatically in EmailVerification#verify!
+      # Account activation is now handled automatically in EmailVerificationService#verify_email_with_token
       # Reload to get the updated is_active status
       @verifiable.reload
       
       # Check if account is now active (was activated during verification)
       if @verifiable.respond_to?(:is_active?) && @verifiable.is_active?
-        flash.now[:notice] = 'Email verified successfully! Your account has been verified and activated.'
+        flash[:notice] = 'Email verified successfully! Your account has been verified and activated.'
         @account_activated = true
       else
-        flash.now[:notice] = 'Email verified successfully! Your account is now verified.'
+        flash[:notice] = 'Email verified successfully! Your account is now verified.'
       end
       
-      @verification = nil
-      render :show
+      # Redirect to appropriate login page
+      if @verifiable.is_a?(Admin)
+        redirect_to admin_login_path
+      else
+        redirect_to root_path
+      end
     else
-      flash.now[:alert] = result[:message]
-      @verification = @verifiable.email_verifications.pending.active.first
-      render :show, status: :unprocessable_entity
+      flash[:alert] = result[:message]
+      redirect_to root_path
     end
-  rescue ArgumentError
-    flash.now[:alert] = 'Invalid verification request'
-    render :show, status: :unprocessable_entity
   rescue ActiveRecord::RecordNotFound
-    flash.now[:alert] = 'Verification record not found'
-    render :show, status: :not_found
+    flash[:alert] = 'Verification record not found'
+    redirect_to root_path
   end
 
   def resend
     email = params[:email] || params.dig(:verifiable, :email)
     load_verifiable_for_view(params[:type], params[:id], email)
     
-    service = EmailVerificationService.new(@verifiable)
+    service = Authentication::EmailVerificationService.new(@verifiable)
     
     if service.resend_verification_email
       flash.now[:notice] = 'Code sent successfully!'

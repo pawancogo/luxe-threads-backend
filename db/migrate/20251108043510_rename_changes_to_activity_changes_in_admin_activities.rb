@@ -6,3 +6,7 @@ class RenameChangesToActivityChangesInAdminActivities < ActiveRecord::Migration[
   end
 end
 
+
+
+
+

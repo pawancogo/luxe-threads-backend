@@ -14,27 +14,31 @@ class Api::V1::ProductVariantsController < ApplicationController
 
   # POST /api/v1/products/:product_id/product_variants
   def create
-    form = ProductVariantForm.new(
-      variant_params.merge(product_id: @product.id)
-    )
+      service = Products::VariantCreationService.new(@product, variant_params)
+    service.call
     
-    if form.save
-      render_created(format_variant_data(form.variant), 'Product variant created successfully')
+    if service.success?
+      render_created(
+        ProductVariantSerializer.new(service.variant).as_json,
+        'Product variant created successfully'
+      )
     else
-      render_validation_errors(form.errors.full_messages, 'Product variant creation failed')
+      render_validation_errors(service.errors, 'Product variant creation failed')
     end
   end
 
   # PUT/PATCH /api/v1/products/:product_id/product_variants/:id
   def update
-    form = ProductVariantForm.new(
-      variant_params.merge(product_id: @product.id)
-    )
+      service = Products::VariantUpdateService.new(@variant, variant_params)
+    service.call
     
-    if form.update(@variant)
-      render_success(format_variant_data(form.variant), 'Product variant updated successfully')
+    if service.success?
+      render_success(
+        ProductVariantSerializer.new(service.variant).as_json,
+        'Product variant updated successfully'
+      )
     else
-      render_validation_errors(form.errors.full_messages, 'Product variant update failed')
+      render_validation_errors(service.errors, 'Product variant update failed')
     end
   end
 
@@ -84,40 +88,4 @@ class Api::V1::ProductVariantsController < ApplicationController
     )
   end
 
-  def format_variant_data(variant)
-    {
-      id: variant.id,
-      sku: variant.sku,
-      price: variant.price.to_f,
-      discounted_price: variant.discounted_price&.to_f,
-      stock_quantity: variant.stock_quantity,
-      weight_kg: variant.weight_kg&.to_f,
-      available: variant.available?,
-      current_price: variant.current_price.to_f,
-      images: variant.product_images.order(:display_order).map do |image|
-        {
-          id: image.id,
-          url: image.image_url,
-          alt_text: image.alt_text,
-          display_order: image.display_order
-        }
-      end,
-      attributes: variant.product_variant_attributes.includes(attribute_value: :attribute_type).map do |pva|
-        attr_data = {
-          attribute_type: pva.attribute_value.attribute_type.name,
-          attribute_value: pva.attribute_value.value
-        }
-        
-        # Add color hex code if this is a color attribute
-        if pva.attribute_value.attribute_type.name.downcase == 'color'
-          hex_code = ColorHexMap.hex_for(pva.attribute_value.value)
-          attr_data[:hex_code] = hex_code if hex_code
-        end
-        
-        attr_data
-      end,
-      created_at: variant.created_at.iso8601,
-      updated_at: variant.updated_at.iso8601
-    }
-  end
 end

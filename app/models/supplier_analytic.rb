@@ -13,10 +13,11 @@ class SupplierAnalytic < ApplicationRecord
   scope :recent, -> { order(date: :desc) }
   scope :by_date_range, ->(start_date, end_date) { where(date: start_date..end_date) }
   
-  # Calculate conversion rate
+  # Calculate conversion rate (delegates to service)
   def calculate_conversion_rate
-    return 0.0 if products_viewed.zero?
-    ((products_added_to_cart.to_f / products_viewed) * 100).round(2)
+    service = Suppliers::AnalyticsCalculationService.new(products_viewed || 0, products_added_to_cart || 0)
+    service.call
+    service.conversion_rate
   end
   
   # Update conversion rate
@@ -25,7 +26,11 @@ class SupplierAnalytic < ApplicationRecord
   private
   
   def update_conversion_rate
-    self.conversion_rate = calculate_conversion_rate if products_viewed.present? && products_added_to_cart.present?
+    if products_viewed.present? && products_added_to_cart.present?
+      service = Suppliers::AnalyticsCalculationService.new(products_viewed, products_added_to_cart)
+      service.call
+      self.conversion_rate = service.conversion_rate if service.success?
+    end
   end
 end
 

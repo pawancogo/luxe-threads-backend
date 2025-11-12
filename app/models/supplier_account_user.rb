@@ -39,9 +39,12 @@ class SupplierAccountUser < ApplicationRecord
   scope :admins, -> { where(role: 'admin') }
   scope :pending_invitations, -> { where(status: 'pending_invitation') }
 
+  # Include token generation concern
+  include TokenGeneratable
+  
   # Callbacks
   before_create :generate_invitation_token, if: -> { status == 'pending_invitation' && invitation_token.blank? }
-  after_create :send_invitation_email, if: -> { status == 'pending_invitation' }
+  # Note: after_create :send_invitation_email removed - invitation emails are sent by Invitations::SupplierUserService
 
   # Helper methods
   def owner?
@@ -102,8 +105,9 @@ class SupplierAccountUser < ApplicationRecord
   end
 
   # Update custom permissions
+  # Uses update! to trigger validations and callbacks
   def update_custom_permissions(permissions)
-    update_column(:custom_permissions, permissions.to_json)
+    update!(custom_permissions: permissions.to_json)
   end
 
   # Suspend user from supplier account
@@ -111,12 +115,11 @@ class SupplierAccountUser < ApplicationRecord
     update!(status: 'suspended')
   end
 
-  # Activate user
-  def activate!
-    update!(status: 'active')
-  end
+  # Note: activate! method removed - business logic should be in services
 
   # Update last active timestamp
+  # NOTE: Using update_column for timestamp tracking only (no validations/callbacks needed)
+  # This is acceptable for performance-critical timestamp updates
   def update_last_active!
     update_column(:last_active_at, Time.current)
   end
@@ -142,14 +145,11 @@ class SupplierAccountUser < ApplicationRecord
   end
 
   def generate_invitation_token
-    self.invitation_token = SecureRandom.urlsafe_base64(32)
+    self.invitation_token = generate_unique_token_for(:invitation_token)
     self.invitation_expires_at = 7.days.from_now
   end
 
-  def send_invitation_email
-    # TODO: Implement invitation email service
-    # SupplierInvitationMailer.invite_user(self).deliver_now
-  end
+  # Note: send_invitation_email method removed - invitation emails are sent by Invitations::SupplierUserService
 end
 
 

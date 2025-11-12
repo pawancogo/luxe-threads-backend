@@ -17,12 +17,13 @@ class Admin::PromotionsController < Admin::BaseController
     end
 
     def create
-      @promotion = Promotion.new(promotion_params)
-      @promotion.created_by = current_admin
+      service = Promotions::CreationService.new(promotion_params, current_admin)
+      service.call
       
-      if @promotion.save
-        redirect_to admin_promotion_path(@promotion), notice: 'Promotion created successfully.'
+      if service.success?
+        redirect_to admin_promotion_path(service.promotion), notice: 'Promotion created successfully.'
       else
+        @promotion = service.promotion || Promotion.new(promotion_params)
         render :new, status: :unprocessable_entity
       end
     end
@@ -31,7 +32,10 @@ class Admin::PromotionsController < Admin::BaseController
     end
 
     def update
-      if @promotion.update(promotion_params)
+      service = Promotions::UpdateService.new(@promotion, promotion_params)
+      service.call
+      
+      if service.success?
         redirect_to admin_promotion_path(@promotion), notice: 'Promotion updated successfully.'
       else
         render :edit, status: :unprocessable_entity
@@ -39,8 +43,14 @@ class Admin::PromotionsController < Admin::BaseController
     end
 
     def destroy
-      @promotion.destroy
-      redirect_to admin_promotions_path, notice: 'Promotion deleted successfully.'
+      service = Promotions::DeletionService.new(@promotion)
+      service.call
+      
+      if service.success?
+        redirect_to admin_promotions_path, notice: 'Promotion deleted successfully.'
+      else
+        redirect_to admin_promotions_path, alert: service.errors.first || 'Failed to delete promotion'
+      end
     end
 
     private

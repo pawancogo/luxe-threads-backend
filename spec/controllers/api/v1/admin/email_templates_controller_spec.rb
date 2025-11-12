@@ -52,3 +52,7 @@ RSpec.describe Api::V1::Admin::EmailTemplatesController, type: :controller do
   end
 end
 
+
+
+
+

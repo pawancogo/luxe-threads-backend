@@ -3,8 +3,8 @@
 ## 🎯 Overview
 Test admin login, authentication, session management, and security features.
 
-**Estimated Time**: 60-75 minutes  
-**Test Cases**: ~50
+**Estimated Time**: 55-70 minutes  
+**Test Cases**: ~47
 
 ---
 
@@ -93,27 +93,8 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
-## Test Case 1.4: Super Admin Login - Non-existent Email => Tested by Pawan
 
-**Prerequisites**: Same as 1.1
-
-**Steps**:
-1. Navigate to login page
-2. Enter email that doesn't exist (e.g., "nonexistent@test.com")
-3. Enter any password
-4. Click "Login"
-
-**Expected Result (FE)**:
-- ✅ Same as Test 1.3 (don't reveal if email exists)
-
-**Expected Result (BE)**:
-- ✅ Same as Test 1.3 (security: generic error message)
-
-**Pass/Fail**: ☐
-
----
-
-## Test Case 1.5: Super Admin Login - Empty Fields => Tested by Pawan
+## Test Case 1.4: Super Admin Login - Empty Fields => Tested by Pawan
 
 **Prerequisites**: Same as 1.1
 
@@ -135,7 +116,7 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
-## Test Case 1.6: Super Admin Login - Email Only => Tested by Pawan
+## Test Case 1.5: Super Admin Login - Email Only => Tested by Pawan
 
 **Prerequisites**: Same as 1.1
 
@@ -156,7 +137,7 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
-## Test Case 1.7: Super Admin Login - Password Only => Tested by Pawan
+## Test Case 1.6: Super Admin Login - Password Only => Tested by Pawan
 
 **Prerequisites**: Same as 1.1
 
@@ -275,7 +256,7 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
-## Test Case 1.12: Login - Blocked Admin Account
+## Test Case 1.12: Login - Blocked Admin Account => Tested by Pawan
 
 **Prerequisites**: 
 - Admin account exists with `is_blocked: true`
@@ -299,7 +280,7 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
-## Test Case 1.13: Login - Inactive Admin Account
+## Test Case 1.13: Login - Inactive Admin Account => Tested by Pawan
 
 **Prerequisites**: 
 - Admin account exists with `is_active: false`
@@ -392,29 +373,8 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
-## Test Case 1.17: Logout - Direct API Call
 
-**Prerequisites**: 
-- Logged in as Super Admin
-
-**Steps**:
-1. Open browser DevTools Network tab
-2. Click logout button
-3. Verify API call
-
-**Expected Result (FE)**:
-- ✅ API call visible in Network tab
-- ✅ Request: `DELETE /admin/logout` or `POST /admin/logout`
-
-**Expected Result (BE)**:
-- ✅ API endpoint responds correctly
-- ✅ Session/token invalidated
-
-**Pass/Fail**: ☐
-
----
-
-## Test Case 1.18: Token Expiration - Expired Token
+## Test Case 1.17: Token Expiration - Expired Token
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -437,7 +397,7 @@ Test admin login, authentication, session management, and security features.
 
 ---
 
-## Test Case 1.19: Protected Route Access - Without Login
+## Test Case 1.18: Protected Route Access - Without Login
 
 **Prerequisites**: 
 - Not logged in
@@ -1116,36 +1076,8 @@ Test the complete admin invitation flow: sending invitations, accepting invitati
 
 ---
 
-## Test Case 1.46: Admin Invitation - Login After Acceptance => Tested by Pawan
 
-**Prerequisites**: 
-- Admin invitation accepted and registration completed (from Test 1.44)
-
-**Steps**:
-1. Navigate to `/admin/login`
-2. Enter email used in invitation
-3. Enter password set during registration
-4. Click "Login"
-
-**Expected Result (FE)**:
-- ✅ Login successful
-- ✅ Success message: "Welcome! You have successfully logged in as admin."
-- ✅ Redirects to `/admin/dashboard`
-- ✅ Admin can access dashboard
-- ✅ Permissions based on assigned role
-
-**Expected Result (BE)**:
-- ✅ API: `POST /admin/login` returns 200 OK
-- ✅ Response contains admin data with correct role
-- ✅ `last_login_at` updated
-- ✅ Session/token created
-- ✅ Admin status is "active"
-
-**Pass/Fail**: ☐
-
----
-
-## Test Case 1.47: Admin Invitation - Resend Invitation => Tested by Pawan
+## Test Case 1.46: Admin Invitation - Resend Invitation => Tested by Pawan
 
 **Prerequisites**: 
 - Super Admin logged in
@@ -1174,7 +1106,7 @@ Test the complete admin invitation flow: sending invitations, accepting invitati
 
 ---
 
-## Test Case 1.48: Admin Invitation - Already Used Token => Tested by Pawan
+## Test Case 1.47: Admin Invitation - Already Used Token => Tested by Pawan
 
 **Prerequisites**: 
 - Invitation already accepted (token used)
@@ -1197,7 +1129,7 @@ Test the complete admin invitation flow: sending invitations, accepting invitati
 
 ---
 
-## Test Case 1.49: Admin Invitation - Pending Admin Cannot Login => Tested by Pawan
+## Test Case 1.48: Admin Invitation - Pending Admin Cannot Login => Tested by Pawan
 
 **Prerequisites**: 
 - Admin with pending invitation (not yet accepted)
@@ -1221,7 +1153,7 @@ Test the complete admin invitation flow: sending invitations, accepting invitati
 
 ---
 
-## Test Case 1.50: Admin Invitation - Email Link Security => Tested by Pawan
+## Test Case 1.49: Admin Invitation - Email Link Security => Tested by Pawan
 
 **Prerequisites**: 
 - Invitation email received
@@ -1252,6 +1184,6 @@ Test the complete admin invitation flow: sending invitations, accepting invitati
 
 **Completed By**: _______________  
 **Date**: _______________  
-**Total Passed**: ___/50  
-**Total Failed**: ___/50
+**Total Passed**: ___/47  
+**Total Failed**: ___/47
 

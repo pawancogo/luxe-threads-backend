@@ -18,8 +18,8 @@ class Api::V1::ProductViewsController < ApplicationController
   def track
     product = Product.find(params[:product_id])
     
-    view = ProductView.track_view(
-      product.id,
+    service = Products::ViewTrackingService.new(
+      product,
       user_id: current_user&.id,
       product_variant_id: params[:product_variant_id],
       session_id: request.headers['X-Session-Id'] || session.id,
@@ -28,8 +28,13 @@ class Api::V1::ProductViewsController < ApplicationController
       referrer_url: request.referer,
       source: params[:source] || 'direct'
     )
+    service.call
     
-    render_success({ id: view.id }, 'Product view tracked successfully')
+    if service.success?
+      render_success({ id: service.product_view.id }, 'Product view tracked successfully')
+    else
+      render_error(service.errors.first || 'Failed to track product view', :unprocessable_entity)
+    end
   rescue ActiveRecord::RecordNotFound
     render_not_found('Product not found')
   end

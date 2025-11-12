@@ -117,19 +117,8 @@ Rails.application.configure do
     enable_starttls_auto: true
   }
   
-  # Production CORS configuration
-  config.middleware.insert_before 0, Rack::Cors do
-    allow do
-      origins ENV.fetch('FRONTEND_URL', 'https://yourdomain.com').split(',')
-      
-      resource '*',
-        headers: :any,
-        methods: [:get, :post, :put, :patch, :delete, :options, :head],
-        expose: ['Authorization'],
-        credentials: true,
-        max_age: 3600
-    end
-  end
+  # CORS Configuration is handled in config/initializers/cors.rb
+  # No need to duplicate here
   
   # Production logging
   if ENV['LOG_TO_FILE'].present?

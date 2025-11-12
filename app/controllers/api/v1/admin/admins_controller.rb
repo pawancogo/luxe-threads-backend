@@ -10,32 +10,42 @@ module Api::V1::Admin
     
     # GET /api/v1/admin/admins
     def index
-      search_params = params.except(:controller, :action).permit(:search, :per_page, :page, :role, :is_active, :is_blocked)
+      service = Admins::AdminListingService.new(Admin.all, params)
+      service.call
       
-      @admins = Admin._search(search_params).order(:role, :first_name)
-      
-      # Pagination
-      page = params[:page]&.to_i || 1
-      per_page = params[:per_page]&.to_i || 20
-      @admins = @admins.page(page).per(per_page)
-      
-      render_success(format_admins_data(@admins), 'Admins retrieved successfully')
+      if service.success?
+        render_success(
+          AdminAdminSerializer.collection(service.admins),
+          'Admins retrieved successfully'
+        )
+      else
+        render_validation_errors(service.errors, 'Failed to retrieve admins')
+      end
     end
     
     # GET /api/v1/admin/admins/:id
     def show
-      render_success(format_admin_detail_data(@admin), 'Admin retrieved successfully')
+      render_success(
+        AdminAdminSerializer.new(@admin).as_json,
+        'Admin retrieved successfully'
+      )
     end
     
     # PATCH /api/v1/admin/admins/:id
     def update
       admin_params_data = params[:admin] || {}
       
-      if @admin.update(admin_params_data.permit(:first_name, :last_name, :email, :phone_number, :role))
+      service = Admins::UpdateService.new(@admin, admin_params_data.permit(:first_name, :last_name, :email, :phone_number, :role))
+      service.call
+      
+      if service.success?
         log_admin_activity('update', 'Admin', @admin.id, @admin.previous_changes)
-        render_success(format_admin_detail_data(@admin), 'Admin updated successfully')
+        render_success(
+          AdminAdminSerializer.new(@admin.reload).as_json,
+          'Admin updated successfully'
+        )
       else
-        render_validation_errors(@admin.errors.full_messages, 'Admin update failed')
+        render_validation_errors(service.errors, 'Admin update failed')
       end
     end
     
@@ -51,10 +61,13 @@ module Api::V1::Admin
       end
       
       @admin = Admin.find_or_initialize_by(email: email)
-      service = InvitationService.new(@admin, @current_admin)
+      service = Invitations::Service.new(@admin, @current_admin)
       
       if service.send_admin_invitation(role)
-        render_created(format_admin_detail_data(@admin), "Invitation sent to #{@admin.email} successfully")
+        render_created(
+          AdminAdminSerializer.new(@admin).as_json,
+          "Invitation sent to #{@admin.email} successfully"
+        )
       else
         render_validation_errors(service.errors, 'Failed to send invitation')
       end
@@ -62,10 +75,13 @@ module Api::V1::Admin
 
     # POST /api/v1/admin/admins/:id/resend_invitation
     def resend_invitation
-      service = InvitationService.new(@admin, @current_admin)
+      service = Invitations::Service.new(@admin, @current_admin)
       
       if service.resend_invitation
-        render_success(format_admin_detail_data(@admin), "Invitation resent to #{@admin.email}")
+        render_success(
+          AdminAdminSerializer.new(@admin).as_json,
+          "Invitation resent to #{@admin.email}"
+        )
       else
         render_validation_errors(service.errors, 'Failed to resend invitation')
       end
@@ -79,11 +95,14 @@ module Api::V1::Admin
         return
       end
       
-      if @admin.destroy
+      service = Admins::DeletionService.new(@admin)
+      service.call
+      
+      if service.success?
         log_admin_activity('destroy', 'Admin', @admin.id, {})
         render_success({}, 'Admin deleted successfully')
       else
-        render_validation_errors(@admin.errors.full_messages, 'Admin deletion failed')
+        render_validation_errors(service.errors, 'Admin deletion failed')
       end
     end
     
@@ -95,21 +114,33 @@ module Api::V1::Admin
         return
       end
       
-      if @admin.block!
+      service = Admins::BlockService.new(@admin)
+      service.call
+      
+      if service.success?
         log_admin_activity('block', 'Admin', @admin.id, { is_blocked: [false, true] })
-        render_success(format_admin_detail_data(@admin), 'Admin blocked successfully')
+        render_success(
+          AdminAdminSerializer.new(@admin.reload).as_json,
+          'Admin blocked successfully'
+        )
       else
-        render_validation_errors(@admin.errors.full_messages, 'Failed to block admin')
+        render_validation_errors(service.errors, 'Failed to block admin')
       end
     end
     
     # PATCH /api/v1/admin/admins/:id/unblock
     def unblock
-      if @admin.unblock!
+      service = Admins::UnblockService.new(@admin)
+      service.call
+      
+      if service.success?
         log_admin_activity('unblock', 'Admin', @admin.id, { is_blocked: [true, false] })
-        render_success(format_admin_detail_data(@admin), 'Admin unblocked successfully')
+        render_success(
+          AdminAdminSerializer.new(@admin.reload).as_json,
+          'Admin unblocked successfully'
+        )
       else
-        render_validation_errors(@admin.errors.full_messages, 'Failed to unblock admin')
+        render_validation_errors(service.errors, 'Failed to unblock admin')
       end
     end
     
@@ -126,60 +157,21 @@ module Api::V1::Admin
       render_not_found('Admin not found')
     end
     
-    def format_admins_data(admins)
-      admins.map do |admin|
-        {
-          id: admin.id,
-          email: admin.email,
-          first_name: admin.first_name,
-          last_name: admin.last_name,
-          full_name: admin.full_name,
-          phone_number: admin.phone_number,
-          role: admin.role,
-          is_active: admin.is_active,
-          is_blocked: admin.is_blocked,
-          email_verified: admin.email_verified?,
-          created_at: admin.created_at,
-          last_login_at: admin.last_login_at
-        }
-      end
-    end
-    
-    def format_admin_detail_data(admin)
-      {
-        id: admin.id,
-        email: admin.email,
-        first_name: admin.first_name,
-        last_name: admin.last_name,
-        full_name: admin.full_name,
-        phone_number: admin.phone_number,
-        role: admin.role,
-        is_active: admin.is_active,
-        is_blocked: admin.is_blocked,
-        email_verified: admin.email_verified?,
-        created_at: admin.created_at,
-        updated_at: admin.updated_at,
-        last_login_at: admin.last_login_at,
-        permissions: {
-          can_manage_products: admin.can_manage_products?,
-          can_manage_orders: admin.can_manage_orders?,
-          can_manage_users: admin.can_manage_users?,
-          can_manage_suppliers: admin.can_manage_suppliers?
-        }
-      }
-    end
-
     # StatusManageable implementation
     def get_status_resource
       @admin
     end
 
     def activate_resource(resource)
-      resource.update(is_active: true)
+      service = Admins::ActivationService.new(resource)
+      service.call
+      service.success?
     end
 
     def deactivate_resource(resource)
-      resource.update(is_active: false)
+      service = Admins::DeactivationService.new(resource)
+      service.call
+      service.success?
     end
 
     def prevent_self_modification?(resource)
@@ -187,7 +179,7 @@ module Api::V1::Admin
     end
 
     def format_resource_data(resource)
-      format_admin_detail_data(resource)
+      AdminAdminSerializer.new(resource).as_json
     end
 
     def handle_status_success(resource, action)

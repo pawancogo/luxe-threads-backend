@@ -5,8 +5,11 @@ require_dependency File.join(Rails.root, 'config/initializers/color_hex_map')
 
 # Controller for managing attribute types and values
 # Used by suppliers to manage product attributes like Color, Size, Fabric, etc.
+# Public read access for customers, authenticated write access for suppliers
 class Api::V1::AttributeTypesController < ApplicationController
-  before_action :authorize_supplier!
+  skip_before_action :authenticate_request, only: [:index]
+  # Note: authorize_supplier! callback removed since create/update/destroy actions don't exist
+  # The route only allows :index, which is public (no authentication required)
 
   # GET /api/v1/attribute_types
   # Get all attribute types with their values
@@ -17,64 +20,22 @@ class Api::V1::AttributeTypesController < ApplicationController
     level = params[:level]&.to_sym # :product or :variant
     category_id = params[:category_id]&.to_i
     
-    # Start with all attribute types
-    attribute_types = AttributeType.includes(:attribute_values).order(:name)
-    
-    # Filter by level if specified
-    if level && AttributeConstants::ATTRIBUTE_LEVELS.key?(level)
-      allowed_types = AttributeConstants::ATTRIBUTE_LEVELS[level]
-      attribute_types = attribute_types.where(name: allowed_types)
-    elsif level
-      # If level is specified but not in ATTRIBUTE_LEVELS, return empty
-      attribute_types = attribute_types.none
-    end
-    
     # Get category for size filtering
     category = Category.find_by(id: category_id) if category_id
     
-    formatted_data = attribute_types.map do |attr_type|
-      # Ensure predefined values exist if this is a predefined attribute type
-      if attr_type.predefined? && attr_type.attribute_values.empty?
-        attr_type.ensure_predefined_values!
-        attr_type.reload
-      end
-      
-      is_color_type = attr_type.name.downcase == 'color'
-      is_size_type = attr_type.name.downcase == 'size'
-      is_product_level = AttributeConstants.product_level?(attr_type.name)
-      is_variant_level = AttributeConstants.variant_level?(attr_type.name)
-      
-      # Get values - filter Size values by category if category provided
-      values = if is_size_type && category
-        # Filter size values by category
-        category_size_values = AttributeConstants.size_values_for_category(category.name)
-        attr_type.attribute_values.where(value: category_size_values).order(:display_order, :value)
-      else
-        attr_type.attribute_values.order(:display_order, :value)
-      end
-      
-      {
-        id: attr_type.id,
-        name: attr_type.name,
-        level: is_product_level ? 'product' : (is_variant_level ? 'variant' : nil),
-        values: values.map do |value|
-          value_data = {
-            id: value.id,
-            value: value.value
-          }
-          
-          # Add color hex code if this is a color attribute type
-          if is_color_type
-            hex_code = ColorHexMap.hex_for(value.value)
-            value_data[:hex_code] = hex_code if hex_code
-          end
-          
-          value_data
-        end
-      }
-    end
+    service = AttributeTypesIndexService.new(level: level, category_id: category_id)
+    service.call
     
-    render_success(formatted_data, 'Attribute types retrieved successfully')
+    if service.success?
+      serializer_options = { category: category }.compact
+      serialized_data = service.attribute_types.map do |attr_type|
+        AttributeTypeSerializer.new(attr_type, serializer_options).as_json
+      end
+      
+      render_success(serialized_data, 'Attribute types retrieved successfully')
+    else
+      render_error(service.errors.first || 'Failed to retrieve attribute types', :unprocessable_entity)
+    end
   end
 
   private

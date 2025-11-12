@@ -18,3 +18,7 @@ RSpec.describe ShipmentTrackingEvent, type: :model do
   end
 end
 
+
+
+
+

@@ -9,7 +9,10 @@ class Api::V1::ShipmentsController < ApplicationController
     @order = current_user.orders.find(params[:order_id])
     @shipments = @order.shipments.includes(:shipping_method, :shipment_tracking_events).order(created_at: :desc)
     
-    render_success(format_shipments_data(@shipments), 'Shipments retrieved successfully')
+    render_success(
+      ShipmentSerializer.collection(@shipments),
+      'Shipments retrieved successfully'
+    )
   rescue ActiveRecord::RecordNotFound
     render_not_found('Order not found')
   end
@@ -22,7 +25,10 @@ class Api::V1::ShipmentsController < ApplicationController
       return
     end
     
-    render_success(format_shipment_detail_data(@shipment), 'Shipment retrieved successfully')
+    render_success(
+      ShipmentSerializer.new(@shipment).as_json,
+      'Shipment retrieved successfully'
+    )
   end
 
   # GET /api/v1/shipments/:id/tracking
@@ -30,8 +36,8 @@ class Api::V1::ShipmentsController < ApplicationController
     @tracking_events = @shipment.shipment_tracking_events.order(:event_time)
     
     render_success({
-      shipment: format_shipment_data(@shipment),
-      tracking_events: format_tracking_events_data(@tracking_events)
+      shipment: ShipmentSerializer.new(@shipment).as_json,
+      tracking_events: ShipmentTrackingEventSerializer.collection(@tracking_events)
     }, 'Tracking information retrieved successfully')
   end
 
@@ -43,14 +49,16 @@ class Api::V1::ShipmentsController < ApplicationController
     @order_item = OrderItem.where(supplier_profile_id: current_user.supplier_profile.id)
                           .find(params[:order_item_id])
     
-    @shipment = @order_item.shipments.build(shipment_params)
-    @shipment.order = @order_item.order
-    @shipment.status = 'pending'
+    service = Shipments::CreationService.new(@order_item, shipment_params)
+    service.call
     
-    if @shipment.save
-      render_created(format_shipment_detail_data(@shipment), 'Shipment created successfully')
+    if service.success?
+      render_created(
+        ShipmentSerializer.new(service.shipment).as_json,
+        'Shipment created successfully'
+      )
     else
-      render_validation_errors(@shipment.errors.full_messages, 'Shipment creation failed')
+      render_validation_errors(service.errors, 'Shipment creation failed')
     end
   rescue ActiveRecord::RecordNotFound
     render_not_found('Order item not found')
@@ -61,18 +69,16 @@ class Api::V1::ShipmentsController < ApplicationController
     authorize_supplier!
     ensure_supplier_profile!
     
-    @tracking_event = @shipment.shipment_tracking_events.build(tracking_event_params)
-    @tracking_event.event_time ||= Time.current
+    service = Shipments::TrackingEventService.new(@shipment, tracking_event_params)
+    service.call
     
-    if @tracking_event.save
-      # Update shipment status if needed
-      if ['delivered', 'failed', 'returned'].include?(@tracking_event.event_type)
-        @shipment.update(status: @tracking_event.event_type)
-      end
-      
-      render_created(format_tracking_event_data(@tracking_event), 'Tracking event added successfully')
+    if service.success?
+      render_created(
+        ShipmentTrackingEventSerializer.new(service.tracking_event).as_json,
+        'Tracking event added successfully'
+      )
     else
-      render_validation_errors(@tracking_event.errors.full_messages, 'Tracking event creation failed')
+      render_validation_errors(service.errors, 'Tracking event creation failed')
     end
   end
 
@@ -128,68 +134,6 @@ class Api::V1::ShipmentsController < ApplicationController
     )
   end
 
-  def format_shipments_data(shipments)
-    shipments.map { |s| format_shipment_data(s) }
-  end
-
-  def format_shipment_data(shipment)
-    {
-      id: shipment.id,
-      shipment_id: shipment.shipment_id,
-      order_id: shipment.order_id,
-      order_item_id: shipment.order_item_id,
-      shipping_provider: shipment.shipping_provider,
-      tracking_number: shipment.tracking_number,
-      tracking_url: shipment.tracking_url,
-      status: shipment.status,
-      shipped_at: shipment.shipped_at,
-      estimated_delivery_date: shipment.estimated_delivery_date,
-      actual_delivery_date: shipment.actual_delivery_date,
-      created_at: shipment.created_at
-    }
-  end
-
-  def format_shipment_detail_data(shipment)
-    format_shipment_data(shipment).merge(
-      from_address: shipment.from_address_data,
-      to_address: shipment.to_address_data,
-      weight_kg: shipment.weight_kg&.to_f,
-      shipping_charge: shipment.shipping_charge&.to_f,
-      cod_charge: shipment.cod_charge&.to_f,
-      tracking_events: format_tracking_events_data(shipment.shipment_tracking_events.order(:event_time))
-    )
-  end
-
-  def format_tracking_events_data(events)
-    events.map do |event|
-      {
-        id: event.id,
-        event_type: event.event_type,
-        event_description: event.event_description,
-        location: event.location,
-        city: event.city,
-        state: event.state,
-        pincode: event.pincode,
-        event_time: event.event_time,
-        source: event.source,
-        created_at: event.created_at
-      }
-    end
-  end
-
-  def format_tracking_event_data(event)
-    {
-      id: event.id,
-      event_type: event.event_type,
-      event_description: event.event_description,
-      location: event.location,
-      city: event.city,
-      state: event.state,
-      pincode: event.pincode,
-      event_time: event.event_time,
-      source: event.source
-    }
-  end
 end
 
 

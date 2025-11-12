@@ -7,7 +7,6 @@ Rails.application.config.to_prepare do
   
   # Require all files in custom directories
   [
-    base.join('repositories', '*.rb'),
     base.join('presenters', '*.rb'),
     base.join('forms', '*.rb'),
     base.join('queries', '*.rb'),

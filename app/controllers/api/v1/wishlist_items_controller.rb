@@ -1,27 +1,48 @@
+# frozen_string_literal: true
+
+# Refactored WishlistItemsController using Clean Architecture
+# Controller → Service → Model → Serializer
 class Api::V1::WishlistItemsController < ApplicationController
-  include ApiFormatters
   include CustomerOnly
   
   before_action :set_wishlist
 
   # GET /api/v1/wishlist
   def index
-    @wishlist_items = @wishlist.wishlist_items.includes(product_variant: { product: [:brand, :category, :product_images] })
-    render_success(format_wishlist_data(@wishlist_items), 'Wishlist retrieved successfully')
+    wishlist = Wishlist.with_items.find(@wishlist.id)
+    serializer_options = { include_product_details: true }
+    render_success(
+      WishlistSerializer.new(wishlist, serializer_options).as_json,
+      'Wishlist retrieved successfully'
+    )
   end
 
   # POST /api/v1/wishlist/items
   def create
-    @wishlist_item = @wishlist.wishlist_items.find_or_initialize_by(
-      product_variant_id: params[:product_variant_id]
+      service = Wishlists::ItemCreationService.new(
+      @wishlist,
+      params[:product_variant_id]
     )
+    service.call
     
-    if @wishlist_item.persisted?
-      render_success(format_wishlist_data(@wishlist.wishlist_items), 'Item already in wishlist')
-    elsif @wishlist_item.save
-      render_created(format_wishlist_data(@wishlist.wishlist_items), 'Item added to wishlist successfully')
+    if service.success?
+      wishlist = Wishlist.with_items.find(@wishlist.id)
+      serializer_options = { include_product_details: true }
+      
+      if service.wishlist_item.persisted? && service.wishlist_item.previous_changes.empty?
+        # Item already existed
+        render_success(
+          WishlistSerializer.new(wishlist, serializer_options).as_json,
+          'Item already in wishlist'
+        )
+      else
+        render_created(
+          WishlistSerializer.new(wishlist, serializer_options).as_json,
+          'Item added to wishlist successfully'
+        )
+      end
     else
-      render_validation_errors(@wishlist_item.errors.full_messages, 'Failed to add item to wishlist')
+      render_validation_errors(service.errors, 'Failed to add item to wishlist')
     end
   end
 
@@ -29,11 +50,23 @@ class Api::V1::WishlistItemsController < ApplicationController
   def destroy
     @wishlist_item = @wishlist.wishlist_items.find_by(id: params[:id])
     
-    if @wishlist_item
-      @wishlist_item.destroy
-      render_success(format_wishlist_data(@wishlist.wishlist_items), 'Item removed from wishlist successfully')
-    else
+    unless @wishlist_item
       render_not_found('Wishlist item not found')
+      return
+    end
+    
+    service = Wishlists::ItemDeletionService.new(@wishlist_item)
+    service.call
+    
+    if service.success?
+      wishlist = Wishlist.with_items.find(@wishlist.id)
+      serializer_options = { include_product_details: true }
+      render_success(
+        WishlistSerializer.new(wishlist, serializer_options).as_json,
+        'Item removed from wishlist successfully'
+      )
+    else
+      render_validation_errors(service.errors, 'Failed to remove item from wishlist')
     end
   end
 
@@ -41,9 +74,5 @@ class Api::V1::WishlistItemsController < ApplicationController
 
   def set_wishlist
     @wishlist = current_user.wishlist || current_user.create_wishlist
-  end
-
-  def format_wishlist_data(items)
-    items.map { |item| format_wishlist_item_data(item) }
   end
 end

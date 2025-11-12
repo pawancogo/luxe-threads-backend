@@ -19,3 +19,7 @@ RSpec.describe RbacRolePermission, type: :model do
   end
 end
 
+
+
+
+

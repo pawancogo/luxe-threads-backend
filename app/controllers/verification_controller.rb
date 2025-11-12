@@ -7,9 +7,32 @@ class VerificationController < BaseController
     @user_class = get_user_class(@user_type)
     
     if request.post?
-      user = @user_class.find_by(email: params[:email])
-
-      if user && user.authenticate_with_temp_password(params[:temp_password])
+      email = params[:email]&.strip
+      temp_password = params[:temp_password]
+      
+      unless email.present? && temp_password.present?
+        flash.now[:alert] = 'Email and temporary password are required.'
+        render :login_with_temp_password
+        return
+      end
+      
+      user = @user_class.find_by(email: email)
+      
+      unless user
+        flash.now[:alert] = 'Invalid email or temporary password.'
+        render :login_with_temp_password
+        return
+      end
+      
+      # Check if temp password is expired
+      if user.temp_password_expired?
+        flash.now[:alert] = 'Temporary password has expired. Please request a new password reset.'
+        render :login_with_temp_password
+        return
+      end
+      
+      if user.authenticate_with_temp_password(temp_password)
+        # Set session and redirect to password reset page
         session["#{@user_type}_id".to_sym] = user.id
         redirect_to admin_auth_reset_password_path(user_type: @user_type), notice: 'Please set a new password.'
       else
@@ -19,22 +42,62 @@ class VerificationController < BaseController
     end
   end
 
-  # Generic password reset
+  # Generic password reset - token-based
   def reset_password
     @user_type = params[:user_type] || 'user'
     @user_class = get_user_class(@user_type)
-    @current_user = get_current_user(@user_type)
+    @token = params[:token]
     
-    unless @current_user && @current_user.password_reset_required?
-      redirect_to admin_root_path, alert: 'Password reset not required.'
+    # Verify token and find user
+    if @token.present?
+      @current_user = @user_class.find_by(password_reset_token: @token)
+      
+      unless @current_user && TempPasswordService.verify_reset_token(@current_user, @token)
+        flash[:alert] = 'Invalid or expired password reset link. Please request a new password reset.'
+        redirect_to admin_auth_forgot_password_path(user_type: @user_type)
+        return
+      end
+      
+      # Check if password reset is required
+      unless @current_user.password_reset_required?
+        redirect_to admin_login_path, alert: 'Password reset not required. Please log in normally.'
+        return
+      end
+    else
+      flash[:alert] = 'Invalid password reset link. Please request a new password reset.'
+      redirect_to admin_auth_forgot_password_path(user_type: @user_type)
       return
     end
 
     if request.post?
-      if @current_user.reset_password_with_temp_password(params[:temp_password], params[:new_password])
-        redirect_to admin_root_path, notice: 'Password successfully reset!'
+      new_password = params[:new_password]
+      new_password_confirmation = params[:new_password_confirmation]
+      
+      # Validate password confirmation
+      if new_password != new_password_confirmation
+        flash.now[:alert] = 'New password and confirmation do not match.'
+        render :reset_password
+        return
+      end
+      
+      # Validate new password
+      unless PasswordValidationService.valid?(new_password)
+        flash.now[:alert] = PasswordValidationService.errors(new_password).join(', ')
+        render :reset_password
+        return
+      end
+      
+      # Update password directly (no need for temp password since we verified token)
+      @current_user.password = new_password
+      @current_user.password_confirmation = new_password
+      
+      if @current_user.save
+        # Clear temp password and token
+        TempPasswordService.clear_temp_password(@current_user)
+        redirect_to admin_login_path, notice: 'Password successfully reset! Please log in with your new password.'
       else
-        flash.now[:alert] = 'Failed to reset password. Please check your temporary password and new password requirements.'
+        error_messages = @current_user.errors.full_messages
+        flash.now[:alert] = error_messages.any? ? error_messages.join(', ') : 'Failed to reset password. Please check password requirements.'
         render :reset_password
       end
     end
@@ -46,9 +109,23 @@ class VerificationController < BaseController
     @user_class = get_user_class(@user_type)
     
     if request.post?
+      # Try to find user in the specified class first
       user = @user_class.find_by(email: params[:email])
+      
+      # If not found and user_type is 'user', also check Admin model
+      # This handles cases where admin forgot password but user_type wasn't set
+      if user.nil? && @user_type == 'user'
+        admin = Admin.find_by(email: params[:email])
+        if admin
+          user = admin
+          @user_type = 'admin'
+          @user_class = Admin
+        end
+      end
+      
       if user
-        user.send_password_reset_email
+        service = Authentication::PasswordResetService.new(user, user_type: @user_type)
+        service.call
         redirect_to admin_login_path, notice: 'If an account with that email exists, a password reset email has been sent.'
       else
         flash.now[:alert] = 'Email not found.'

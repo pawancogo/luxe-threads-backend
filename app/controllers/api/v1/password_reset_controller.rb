@@ -18,7 +18,8 @@ class Api::V1::PasswordResetController < ApplicationController
     # Always return success to prevent email enumeration
     if user
       begin
-        user.send_password_reset_email
+        service = Authentication::PasswordResetService.new(user, user_type: 'user')
+        service.call
         render_success({ message: 'If an account with that email exists, a password reset email has been sent.' }, 'Password reset email sent')
       rescue StandardError => e
         Rails.logger.error "Error sending password reset email: #{e.message}"
@@ -67,17 +68,14 @@ class Api::V1::PasswordResetController < ApplicationController
       return
     end
     
-    # Check if temp password is expired
-    if user.temp_password_expired?
-      render_error('Temporary password has expired. Please request a new password reset.', 'Password reset expired')
-      return
-    end
+    # Reset password using service
+    service = Authentication::PasswordResetCompletionService.new(user, temp_password, new_password)
+    service.call
     
-    # Reset password
-    if user.reset_password_with_temp_password(temp_password, new_password)
+    if service.success?
       render_success({ message: 'Password has been reset successfully' }, 'Password reset successful')
     else
-      render_unauthorized('Invalid email or temporary password')
+      render_unauthorized(service.errors.first || 'Invalid email or temporary password')
     end
   end
 end

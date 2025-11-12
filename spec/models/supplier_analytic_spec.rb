@@ -32,3 +32,7 @@ RSpec.describe SupplierAnalytic, type: :model do
   end
 end
 
+
+
+
+

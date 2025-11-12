@@ -1,11 +1,11 @@
 class EmailVerificationMailer < ApplicationMailer
   default from: 'noreply@luxethreads.com'
 
-  def send_otp(verification)
+  def send_verification(verification)
     @verification = verification
     @verifiable = verification.verifiable
-    @otp = verification.otp
-    @expires_at = verification.created_at + Rails.application.config.otp_expiry_minutes.minutes
+    @token = verification.verification_token
+    @expires_at = verification.created_at + 24.hours
     @verification_url = verification_url(verification)
     
     mail(
@@ -18,11 +18,19 @@ class EmailVerificationMailer < ApplicationMailer
   private
 
   def verification_url(verification)
-    host = Rails.application.config.host
-    port = Rails.application.config.port
-    protocol = Rails.env.production? ? 'https' : 'http'
+    verifiable = verification.verifiable
     
-    "#{protocol}://#{host}:#{port}/verify-email?type=#{verification.verifiable_type.downcase}&id=#{verification.verifiable_id}&email=#{verification.email}"
+    # For admins, use backend URL (they use HTML interface)
+    if verifiable.is_a?(Admin)
+      host = Rails.application.config.host
+      port = Rails.application.config.port
+      protocol = Rails.env.production? ? 'https' : 'http'
+      "#{protocol}://#{host}:#{port}/verify-email?token=#{verification.verification_token}"
+    else
+      # For users and suppliers, use frontend URL (they use React app)
+      frontend_url = Rails.application.config.frontend_url || 'http://localhost:8080'
+      "#{frontend_url}/verify-email?token=#{verification.verification_token}"
+    end
   end
 
   def welcome_after_verification(verifiable)

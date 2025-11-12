@@ -18,8 +18,8 @@ module LuxeThreads
 
     # Explicitly configure Zeitwerk to autoload from custom app/ directories
     # Zeitwerk should auto-discover app/ subdirectories, but we ensure they're configured
-    config.autoload_paths << Rails.root.join('app/repositories')
     config.autoload_paths << Rails.root.join('app/presenters')
+    config.autoload_paths << Rails.root.join('app/serializers')
     config.autoload_paths << Rails.root.join('app/forms')
     config.autoload_paths << Rails.root.join('app/queries')
     config.autoload_paths << Rails.root.join('app/services')

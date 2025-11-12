@@ -33,7 +33,7 @@ class OrderItem < ApplicationRecord
 
   # Phase 2: Callbacks
   before_save :set_final_price, if: -> { final_price.blank? }
-  after_create :set_return_deadline
+  # Note: return_deadline is set by services, not callbacks
 
   # Phase 2: JSON field helpers
   def product_variant_attributes_hash
@@ -62,11 +62,5 @@ class OrderItem < ApplicationRecord
 
   def set_final_price
     self.final_price = discounted_price || price_at_purchase
-  end
-
-  def set_return_deadline
-    return if return_deadline.present?
-    self.return_deadline = order.created_at.to_date + 30.days
-    save
   end
 end

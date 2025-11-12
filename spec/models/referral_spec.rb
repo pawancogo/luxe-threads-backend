@@ -50,3 +50,7 @@ RSpec.describe Referral, type: :model do
   end
 end
 
+
+
+
+

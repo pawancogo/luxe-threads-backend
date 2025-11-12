@@ -45,3 +45,7 @@ RSpec.describe ShippingMethod, type: :model do
   end
 end
 
+
+
+
+

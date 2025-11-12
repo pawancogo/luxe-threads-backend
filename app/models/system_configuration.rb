@@ -135,15 +135,7 @@ class SystemConfiguration < ApplicationRecord
     is_active?
   end
 
-  # Deactivate configuration
-  def deactivate!
-    update!(is_active: false)
-  end
-
-  # Activate configuration
-  def activate!
-    update!(is_active: true)
-  end
+  # Note: activate! and deactivate! methods removed - use System::ConfigurationActivationService and System::ConfigurationDeactivationService instead
 
   # Get creator name
   def creator_name

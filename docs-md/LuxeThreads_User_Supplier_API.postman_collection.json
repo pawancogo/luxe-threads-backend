@@ -1,0 +1,3353 @@
+{
+  "info": {
+    "name": "LuxeThreads - User & Supplier API",
+    "description": "Complete API collection for User and Supplier endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "luxethreads-user-supplier-api",
+    "version": "2.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "admin_base_url",
+      "value": "http://localhost:3000/api/v1/admin",
+      "type": "string"
+    },
+    {
+      "key": "user_auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "supplier_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "customer_email",
+      "value": "customer@example.com",
+      "type": "string"
+    },
+    {
+      "key": "customer_password",
+      "value": "password123",
+      "type": "string"
+    },
+    {
+      "key": "supplier_email",
+      "value": "supplier@example.com",
+      "type": "string"
+    },
+    {
+      "key": "supplier_password",
+      "value": "password123",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "admin@example.com",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "password123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "User Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customer_email}}\",\n  \"password\": \"{{customer_password}}\",\n  \"password_confirmation\": \"{{customer_password}}\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"phone_number\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/signup",
+              "host": ["{{base_url}}"],
+              "path": ["signup"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('user_id', pm.response.json().data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customer_email}}\",\n  \"password\": \"{{customer_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('user_id', response.data.user.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/logout",
+              "host": ["{{base_url}}"],
+              "path": ["logout"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customer_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/password/forgot",
+              "host": ["{{base_url}}"],
+              "path": ["password", "forgot"]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset_token_here\",\n  \"password\": \"newpassword123\",\n  \"password_confirmation\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/password/reset",
+              "host": ["{{base_url}}"],
+              "path": ["password", "reset"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Profile Management",
+      "item": [
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"first_name\": \"John Updated\",\n    \"last_name\": \"Doe Updated\",\n    \"phone_number\": \"+1234567891\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"current_password\": \"{{customer_password}}\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete User Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Bulk Delete Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/bulk_delete",
+              "host": ["{{base_url}}"],
+              "path": ["users", "bulk_delete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. User Statistics & Activity",
+      "item": [
+        {
+          "name": "Get User Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["user", "statistics"]
+            }
+          }
+        },
+        {
+          "name": "Get User Activity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/activity",
+              "host": ["{{base_url}}"],
+              "path": ["user", "activity"]
+            }
+          }
+        },
+        {
+          "name": "Get Search History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/searches",
+              "host": ["{{base_url}}"],
+              "path": ["user", "searches"]
+            }
+          }
+        },
+        {
+          "name": "Save Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"search term\",\n  \"filters\": {}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/searches",
+              "host": ["{{base_url}}"],
+              "path": ["user", "searches"]
+            }
+          }
+        },
+        {
+          "name": "Delete Search",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/searches/1",
+              "host": ["{{base_url}}"],
+              "path": ["user", "searches", "1"]
+            }
+          }
+        },
+        {
+          "name": "Clear All Searches",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/searches/clear",
+              "host": ["{{base_url}}"],
+              "path": ["user", "searches", "clear"]
+            }
+          }
+        },
+        {
+          "name": "Get Popular Searches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/searches/popular",
+              "host": ["{{base_url}}"],
+              "path": ["user", "searches", "popular"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Email Verification",
+      "item": [
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/email/verify?token=verification_token",
+              "host": ["{{base_url}}"],
+              "path": ["email", "verify"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "verification_token"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resend Verification (Public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customer_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/email/resend",
+              "host": ["{{base_url}}"],
+              "path": ["email", "resend"]
+            }
+          }
+        },
+        {
+          "name": "Resend Verification (Authenticated)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/email/resend_authenticated",
+              "host": ["{{base_url}}"],
+              "path": ["email", "resend_authenticated"]
+            }
+          }
+        },
+        {
+          "name": "Get Email Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/email/status",
+              "host": ["{{base_url}}"],
+              "path": ["email", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Referrals",
+      "item": [
+        {
+          "name": "Get Referrals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/referrals",
+              "host": ["{{base_url}}"],
+              "path": ["referrals"]
+            }
+          }
+        },
+        {
+          "name": "Get Referral Code",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/referrals/code",
+              "host": ["{{base_url}}"],
+              "path": ["referrals", "code"]
+            }
+          }
+        },
+        {
+          "name": "Get Referral Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/referrals/stats",
+              "host": ["{{base_url}}"],
+              "path": ["referrals", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Shopping Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cart",
+              "host": ["{{base_url}}"],
+              "path": ["cart"]
+            }
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_variant_id\": 1,\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/cart_items",
+              "host": ["{{base_url}}"],
+              "path": ["cart_items"]
+            }
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/cart_items/1",
+              "host": ["{{base_url}}"],
+              "path": ["cart_items", "1"]
+            }
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cart_items/1",
+              "host": ["{{base_url}}"],
+              "path": ["cart_items", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Wishlist",
+      "item": [
+        {
+          "name": "Get Wishlist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wishlist/items",
+              "host": ["{{base_url}}"],
+              "path": ["wishlist", "items"]
+            }
+          }
+        },
+        {
+          "name": "Add to Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_variant_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wishlist/items",
+              "host": ["{{base_url}}"],
+              "path": ["wishlist", "items"]
+            }
+          }
+        },
+        {
+          "name": "Remove from Wishlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/wishlist/items/1",
+              "host": ["{{base_url}}"],
+              "path": ["wishlist", "items", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Addresses",
+      "item": [
+        {
+          "name": "Get Addresses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/addresses",
+              "host": ["{{base_url}}"],
+              "path": ["addresses"]
+            }
+          }
+        },
+        {
+          "name": "Create Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"address_type\": \"shipping\",\n    \"full_name\": \"John Doe\",\n    \"phone_number\": \"1234567890\",\n    \"line1\": \"123 Main Street\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postal_code\": \"10001\",\n    \"country\": \"USA\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/addresses",
+              "host": ["{{base_url}}"],
+              "path": ["addresses"]
+            }
+          }
+        },
+        {
+          "name": "Update Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": {\n    \"full_name\": \"John Smith\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/addresses/1",
+              "host": ["{{base_url}}"],
+              "path": ["addresses", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Address",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/addresses/1",
+              "host": ["{{base_url}}"],
+              "path": ["addresses", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Orders (Customer)",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": {\n    \"shipping_address_id\": 1,\n    \"billing_address_id\": 1,\n    \"shipping_method\": \"standard\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/my-orders",
+              "host": ["{{base_url}}"],
+              "path": ["my-orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/my-orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["my-orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Order Invoice",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/my-orders/1/invoice",
+              "host": ["{{base_url}}"],
+              "path": ["my-orders", "1", "invoice"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Changed mind\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/my-orders/1/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["my-orders", "1", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment\": {\n    \"payment_method_id\": \"pm_123456\",\n    \"amount\": 100.00\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/1/payments",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payments/1",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Refund Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"reason\": \"Customer request\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/1/refund",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "1", "refund"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Refunds",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment_refunds",
+              "host": ["{{base_url}}"],
+              "path": ["payment_refunds"]
+            }
+          }
+        },
+        {
+          "name": "Create Payment Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": 1,\n  \"amount\": 100.00,\n  \"reason\": \"Refund reason\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_refunds",
+              "host": ["{{base_url}}"],
+              "path": ["payment_refunds"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Shipments (Customer)",
+      "item": [
+        {
+          "name": "Get Order Shipments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/1/shipments",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "shipments"]
+            }
+          }
+        },
+        {
+          "name": "Get Shipment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/shipments/1",
+              "host": ["{{base_url}}"],
+              "path": ["shipments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Shipment Tracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/shipments/1/tracking",
+              "host": ["{{base_url}}"],
+              "path": ["shipments", "1", "tracking"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Returns (Customer)",
+      "item": [
+        {
+          "name": "Get My Returns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/my-returns",
+              "host": ["{{base_url}}"],
+              "path": ["my-returns"]
+            }
+          }
+        },
+        {
+          "name": "Create Return Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"return_request\": {\n    \"order_id\": 1,\n    \"resolution_type\": \"refund\"\n  },\n  \"items\": [\n    {\n      \"order_item_id\": 1,\n      \"quantity\": 1,\n      \"reason\": \"Defective\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/return_requests",
+              "host": ["{{base_url}}"],
+              "path": ["return_requests"]
+            }
+          }
+        },
+        {
+          "name": "Get Return Request",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/return_requests/1",
+              "host": ["{{base_url}}"],
+              "path": ["return_requests", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Return Tracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/return_requests/1/tracking",
+              "host": ["{{base_url}}"],
+              "path": ["return_requests", "1", "tracking"]
+            }
+          }
+        },
+        {
+          "name": "Schedule Pickup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickup_date\": \"2024-01-20\",\n  \"pickup_time\": \"10:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/return_requests/1/pickup_schedule",
+              "host": ["{{base_url}}"],
+              "path": ["return_requests", "1", "pickup_schedule"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. Reviews",
+      "item": [
+        {
+          "name": "Get Product Reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/1/reviews",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "reviews"]
+            }
+          }
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"review\": {\n    \"rating\": 5,\n    \"comment\": \"Great product!\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/reviews",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "reviews"]
+            }
+          }
+        },
+        {
+          "name": "Vote on Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"helpful\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/reviews/1/vote",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "reviews", "1", "vote"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. Product Views",
+      "item": [
+        {
+          "name": "Track Product View",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/views",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "views"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "15. Coupons",
+      "item": [
+        {
+          "name": "Validate Coupon",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coupons/validate?code=SAVE20",
+              "host": ["{{base_url}}"],
+              "path": ["coupons", "validate"],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "SAVE20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Apply Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SAVE20\",\n  \"cart_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons/apply",
+              "host": ["{{base_url}}"],
+              "path": ["coupons", "apply"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "16. Promotions",
+      "item": [
+        {
+          "name": "Get Promotions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/promotions",
+              "host": ["{{base_url}}"],
+              "path": ["promotions"]
+            }
+          }
+        },
+        {
+          "name": "Get Promotion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/promotions/1",
+              "host": ["{{base_url}}"],
+              "path": ["promotions", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "17. Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"]
+            }
+          }
+        },
+        {
+          "name": "Get Notification",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/1",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "1"]
+            }
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/1/mark_as_read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "1", "mark_as_read"]
+            }
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/mark_all_read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "mark_all_read"]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/unread_count",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "unread_count"]
+            }
+          }
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notification_preferences",
+              "host": ["{{base_url}}"],
+              "path": ["notification_preferences"]
+            }
+          }
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preferences\": {\n    \"email\": true,\n    \"push\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notification_preferences",
+              "host": ["{{base_url}}"],
+              "path": ["notification_preferences"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "18. Support Tickets",
+      "item": [
+        {
+          "name": "Get Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support_tickets",
+              "host": ["{{base_url}}"],
+              "path": ["support_tickets"]
+            }
+          }
+        },
+        {
+          "name": "Create Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"support_ticket\": {\n    \"subject\": \"Issue\",\n    \"category\": \"technical\",\n    \"message\": \"Need help\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support_tickets",
+              "host": ["{{base_url}}"],
+              "path": ["support_tickets"]
+            }
+          }
+        },
+        {
+          "name": "Get Support Ticket",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support_tickets/1",
+              "host": ["{{base_url}}"],
+              "path": ["support_tickets", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Message to Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": {\n    \"content\": \"Additional information\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support_tickets/1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["support_tickets", "1", "messages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "19. Loyalty Points",
+      "item": [
+        {
+          "name": "Get Loyalty Points",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/loyalty_points",
+              "host": ["{{base_url}}"],
+              "path": ["loyalty_points"]
+            }
+          }
+        },
+        {
+          "name": "Get Loyalty Points Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/loyalty_points/balance",
+              "host": ["{{base_url}}"],
+              "path": ["loyalty_points", "balance"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "20. Public Endpoints",
+      "item": [
+        {
+          "name": "Get Public Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/products?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["public", "products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Public Product",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["public", "products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": ["{{base_url}}"],
+              "path": ["categories"]
+            }
+          }
+        },
+        {
+          "name": "Get Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categories/1",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Navigation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categories/navigation",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "navigation"]
+            }
+          }
+        },
+        {
+          "name": "Get Brands",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/brands",
+              "host": ["{{base_url}}"],
+              "path": ["brands"]
+            }
+          }
+        },
+        {
+          "name": "Get Brand",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/brands/1",
+              "host": ["{{base_url}}"],
+              "path": ["brands", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Attribute Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/attribute_types",
+              "host": ["{{base_url}}"],
+              "path": ["attribute_types"]
+            }
+          }
+        },
+        {
+          "name": "Get Shipping Methods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/shipping_methods",
+              "host": ["{{base_url}}"],
+              "path": ["shipping_methods"]
+            }
+          }
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/search?query=shirt",
+              "host": ["{{base_url}}"],
+              "path": ["search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "shirt"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "21. Admin - User Management",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/login",
+              "host": ["{{admin_base_url}}"],
+              "path": ["login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.admin) {",
+                  "        pm.collectionVariables.set('admin_auth_token', 'token_from_cookie');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/users?page=1&per_page=20",
+              "host": ["{{admin_base_url}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "active",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/users/{{user_id}}",
+              "host": ["{{admin_base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"first_name\": \"Updated Name\",\n    \"last_name\": \"Updated Last\",\n    \"email\": \"updated@example.com\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/users/{{user_id}}",
+              "host": ["{{admin_base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/users/{{user_id}}",
+              "host": ["{{admin_base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/users/{{user_id}}/status",
+              "host": ["{{admin_base_url}}"],
+              "path": ["users", "{{user_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Get User Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/users/{{user_id}}/orders",
+              "host": ["{{admin_base_url}}"],
+              "path": ["users", "{{user_id}}", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get User Activity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/users/{{user_id}}/activity",
+              "host": ["{{admin_base_url}}"],
+              "path": ["users", "{{user_id}}", "activity"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Supplier Profile",
+      "item": [
+        {
+          "name": "Get Supplier Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier_profile",
+              "host": ["{{base_url}}"],
+              "path": ["supplier_profile"]
+            }
+          }
+        },
+        {
+          "name": "Create Supplier Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_profile\": {\n    \"company_name\": \"ABC Suppliers Inc.\",\n    \"gst_number\": \"GST123456789\",\n    \"description\": \"Premium quality supplier\",\n    \"website_url\": \"https://abcsuppliers.com\",\n    \"contact_email\": \"contact@abcsuppliers.com\",\n    \"contact_phone\": \"+1234567890\",\n    \"business_type\": \"manufacturer\",\n    \"business_category\": \"fashion\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier_profile",
+              "host": ["{{base_url}}"],
+              "path": ["supplier_profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Supplier Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_profile\": {\n    \"company_name\": \"Updated ABC Suppliers Inc.\",\n    \"description\": \"Updated premium quality supplier\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier_profile",
+              "host": ["{{base_url}}"],
+              "path": ["supplier_profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "23. Supplier Documents",
+      "item": [
+        {
+          "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/documents",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "documents"]
+            }
+          }
+        },
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "document_type",
+                  "value": "gst_certificate",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/documents",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "documents"]
+            }
+          }
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/documents/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "documents", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "24. Supplier Products",
+      "item": [
+        {
+          "name": "List My Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": {\n    \"name\": \"Premium Cotton T-Shirt\",\n    \"description\": \"High quality cotton t-shirt\",\n    \"short_description\": \"Premium cotton t-shirt\",\n    \"category_id\": 1,\n    \"brand_id\": 1,\n    \"base_price\": 29.99\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": {\n    \"name\": \"Updated Premium Cotton T-Shirt\",\n    \"description\": \"Updated high quality cotton t-shirt\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Bulk Upload Products",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/products/bulk_upload",
+              "host": ["{{base_url}}"],
+              "path": ["products", "bulk_upload"]
+            }
+          }
+        },
+        {
+          "name": "Export Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/export",
+              "host": ["{{base_url}}"],
+              "path": ["products", "export"]
+            }
+          }
+        },
+        {
+          "name": "Get Export Template",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/export_template",
+              "host": ["{{base_url}}"],
+              "path": ["products", "export_template"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "25. Product Variants",
+      "item": [
+        {
+          "name": "Create Variant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_variant\": {\n    \"sku\": \"TSHIRT-M-BLUE-001\",\n    \"price\": 29.99,\n    \"discounted_price\": 24.99,\n    \"stock_quantity\": 100,\n    \"available_quantity\": 100,\n    \"weight_kg\": 0.2\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/product_variants",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "product_variants"]
+            }
+          }
+        },
+        {
+          "name": "Update Variant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_variant\": {\n    \"price\": 27.99,\n    \"stock_quantity\": 150\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/product_variants/1",
+              "host": ["{{base_url}}"],
+              "path": ["product_variants", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Variant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/product_variants/1",
+              "host": ["{{base_url}}"],
+              "path": ["product_variants", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "26. Supplier Orders",
+      "item": [
+        {
+          "name": "List Supplier Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/orders?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order Item",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Confirm Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/orders/1/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "orders", "1", "confirm"]
+            }
+          }
+        },
+        {
+          "name": "Ship Order",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_number\": \"1Z9999W99999999999\",\n  \"carrier\": \"UPS\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/orders/1/ship",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "orders", "1", "ship"]
+            }
+          }
+        },
+        {
+          "name": "Update Tracking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_number\": \"1Z9999W99999999999\",\n  \"carrier\": \"UPS\",\n  \"tracking_url\": \"https://ups.com/track/1Z9999W99999999999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/orders/1/update_tracking",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "orders", "1", "update_tracking"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "27. Supplier Returns",
+      "item": [
+        {
+          "name": "List Supplier Returns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/returns?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "returns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Return",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/returns/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "returns", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Return Tracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/returns/1/tracking",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "returns", "1", "tracking"]
+            }
+          }
+        },
+        {
+          "name": "Approve Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Return approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/returns/1/approve",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "returns", "1", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Reject Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Item does not meet return criteria\",\n  \"notes\": \"Return rejected\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/returns/1/reject",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "returns", "1", "reject"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "28. Supplier Shipments",
+      "item": [
+        {
+          "name": "List Shipments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/shipments?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "shipments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipment\": {\n    \"order_id\": 1,\n    \"tracking_number\": \"1Z9999W99999999999\",\n    \"carrier\": \"UPS\",\n    \"shipped_at\": \"2024-01-15T10:00:00Z\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/shipments",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "shipments"]
+            }
+          }
+        },
+        {
+          "name": "Get Shipment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/shipments/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "shipments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Tracking Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_event\": {\n    \"status\": \"in_transit\",\n    \"location\": \"New York, NY\",\n    \"timestamp\": \"2024-01-15T10:00:00Z\",\n    \"description\": \"Package in transit\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/shipments/1/tracking_events",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "shipments", "1", "tracking_events"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "29. Supplier Payments",
+      "item": [
+        {
+          "name": "List Supplier Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/payments?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "payments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/payments/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "payments", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "30. Supplier Analytics",
+      "item": [
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/analytics?start_date=2024-01-01&end_date=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "analytics"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "31. Supplier Reviews",
+      "item": [
+        {
+          "name": "Respond to Review",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Thank you for your feedback!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/reviews/1/respond",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "reviews", "1", "respond"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "32. Supplier Team Management",
+      "item": [
+        {
+          "name": "List Team Members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/users",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "users"]
+            }
+          }
+        },
+        {
+          "name": "Get Team Member",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Team Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"email\": \"teammember@example.com\",\n    \"first_name\": \"Team\",\n    \"last_name\": \"Member\",\n    \"role\": \"product_manager\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/users",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "users"]
+            }
+          }
+        },
+        {
+          "name": "Invite Team Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teammember@example.com\",\n  \"first_name\": \"Team\",\n  \"last_name\": \"Member\",\n  \"role\": \"product_manager\",\n  \"permissions\": {\n    \"can_manage_products\": true,\n    \"can_manage_orders\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/users/invite",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "users", "invite"]
+            }
+          }
+        },
+        {
+          "name": "Update Team Member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"first_name\": \"Updated Team\",\n    \"last_name\": \"Updated Member\"\n  },\n  \"permissions\": {\n    \"can_manage_products\": true,\n    \"can_manage_orders\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Team Member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/supplier/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Resend Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/supplier/users/1/resend_invitation",
+              "host": ["{{base_url}}"],
+              "path": ["supplier", "users", "1", "resend_invitation"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "33. Admin - Supplier Management",
+      "item": [
+        {
+          "name": "List All Suppliers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers?page=1&per_page=20",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "verified",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "active",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Supplier Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/{{supplier_id}}",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "{{supplier_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Supplier",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier\": {\n    \"first_name\": \"Updated\",\n    \"last_name\": \"Supplier\"\n  },\n  \"supplier_profile\": {\n    \"company_name\": \"Updated Company Name\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/{{supplier_id}}",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "{{supplier_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Supplier",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/{{supplier_id}}",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "{{supplier_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Invite Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newsupplier@example.com\",\n  \"first_name\": \"New\",\n  \"last_name\": \"Supplier\",\n  \"company_name\": \"New Supplier Company\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/invite",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "invite"]
+            }
+          }
+        },
+        {
+          "name": "Update Supplier Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/{{supplier_id}}/status",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "{{supplier_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Suspend Supplier",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Violation of terms\",\n  \"suspension_duration_days\": 30\n}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/{{supplier_id}}/suspend",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "{{supplier_id}}", "suspend"]
+            }
+          }
+        },
+        {
+          "name": "Get Supplier Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/{{supplier_id}}/stats",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "{{supplier_id}}", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Resend Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:8080"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{admin_base_url}}/suppliers/{{supplier_id}}/resend_invitation",
+              "host": ["{{admin_base_url}}"],
+              "path": ["suppliers", "{{supplier_id}}", "resend_invitation"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

@@ -365,7 +365,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.19: Protected Route Access - Without Login
+## Test Case 1.19: Protected Route Access - Without Login => Tested by Pawan 
 
 **Prerequisites**: 
 - Not logged in
@@ -384,7 +384,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.20: Password Reset - Forgot Password Link
+## Test Case 1.20: Password Reset - Forgot Password Link => Tested by Pawan 
 
 **Prerequisites**: 
 - Admin account exists
@@ -406,7 +406,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.21: Password Reset - Invalid Email
+## Test Case 1.21: Password Reset - Invalid Email => Tested by Pawan 
 
 **Prerequisites**: Same as 1.20
 
@@ -425,7 +425,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.22: Password Reset - Reset Link Click
+## Test Case 1.22: Password Reset - Reset Link Click => Tested by Pawan 
 
 **Prerequisites**: 
 - Password reset email received
@@ -445,7 +445,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.23: Password Reset - Set New Password
+## Test Case 1.23: Password Reset - Set New Password => Tested by Pawan 
 
 **Prerequisites**: 
 - On password reset page with valid token
@@ -522,7 +522,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.27: Login - SQL Injection Protection
+## Test Case 1.27: Login - SQL Injection Protection => tested pawan 
 
 **Prerequisites**: Same as 1.1
 
@@ -599,7 +599,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.31: Login - Mobile Responsive
+## Test Case 1.31: Login - Mobile Responsive => Tested by pawan 
 
 **Prerequisites**: Same as 1.1
 
@@ -615,7 +615,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.32: Login - Browser Back Button
+## Test Case 1.32: Login - Browser Back Button => Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -632,7 +632,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.33: Login - Network Error Handling
+## Test Case 1.33: Login - Network Error Handling => Tested by pawan 
 
 **Prerequisites**: Same as 1.1
 
@@ -649,7 +649,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.34: Login - Loading States
+## Test Case 1.34: Login - Loading States => Tested by pawan 
 
 **Prerequisites**: Same as 1.1
 
@@ -667,7 +667,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 1.35: Login - Accessibility
+## Test Case 1.35: Login - Accessibility => Tested by pawan 
 
 **Prerequisites**: Same as 1.1
 

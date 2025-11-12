@@ -20,15 +20,7 @@ class WishlistItem < ApplicationRecord
     current_price < price_when_added
   end
   
-  # Notify price drop (if not already notified)
-  def notify_price_drop!
-    return if price_drop_notified?
-    return unless price_dropped?
-    
-    # TODO: Send notification
-    # NotificationService.new(wishlist.user).notify_price_drop(self)
-    update(price_drop_notified: true)
-  end
+  # Note: notify_price_drop! method removed - use WishlistItemPriceDropNotificationService instead
   
   private
   

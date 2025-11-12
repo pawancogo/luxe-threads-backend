@@ -40,3 +40,7 @@ RSpec.describe TrendingProduct, type: :model do
   end
 end
 
+
+
+
+

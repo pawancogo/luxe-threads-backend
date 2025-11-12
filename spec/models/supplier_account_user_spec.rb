@@ -31,3 +31,7 @@ RSpec.describe SupplierAccountUser, type: :model do
   end
 end
 
+
+
+
+

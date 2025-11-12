@@ -59,3 +59,7 @@ RSpec.describe Pricable, type: :concern do
   end
 end
 
+
+
+
+

@@ -28,11 +28,13 @@ class Admin::CategoriesController < Admin::BaseController
     end
 
     def create
-      @category = Category.new(category_params)
+      service = Categories::CreationService.new(category_params)
+      service.call
       
-      if @category.save
-        redirect_to admin_category_path(@category), notice: 'Category created successfully.'
+      if service.success?
+        redirect_to admin_category_path(service.category), notice: 'Category created successfully.'
       else
+        @category = service.category || Category.new(category_params)
         render :new, status: :unprocessable_entity
       end
     end
@@ -41,7 +43,10 @@ class Admin::CategoriesController < Admin::BaseController
     end
 
     def update
-      if @category.update(category_params)
+      service = Categories::UpdateService.new(@category, category_params)
+      service.call
+      
+      if service.success?
         redirect_to admin_category_path(@category), notice: 'Category updated successfully.'
       else
         render :edit, status: :unprocessable_entity
@@ -49,37 +54,31 @@ class Admin::CategoriesController < Admin::BaseController
     end
 
     def destroy
-      @category.destroy
-      redirect_to admin_categories_path, notice: 'Category deleted successfully.'
+      service = Categories::DeletionService.new(@category)
+      service.call
+      
+      if service.success?
+        redirect_to admin_categories_path, notice: 'Category deleted successfully.'
+      else
+        redirect_to admin_categories_path, alert: service.errors.first || 'Failed to delete category'
+      end
     end
 
     def bulk_action
       category_ids = params[:category_ids]&.split(',') || []
       action = params[:bulk_action]
       
-      return redirect_to admin_categories_path, alert: 'Please select at least one category.' if category_ids.empty?
+      service = CategoryBulkActionService.new(category_ids, action)
+      service.call
       
-      categories = Category.where(id: category_ids)
-      count = 0
-      
-      case action
-      when 'feature'
-        categories.update_all(featured: true)
-        count = categories.count
-        notice = "#{count} category(ies) featured successfully."
-      when 'unfeature'
-        categories.update_all(featured: false)
-        count = categories.count
-        notice = "#{count} category(ies) unfeatured successfully."
-      when 'delete'
-        categories.destroy_all
-        count = categories.count
-        notice = "#{count} category(ies) deleted successfully."
+      if service.success?
+        count = service.count
+        action_name = action == 'feature' ? 'featured' : action == 'unfeature' ? 'unfeatured' : 'deleted'
+        notice = "#{count} category(ies) #{action_name} successfully."
+        redirect_to admin_categories_path, notice: notice
       else
-        return redirect_to admin_categories_path, alert: 'Invalid action.'
+        redirect_to admin_categories_path, alert: service.errors.first || 'Bulk action failed'
       end
-      
-      redirect_to admin_categories_path, notice: notice
     end
 
     private

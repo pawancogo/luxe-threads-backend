@@ -3,6 +3,8 @@ class Product < ApplicationRecord
   
   # Include shared behavior
   include Auditable
+  include PriceAggregatable
+  include InventoryAggregatable
   
   # Search manager configuration
   search_manager on: [:name, :description], aggs_on: [:status, :is_featured, :category_id, :supplier_profile_id], range_on: :base_price
@@ -27,73 +29,71 @@ class Product < ApplicationRecord
   validates :description, presence: true, length: { minimum: 10 }
   validates :slug, uniqueness: true, allow_nil: true
 
-  # Phase 2: Scopes
+  # Ecommerce-specific scopes
   scope :active, -> { where(status: :active) }
   scope :featured, -> { where(is_featured: true) }
   scope :bestsellers, -> { where(is_bestseller: true) }
   scope :new_arrivals, -> { where(is_new_arrival: true) }
   scope :trending, -> { where(is_trending: true) }
   scope :published, -> { where.not(published_at: nil) }
+  scope :pending, -> { where(status: :pending) }
+  scope :for_supplier_profile, ->(profile_id) { where(supplier_profile_id: profile_id) if profile_id.present? }
+  scope :with_status, ->(status) { where(status: status) if status.present? }
+  scope :by_category, ->(category_id) { where(category_id: category_id) if category_id.present? }
+  scope :by_brand, ->(brand_id) { where(brand_id: brand_id) if brand_id.present? }
+  scope :by_slug, ->(slug) { where(slug: slug) if slug.present? }
+  scope :by_supplier, ->(supplier_id) { where(supplier_profile_id: supplier_id) if supplier_id.present? }
+  scope :created_from, ->(date) { where('created_at >= ?', date) if date.present? }
+  scope :created_to, ->(date) { where('created_at <= ?', date) if date.present? }
+  scope :created_between, ->(from, to) { created_from(from).created_to(to) }
+  scope :admin_listing, -> { includes(:supplier_profile, :category, :brand, :product_variants, verified_by_admin: []) }
+  
+  # Eager loading scopes
+  scope :with_variants, -> { includes(:product_variants) }
+  scope :with_images, -> { includes(product_variants: :product_images) }
+  scope :with_attributes, -> { includes(product_variants: { product_variant_attributes: { attribute_value: :attribute_type } }) }
+  scope :with_product_attributes, -> { includes(product_attributes: { attribute_value: :attribute_type }) }
+  scope :with_brand_and_category, -> { includes(:brand, :category) }
+  scope :with_full_details, -> { includes(:brand, :category, :supplier_profile, product_variants: [:product_images, :product_variant_attributes, attribute_values: :attribute_type], reviews: :user) }
+  
+  # Search scope - database-agnostic
+  scope :search_by_term, ->(term) {
+    return none if term.blank?
+    search_term = "%#{term}%"
+    if ActiveRecord::Base.connection.adapter_name.downcase.include?('postgresql')
+      where(
+        'name ILIKE ? OR description ILIKE ? OR short_description ILIKE ? OR slug ILIKE ?',
+        search_term, search_term, search_term, search_term
+      )
+    else
+      where(
+        'UPPER(name) LIKE UPPER(?) OR UPPER(description) LIKE UPPER(?) OR UPPER(short_description) LIKE UPPER(?) OR UPPER(slug) LIKE UPPER(?)',
+        search_term, search_term, search_term, search_term
+      )
+    end
+  }
 
-  # Phase 2: Callbacks
+  # Configure concerns
+  price_aggregatable_on :product_variants, price_columns: [:price, :discounted_price, :mrp]
+  inventory_aggregatable_on :product_variants
+
+  # Callbacks
   before_validation :generate_slug, if: -> { slug.blank? && name.present? }
-  before_save :update_base_prices, if: -> { product_variants.any? }
+  before_save :update_aggregated_prices, if: -> { product_variants.any? }
   after_update :update_inventory_metrics
   after_update :invalidate_product_cache
   after_destroy :invalidate_product_cache
 
-  # Phase 2: JSON field helpers
-  def highlights_array
-    return [] if highlights.blank?
-    JSON.parse(highlights) rescue []
-  end
+  # Include JSON parsing concern
+  include JsonParseable
+  
+  # Phase 2: JSON field helpers using concern
+  json_array_parser :highlights, :search_keywords, :tags
+  json_hash_parser :product_attributes, :rating_distribution
 
-  def search_keywords_array
-    return [] if search_keywords.blank?
-    JSON.parse(search_keywords) rescue []
-  end
-
-  def tags_array
-    return [] if tags.blank?
-    JSON.parse(tags) rescue []
-  end
-
-  def product_attributes_hash
-    return {} if product_attributes.blank?
-    JSON.parse(product_attributes) rescue {}
-  end
-
-  def rating_distribution_hash
-    return {} if rating_distribution.blank?
-    JSON.parse(rating_distribution) rescue {}
-  end
-
-  # Phase 2: Update base prices from variants
-  def update_base_prices
-    prices = product_variants.pluck(:price).compact
-    discounted_prices = product_variants.pluck(:discounted_price).compact
-    mrps = product_variants.pluck(:mrp).compact
-
-    self.base_price = prices.min if prices.any?
-    self.base_discounted_price = discounted_prices.min if discounted_prices.any?
-    self.base_mrp = mrps.max if mrps.any?
-  end
-
-  # Phase 2: Update inventory metrics
-  def update_inventory_metrics
-    self.total_stock_quantity = product_variants.sum(:stock_quantity) || 0
-    self.low_stock_variants_count = product_variants.where(is_low_stock: true).count
-    save if changed?
-  end
-
-  # Phase 2: Business logic
-  def available?
-    total_stock_quantity > 0
-  end
-
-  def current_price
-    base_discounted_price || base_price || product_variants.minimum(:discounted_price) || product_variants.minimum(:price)
-  end
+  # Price and inventory aggregation handled by concerns
+  # available? method provided by InventoryAggregatable
+  # current_price method provided by PriceAggregatable
 
   private
 
@@ -115,23 +115,6 @@ class Product < ApplicationRecord
     self.slug = name.parameterize if name.present?
   end
 
-  # Presentation logic moved to ProductPresenter
-  # Search logic can be moved to SearchService if needed
-  def search_data
-    {
-      id: id,
-      name: name,
-      description: description,
-      status: status,
-      brand_name: brand.name,
-      category_name: category.name,
-      supplier_name: supplier_profile.company_name,
-      variants: product_variants.map do |variant|
-        {
-          price: variant.price,
-          discounted_price: variant.discounted_price,
-        }
-      end
-    }
-  end
+  # Note: Presentation logic is handled by serializers (ProductSerializer, PublicProductSerializer)
+  # Search indexing logic is handled by SearchManager concern
 end

@@ -11,11 +11,11 @@ class TrendingProduct < ApplicationRecord
   scope :by_category, ->(category_id) { where(category_id: category_id) }
   scope :top_trending, -> { order(trend_score: :desc) }
   
-  # Calculate trend score
+  # Calculate trend score (delegates to service)
   def calculate_trend_score
-    # Simple scoring algorithm - can be enhanced
-    score = (views_24h * 0.3) + (orders_24h * 10) + (revenue_24h.to_f * 0.1)
-    score.round(2)
+    service = Products::TrendScoreService.new(self)
+    service.call
+    service.trend_score
   end
   
   # Update trend score
@@ -24,7 +24,11 @@ class TrendingProduct < ApplicationRecord
   private
   
   def update_trend_score
-    self.trend_score = calculate_trend_score if views_24h.present? || orders_24h.present? || revenue_24h.present?
+    if views_24h.present? || orders_24h.present? || revenue_24h.present?
+      service = Products::TrendScoreService.new(self)
+      service.call
+      self.trend_score = service.trend_score if service.success?
+    end
   end
 end
 

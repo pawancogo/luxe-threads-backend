@@ -17,11 +17,13 @@ class Admin::CouponsController < Admin::BaseController
     end
 
     def create
-      @coupon = Coupon.new(coupon_params)
+      service = Coupons::CreationService.new(coupon_params)
+      service.call
       
-      if @coupon.save
-        redirect_to admin_coupon_path(@coupon), notice: 'Coupon created successfully.'
+      if service.success?
+        redirect_to admin_coupon_path(service.coupon), notice: 'Coupon created successfully.'
       else
+        @coupon = service.coupon || Coupon.new(coupon_params)
         render :new, status: :unprocessable_entity
       end
     end
@@ -30,7 +32,10 @@ class Admin::CouponsController < Admin::BaseController
     end
 
     def update
-      if @coupon.update(coupon_params)
+      service = Coupons::UpdateService.new(@coupon, coupon_params)
+      service.call
+      
+      if service.success?
         redirect_to admin_coupon_path(@coupon), notice: 'Coupon updated successfully.'
       else
         render :edit, status: :unprocessable_entity
@@ -38,8 +43,14 @@ class Admin::CouponsController < Admin::BaseController
     end
 
     def destroy
-      @coupon.destroy
-      redirect_to admin_coupons_path, notice: 'Coupon deleted successfully.'
+      service = Coupons::DeletionService.new(@coupon)
+      service.call
+      
+      if service.success?
+        redirect_to admin_coupons_path, notice: 'Coupon deleted successfully.'
+      else
+        redirect_to admin_coupons_path, alert: service.errors.first || 'Failed to delete coupon'
+      end
     end
 
     private

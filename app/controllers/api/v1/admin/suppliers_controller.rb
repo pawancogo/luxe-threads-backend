@@ -9,47 +9,50 @@ module Api::V1::Admin
     
     # GET /api/v1/admin/suppliers
     def index
-      @suppliers = User.where(role: 'supplier')
-                      .includes(:supplier_profile, :owned_supplier_profiles)
-                      .order(created_at: :desc)
+      base_scope = User.suppliers_only.with_supplier_profile
       
-      # Filters
-      @suppliers = @suppliers.joins(:supplier_profile).where('supplier_profiles.company_name LIKE ?', "%#{params[:search]}%") if params[:search].present?
-      @suppliers = @suppliers.where('users.email LIKE ?', "%#{params[:email]}%") if params[:email].present?
-      @suppliers = @suppliers.joins(:supplier_profile).where(supplier_profiles: { verified: params[:verified] == 'true' }) if params[:verified].present?
-      @suppliers = @suppliers.where.not(deleted_at: nil) if params[:active] == 'false'
-      @suppliers = @suppliers.where(deleted_at: nil) if params[:active] == 'true'
+      service = Admins::SupplierListingService.new(base_scope, params)
+      service.call
       
-      # Pagination
-      page = params[:page]&.to_i || 1
-      per_page = params[:per_page]&.to_i || 20
-      @suppliers = @suppliers.page(page).per(per_page)
-      
-      render_success(format_suppliers_data(@suppliers), 'Suppliers retrieved successfully')
+      if service.success?
+        render_success(
+          AdminSupplierSerializer.collection(service.suppliers),
+          'Suppliers retrieved successfully'
+        )
+      else
+        render_validation_errors(service.errors, 'Failed to retrieve suppliers')
+      end
     end
     
     # GET /api/v1/admin/suppliers/:id
     def show
-      render_success(format_supplier_detail_data(@supplier), 'Supplier retrieved successfully')
+      render_success(
+        AdminSupplierSerializer.new(@supplier).as_json,
+        'Supplier retrieved successfully'
+      )
     end
     
     # PATCH /api/v1/admin/suppliers/:id
     def update
       supplier_params_data = params[:supplier] || {}
       
-      if @supplier.update(supplier_params_data.permit(:first_name, :last_name, :phone_number, :email))
-        # Update supplier profile if provided
-        if supplier_params_data[:supplier_profile].present?
-          profile = @supplier.primary_supplier_profile || @supplier.supplier_profile
-          if profile
-            profile.update(supplier_params_data[:supplier_profile].permit(:company_name, :gst_number, :description, :website_url))
-          end
-        end
-        
+      # Normalize params for service (service expects supplier_profile_attributes)
+      normalized_params = supplier_params_data.permit(:first_name, :last_name, :phone_number, :email)
+      if supplier_params_data[:supplier_profile].present?
+        normalized_params[:supplier_profile_attributes] = supplier_params_data[:supplier_profile].permit(:company_name, :gst_number, :description, :website_url)
+      end
+      
+      service = Suppliers::UpdateService.new(@supplier, normalized_params)
+      service.call
+      
+      if service.success?
         log_admin_activity('update', 'Supplier', @supplier.id, @supplier.previous_changes)
-        render_success(format_supplier_detail_data(@supplier), 'Supplier updated successfully')
+        render_success(
+          AdminSupplierSerializer.new(@supplier.reload).as_json,
+          'Supplier updated successfully'
+        )
       else
-        render_validation_errors(@supplier.errors.full_messages, 'Supplier update failed')
+        render_validation_errors(service.errors, 'Supplier update failed')
       end
     end
     
@@ -66,61 +69,50 @@ module Api::V1::Admin
     
     # PATCH /api/v1/admin/suppliers/:id/activate
     def activate
-      profile = @supplier.primary_supplier_profile || @supplier.supplier_profile
-      unless profile
-        render_error('Supplier profile not found', 'Supplier must have a profile')
-        return
-      end
+      service = Suppliers::StatusUpdateService.new(@supplier, 'active', admin: @current_admin)
+      service.call
       
-      changes = {}
-      if @supplier.update(deleted_at: nil)
-        changes[:deleted_at] = [@supplier.deleted_at_before_last_save, nil]
-      end
-      if profile.update(verified: true)
-        changes[:verified] = [profile.verified_before_last_save, true]
-      end
-      
-      if changes.any?
-        log_admin_activity('update', 'Supplier', @supplier.id, changes)
-        render_success(format_supplier_detail_data(@supplier), 'Supplier activated successfully')
+      if service.success?
+        log_admin_activity('update', 'Supplier', @supplier.id, { status: 'active' })
+        render_success(
+          AdminSupplierSerializer.new(@supplier.reload).as_json,
+          'Supplier activated successfully'
+        )
       else
-        render_validation_errors(@supplier.errors.full_messages + profile.errors.full_messages, 'Supplier activation failed')
+        render_validation_errors(service.errors, 'Supplier activation failed')
       end
     end
     
     # PATCH /api/v1/admin/suppliers/:id/deactivate
     def deactivate
-      if @supplier.update(deleted_at: Time.current)
-        log_admin_activity('update', 'Supplier', @supplier.id, { deleted_at: [@supplier.deleted_at_before_last_save, Time.current] })
-        render_success(format_supplier_detail_data(@supplier), 'Supplier deactivated successfully')
+      service = Suppliers::StatusUpdateService.new(@supplier, 'inactive', admin: @current_admin)
+      service.call
+      
+      if service.success?
+        log_admin_activity('update', 'Supplier', @supplier.id, { status: 'inactive' })
+        render_success(
+          AdminSupplierSerializer.new(@supplier.reload).as_json,
+          'Supplier deactivated successfully'
+        )
       else
-        render_validation_errors(@supplier.errors.full_messages, 'Supplier deactivation failed')
+        render_validation_errors(service.errors, 'Supplier deactivation failed')
       end
     end
     
     # PATCH /api/v1/admin/suppliers/:id/suspend
     def suspend
-      profile = @supplier.primary_supplier_profile || @supplier.supplier_profile
-      unless profile
-        render_error('Supplier profile not found', 'Supplier must have a profile')
-        return
-      end
-      
       suspension_reason = params[:suspension_reason] || 'Supplier account suspended by admin'
+      service = Suppliers::StatusUpdateService.new(@supplier, 'suspended', suspension_reason: suspension_reason, admin: @current_admin)
+      service.call
       
-      changes = {}
-      if @supplier.update(deleted_at: Time.current)
-        changes[:deleted_at] = [@supplier.deleted_at_before_last_save, Time.current]
-      end
-      if profile.update(verified: false)
-        changes[:verified] = [profile.verified_before_last_save, false]
-      end
-      
-      if changes.any?
-        log_admin_activity('update', 'Supplier', @supplier.id, { **changes, suspension_reason: suspension_reason })
-        render_success(format_supplier_detail_data(@supplier), 'Supplier suspended successfully')
+      if service.success?
+        log_admin_activity('update', 'Supplier', @supplier.id, { status: 'suspended', suspension_reason: suspension_reason })
+        render_success(
+          AdminSupplierSerializer.new(@supplier.reload).as_json,
+          'Supplier suspended successfully'
+        )
       else
-        render_validation_errors(@supplier.errors.full_messages + profile.errors.full_messages, 'Supplier suspension failed')
+        render_validation_errors(service.errors, 'Supplier suspension failed')
       end
     end
     
@@ -161,10 +153,13 @@ module Api::V1::Admin
         }
       end
       
-      service = InvitationService.new(@supplier, @current_admin)
+      service = Invitations::Service.new(@supplier, @current_admin)
       
       if service.send_supplier_invitation(invitation_role, options)
-        render_created(format_supplier_detail_data(@supplier), "Invitation sent to #{@supplier.email} successfully")
+        render_created(
+          AdminSupplierSerializer.new(@supplier).as_json,
+          "Invitation sent to #{@supplier.email} successfully"
+        )
       else
         render_validation_errors(service.errors, 'Failed to send invitation')
       end
@@ -172,10 +167,13 @@ module Api::V1::Admin
 
     # POST /api/v1/admin/suppliers/:id/resend_invitation
     def resend_invitation
-      service = InvitationService.new(@supplier, @current_admin)
+      service = Invitations::Service.new(@supplier, @current_admin)
       
       if service.resend_invitation
-        render_success(format_supplier_detail_data(@supplier), "Invitation resent to #{@supplier.email}")
+        render_success(
+          AdminSupplierSerializer.new(@supplier).as_json,
+          "Invitation resent to #{@supplier.email}"
+        )
       else
         render_validation_errors(service.errors, 'Failed to resend invitation')
       end
@@ -183,18 +181,14 @@ module Api::V1::Admin
 
     # GET /api/v1/admin/suppliers/:id/stats
     def stats
-      profile = @supplier.primary_supplier_profile || @supplier.supplier_profile
+      service = Suppliers::StatsService.new(@supplier)
+      service.call
       
-      stats_data = {
-        total_products: profile ? profile.products.count : 0,
-        active_products: profile ? profile.products.where(status: 'active').count : 0,
-        total_orders: profile ? profile.products.joins(:product_variants => :order_items).distinct.count('order_items.order_id') : 0,
-        total_revenue: profile ? profile.products.joins(:product_variants => :order_items => :order).where(orders: { status: ['paid', 'shipped', 'delivered'] }).sum('order_items.price * order_items.quantity') : 0,
-        verified: profile&.verified || false,
-        created_at: @supplier.created_at
-      }
-      
-      render_success(stats_data, 'Supplier statistics retrieved successfully')
+      if service.success?
+        render_success(service.stats, 'Supplier statistics retrieved successfully')
+      else
+        render_error(service.errors.join(', '), :unprocessable_entity)
+      end
     end
     
     private
@@ -204,42 +198,11 @@ module Api::V1::Admin
     end
     
     def set_supplier
-      @supplier = User.where(role: 'supplier').find(params[:id])
+      @supplier = User.suppliers_only.find(params[:id])
     rescue ActiveRecord::RecordNotFound
       render_not_found('Supplier not found')
     end
     
-    def format_suppliers_data(suppliers)
-      suppliers.map { |supplier| format_supplier_data(supplier) }
-    end
-    
-    def format_supplier_data(supplier)
-      profile = supplier.primary_supplier_profile || supplier.supplier_profile
-      {
-        id: supplier.id,
-        email: supplier.email,
-        first_name: supplier.first_name,
-        last_name: supplier.last_name,
-        full_name: supplier.full_name,
-        phone_number: supplier.phone_number,
-        company_name: profile&.company_name,
-        verified: profile&.verified || false,
-        is_active: supplier.deleted_at.nil?,
-        created_at: supplier.created_at
-      }
-    end
-    
-    def format_supplier_detail_data(supplier)
-      profile = supplier.primary_supplier_profile || supplier.supplier_profile
-      format_supplier_data(supplier).merge(
-        gst_number: profile&.gst_number,
-        description: profile&.description,
-        website_url: profile&.website_url,
-        supplier_tier: profile&.supplier_tier,
-        deleted_at: supplier.deleted_at,
-        updated_at: supplier.updated_at
-      )
-    end
   end
 end
 

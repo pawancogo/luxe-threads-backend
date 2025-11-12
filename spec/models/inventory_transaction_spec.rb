@@ -38,3 +38,7 @@ RSpec.describe InventoryTransaction, type: :model do
   end
 end
 
+
+
+
+

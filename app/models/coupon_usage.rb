@@ -8,14 +8,8 @@ class CouponUsage < ApplicationRecord
   validates :discount_amount, presence: true, numericality: { greater_than: 0 }
   validates :order_amount, presence: true, numericality: { greater_than: 0 }
   
-  # Increment coupon usage count
-  after_create :increment_coupon_uses
-  
-  private
-  
-  def increment_coupon_uses
-    coupon.increment!(:current_uses)
-  end
+  # Note: Callback removed - use CouponUsageTrackingService instead
+  # Call the service after creating coupon usage records
 end
 
 

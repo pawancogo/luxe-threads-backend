@@ -52,3 +52,7 @@ RSpec.describe Api::V1::ProductBulkOperationsController, type: :controller do
   end
 end
 
+
+
+
+

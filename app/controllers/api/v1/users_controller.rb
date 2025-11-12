@@ -15,7 +15,7 @@ class Api::V1::UsersController < ApplicationController
     params_hash[:password_confirmation] ||= params_hash[:password] if params_hash[:password].present?
     
     begin
-      service = UserCreationService.new(params_hash)
+      service = Users::CreationService.new(params_hash)
       result = service.call
       
       if service.success?
@@ -31,10 +31,11 @@ class Api::V1::UsersController < ApplicationController
           expires: 7.days.from_now
         }
         
-        user_data = format_user_data(service.user)
-        
         # Return user data (token is in cookie, not in response)
-        render_created({ user: user_data }, 'User created successfully')
+        render_created(
+          { user: UserSerializer.new(service.user).as_json },
+          'User created successfully'
+        )
       else
         # Service already handled validation errors
         # Check if there's a server error that should include trace (dev/test)
@@ -60,33 +61,55 @@ class Api::V1::UsersController < ApplicationController
     end
   end
 
+  # GET /api/v1/users/me
+  def me
+    user = with_eager_loading(User.where(id: current_user.id), additional_includes: user_includes).first
+    render_success(
+      UserProfileSerializer.new(user).as_json,
+      'User profile retrieved successfully'
+    )
+  end
+
   # GET /api/v1/users/:id
   def show
-    render_success(format_user_data(@user), 'User retrieved successfully')
+    render_success(
+      UserSerializer.new(@user).as_json,
+      'User retrieved successfully'
+    )
   end
 
   # PATCH/PUT /api/v1/users/:id
   def update
     # Handle password change separately if current_password is provided
     if params[:user][:current_password].present? && params[:user][:password].present?
-      # Verify current password
-      unless @user.authenticate(params[:user][:current_password])
-        render_unauthorized('Current password is incorrect')
-        return
-      end
+      service = Users::PasswordUpdateService.new(
+        @user,
+        params[:user][:current_password],
+        params[:user][:password],
+        params[:user][:password_confirmation]
+      )
+      service.call
       
-      # Update password
-      if @user.update(password: params[:user][:password], password_confirmation: params[:user][:password_confirmation])
-        render_success(format_user_data(@user), 'Password changed successfully')
+      if service.success?
+        render_success(
+          UserSerializer.new(@user.reload).as_json,
+          'Password changed successfully'
+        )
       else
-        render_validation_errors(@user.errors.full_messages, 'Password change failed')
+        render_validation_errors(service.errors, 'Password change failed')
       end
     else
       # Regular update (without password change)
-      if @user.update(user_params.except(:password, :password_confirmation, :current_password))
-        render_success(format_user_data(@user), 'User updated successfully')
+      service = Users::GeneralUpdateService.new(@user, user_params)
+      service.call
+      
+      if service.success?
+        render_success(
+          UserSerializer.new(@user.reload).as_json,
+          'User updated successfully'
+        )
       else
-        render_validation_errors(@user.errors.full_messages, 'User update failed')
+        render_validation_errors(service.errors, 'User update failed')
       end
     end
   end
@@ -94,15 +117,13 @@ class Api::V1::UsersController < ApplicationController
   # DELETE /api/v1/users/:id
   def destroy
     begin
-      if @user.destroy
+      service = Users::DeletionService.new(@user)
+      service.call
+      
+      if service.success?
         render_no_content('User deleted successfully')
       else
-        errors = @user.errors.full_messages
-        if errors.any?
-          render_validation_errors(errors, 'Failed to delete user')
-        else
-          render_error('Failed to delete user', nil, :unprocessable_entity)
-        end
+        render_validation_errors(service.errors, 'Failed to delete user')
       end
     rescue ActiveRecord::InvalidForeignKey => e
       handle_constraint_error(e)
@@ -176,18 +197,7 @@ class Api::V1::UsersController < ApplicationController
     )
   end
 
-  def format_user_data(user)
-    {
-      id: user.id,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      full_name: user.full_name,
-      email: user.email,
-      phone_number: user.phone_number,
-      role: user.role,
-      email_verified: user.email_verified?,
-      created_at: user.created_at.iso8601,
-      updated_at: user.updated_at.iso8601
-    }
+  def user_includes
+    [:addresses, :orders, :cart, :wishlist]
   end
 end

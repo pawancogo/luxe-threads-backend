@@ -45,3 +45,7 @@ RSpec.describe Promotion, type: :model do
   end
 end
 
+
+
+
+

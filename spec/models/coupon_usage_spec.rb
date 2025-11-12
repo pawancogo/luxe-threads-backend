@@ -21,3 +21,7 @@ RSpec.describe CouponUsage, type: :model do
   end
 end
 
+
+
+
+

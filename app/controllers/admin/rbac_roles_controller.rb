@@ -22,21 +22,18 @@ class Admin::RbacRolesController < Admin::BaseController
   end
   
   def update
-    permission_ids = params[:permission_ids] || []
+    service = Rbac::RolePermissionsUpdateService.new(@role, params[:permission_ids])
+    service.call
     
-    # Update role permissions
-    @role.rbac_role_permissions.destroy_all
-    permission_ids.each do |permission_id|
-      @role.rbac_role_permissions.create!(rbac_permission_id: permission_id)
+    if service.success?
+      redirect_to admin_rbac_role_path(@role), notice: 'Role permissions updated successfully.'
+    else
+      flash.now[:alert] = "Error updating permissions: #{service.errors.join(', ')}"
+      @all_permissions = RbacPermission.active.order(:category, :name)
+      @permissions_by_category = @all_permissions.group_by(&:category)
+      @current_permission_ids = @role.rbac_permission_ids
+      render :edit, status: :unprocessable_entity
     end
-    
-    redirect_to admin_rbac_role_path(@role), notice: 'Role permissions updated successfully.'
-  rescue => e
-    flash.now[:alert] = "Error updating permissions: #{e.message}"
-    @all_permissions = RbacPermission.active.order(:category, :name)
-    @permissions_by_category = @all_permissions.group_by(&:category)
-    @current_permission_ids = @role.rbac_permission_ids
-    render :edit, status: :unprocessable_entity
   end
   
   private

@@ -86,3 +86,7 @@ RSpec.describe Coupon, type: :model do
   end
 end
 
+
+
+
+

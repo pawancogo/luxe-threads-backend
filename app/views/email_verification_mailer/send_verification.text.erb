@@ -1,0 +1,26 @@
+EMAIL VERIFICATION - LUXETHREADS
+================================
+
+Hello <%= @verifiable.respond_to?(:full_name) ? @verifiable.full_name : @verifiable.email %>!
+
+Thank you for signing up with LuxeThreads. To complete your registration and secure your account, please verify your email address by visiting the link below:
+
+VERIFICATION LINK: <%= @verification_url %>
+
+This verification link will expire on <%= @expires_at.strftime('%B %d, %Y at %I:%M %p') %> for security reasons.
+
+SECURITY NOTE:
+- Never share this verification link with anyone
+- LuxeThreads will never ask for your verification link via phone, email, or any other method
+- If you didn't create an account with LuxeThreads, please ignore this email
+
+If you're having trouble with the verification process, please contact our support team.
+
+Best regards,
+The LuxeThreads Team
+
+---
+LuxeThreads - Premium Fashion Marketplace
+This email was sent to <%= @verification.email %>
+© <%= Date.current.year %> LuxeThreads. All rights reserved.
+

@@ -15,7 +15,7 @@ class InvitationsController < ApplicationController
       return
     end
     
-    service = InvitationService.new(@invitee)
+    service = Invitations::Service.new(@invitee)
     
     if service.invitation_expired?
       render_expired_invitation
@@ -54,7 +54,7 @@ class InvitationsController < ApplicationController
       return
     end
     
-    service = InvitationService.new(@invitee)
+    service = Invitations::Service.new(@invitee)
     
     unless service.valid_invitation_token?(@token)
       render_invalid_token

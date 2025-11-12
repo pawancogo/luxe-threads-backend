@@ -17,10 +17,13 @@ class Admin::SettingsController < Admin::BaseController
     end
 
     def create
-      @setting = Setting.new(setting_params)
-      if @setting.save
-        redirect_to admin_setting_path(@setting), notice: 'Setting created successfully.'
+      service = Settings::CreationService.new(setting_params)
+      service.call
+      
+      if service.success?
+        redirect_to admin_setting_path(service.setting), notice: 'Setting created successfully.'
       else
+        @setting = service.setting || Setting.new(setting_params)
         render :new, status: :unprocessable_entity
       end
     end
@@ -29,7 +32,10 @@ class Admin::SettingsController < Admin::BaseController
     end
 
     def update
-      if @setting.update(setting_params)
+      service = Settings::UpdateService.new(@setting, setting_params)
+      service.call
+      
+      if service.success?
         redirect_to admin_setting_path(@setting), notice: 'Setting updated successfully.'
       else
         render :edit, status: :unprocessable_entity
@@ -37,8 +43,14 @@ class Admin::SettingsController < Admin::BaseController
     end
 
     def destroy
-      @setting.destroy
-      redirect_to admin_settings_path, notice: 'Setting deleted successfully.'
+      service = Settings::DeletionService.new(@setting)
+      service.call
+      
+      if service.success?
+        redirect_to admin_settings_path, notice: 'Setting deleted successfully.'
+      else
+        redirect_to admin_settings_path, alert: service.errors.first || 'Failed to delete setting'
+      end
     end
 
     private

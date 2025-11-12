@@ -834,5 +834,21 @@
     <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <!-- daterangepicker -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    
+    <script>
+      // Handle confirmation dialogs for forms with data-confirm attribute
+      document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('form[data-confirm]');
+        forms.forEach(function(form) {
+          form.addEventListener('submit', function(e) {
+            const confirmMessage = form.getAttribute('data-confirm');
+            if (confirmMessage && !confirm(confirmMessage)) {
+              e.preventDefault();
+              return false;
+            }
+          });
+        });
+      });
+    </script>
   </body>
 </html>

@@ -11,12 +11,17 @@ class Wishlist < ApplicationRecord
   
   scope :public_wishlists, -> { where(is_public: true) }
   scope :default, -> { where(is_default: true) }
+  scope :with_items, -> { includes(wishlist_items: { product_variant: { product: [:brand, :category] } }) }
+  
+  # Include concerns
+  include TokenGeneratable
+  include SingleDefaultable
   
   # Generate share token
   before_validation :generate_share_token, on: :create, if: -> { share_enabled? && share_token.blank? }
   
   # Ensure only one default wishlist per user
-  before_save :ensure_single_default
+  ensure_single_default_for :is_default, scope: :user_id
   
   # Share URL
   def share_url
@@ -27,15 +32,6 @@ class Wishlist < ApplicationRecord
   private
   
   def generate_share_token
-    self.share_token = SecureRandom.urlsafe_base64(32)
-  end
-  
-  def ensure_single_default
-    return unless is_default?
-    
-    # Unset other default wishlists for this user
-    Wishlist.where(user_id: user_id)
-            .where.not(id: id)
-            .update_all(is_default: false)
+    self.share_token = generate_unique_token_for(:share_token)
   end
 end

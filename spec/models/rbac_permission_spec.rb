@@ -44,3 +44,7 @@ RSpec.describe RbacPermission, type: :model do
   end
 end
 
+
+
+
+

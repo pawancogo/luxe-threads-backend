@@ -5,6 +5,9 @@ class User < ApplicationRecord
   include Passwordable
   include Verifiable
   include Auditable
+  include Invitable
+  include SupplierRoleable
+  include Nameable
   
   # Search manager configuration
   search_manager on: [:email, :first_name, :last_name], aggs_on: [:role, :is_active, :email_verified]
@@ -47,14 +50,34 @@ class User < ApplicationRecord
   # Handle deletion order - Orders must be deleted before Addresses
   # Note: RailsAdmin uses UserPermanentDeletionService which handles cleanup before really_destroy!
   # This callback handles cleanup for regular destroy calls (soft delete)
+  # Delegates to Users::DeletionService for proper separation of concerns
   before_destroy :handle_dependent_deletions
 
   # Scopes
   scope :active, -> { where(deleted_at: nil) }
   scope :inactive, -> { where.not(deleted_at: nil) }
-  scope :non_suppliers, -> { where.not(role: 'supplier') }
   scope :suppliers_only, -> { where(role: 'supplier') }
   scope :customers_only, -> { where.not(role: 'supplier') }
+  scope :by_role, ->(role) { where(role: role) if role.present? }
+  scope :by_email, ->(email) { where('email LIKE ?', "%#{email}%") if email.present? }
+  scope :search_by_name, ->(term) {
+    return all if term.blank?
+    where('first_name LIKE ? OR last_name LIKE ?', "%#{term}%", "%#{term}%")
+  }
+  scope :with_active_status, ->(active) {
+    return all if active.nil?
+    active == 'true' ? where(deleted_at: nil) : where.not(deleted_at: nil)
+  }
+  scope :with_supplier_profile, -> { includes(:supplier_profile, :owned_supplier_profiles) }
+  scope :search_by_company_name, ->(term) {
+    return all if term.blank?
+    joins(:supplier_profile).where('supplier_profiles.company_name LIKE ?', "%#{term}%")
+  }
+  scope :with_verified_supplier_profile, ->(verified) {
+    return all if verified.nil?
+    verified == 'true' ? joins(:supplier_profile).where(supplier_profiles: { verified: true }) : 
+                         joins(:supplier_profile).where(supplier_profiles: { verified: false })
+  }
 
   # Associations for invitations
   belongs_to :invited_by, class_name: 'User', foreign_key: 'invited_by_id', optional: true
@@ -62,31 +85,17 @@ class User < ApplicationRecord
 
   # Validations
   validates :first_name, presence: true, unless: :pending_invitation?
-  validates :last_name, presence: true, unless: :pending_invitation?
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :role, presence: true
   
-  # Ensure names are present after invitation is accepted
+  # Ensure first name is present after invitation is accepted
   validate :names_present_after_acceptance, if: :invitation_accepted?
   
   def names_present_after_acceptance
-    if invitation_accepted? && (first_name.blank? || last_name.blank?)
-      errors.add(:base, 'First name and last name are required after accepting invitation')
+    if invitation_accepted? && first_name.blank?
+      errors.add(:base, 'First name is required after accepting invitation')
     end
   end
-  
-  def invitation_accepted?
-    invitation_status == 'accepted' && invitation_accepted_at.present?
-  end
-  
-  # Invitation status enum
-  attribute :invitation_status, :string
-  enum invitation_status: {
-    pending: 'pending',
-    accepted: 'accepted',
-    expired: 'expired',
-    cancelled: 'cancelled'
-  }, _prefix: :invitation
 
   # Helper methods for customer roles
   def premium?
@@ -97,143 +106,48 @@ class User < ApplicationRecord
     vip_customer?
   end
 
-  # Check if user is a supplier (has supplier_profile)
-  def supplier?
-    supplier_profile.present? || role == 'supplier'
-  end
-
-  # Check if user owns a supplier profile
-  def supplier_owner?
-    owned_supplier_profiles.exists?
-  end
-
-  # Get primary supplier profile (owned or associated)
-  def primary_supplier_profile
-    owned_supplier_profiles.first || supplier_profile
-  end
-
-  # Check if user is part of a supplier account
-  def supplier_account_member?
-    supplier_account_users.exists?
-  end
-
-  def full_name
-    parts = [first_name, last_name].compact.reject(&:blank?)
-    parts.any? ? parts.join(' ') : nil
-  end
-
-  # Invitation methods
-  def pending_invitation?
-    invitation_status == 'pending' && invitation_token.present?
-  end
-
-  def invitation_expired?
-    invitation_expires_at.present? && invitation_expires_at < Time.current
-  end
-
-  def can_accept_invitation?
-    pending_invitation? && !invitation_expired?
-  end
-
-  # Generate referral code if not present
+  # Generate referral code - delegates to service
+  # Kept for backward compatibility, but prefer using UserReferralCodeService directly
   def generate_referral_code
-    return referral_code if referral_code.present?
-    
-    code = SecureRandom.alphanumeric(8).upcase
-    while User.exists?(referral_code: code)
-      code = SecureRandom.alphanumeric(8).upcase
-    end
-    update_column(:referral_code, code)
-    code
-  end
-
-  # Parse notification preferences JSON
-  def notification_preferences_hash
-    return {} if notification_preferences.blank?
-    JSON.parse(notification_preferences) rescue {}
-  end
-
-  # Update notification preference
-  def update_notification_preference(key, value)
-    prefs = notification_preferences_hash
-    prefs[key.to_s] = value
-    update_column(:notification_preferences, prefs.to_json)
+    service = UserReferralCodeService.new(self)
+    service.call
+    service.referral_code
   end
 
   # Business logic methods - delegate to services
-  def send_verification_email_with_temp_password
-    temp_password = TempPasswordService.generate_for(self)
-    VerificationMailer.verification_email(self, temp_password, 'user').deliver_now
-    temp_password
-  end
-
-  def send_password_reset_email
-    temp_password = TempPasswordService.generate_for(self)
-    VerificationMailer.password_reset_email(self, temp_password, 'user').deliver_now
-    temp_password
-  end
-
+  # Note: Email sending is handled by services (EmailVerificationService, PasswordResetService)
+  # These methods are kept for backward compatibility but should use services directly
+  
   def authenticate_with_temp_password(temp_password)
-    TempPasswordService.authenticate_temp_password(self, temp_password)
+    Authentication::TempPasswordService.authenticate_temp_password(self, temp_password)
   end
 
+  # Deprecated: Use PasswordResetCompletionService instead
   def reset_password_with_temp_password(temp_password, new_password)
-    return false unless authenticate_with_temp_password(temp_password)
-    return false unless PasswordValidationService.valid?(new_password)
-    
-    update!(password: new_password)
-    TempPasswordService.clear_temp_password(self)
-    true
+    service = Authentication::PasswordResetCompletionService.new(self, temp_password, new_password)
+    service.call
+    service.success?
   end
 
   def temp_password_expired?
-    TempPasswordService.temp_password_expired?(self)
+    Authentication::TempPasswordService.temp_password_expired?(self)
   end
   
   private
   
+  # Delegates to UserDeletionService for proper cleanup
   def handle_dependent_deletions
-    # Nullify order foreign keys first to prevent constraint violations
-    orders.update_all(shipping_address_id: nil, billing_address_id: nil) if orders.exists?
+    service = Users::DeletionService.new(self)
+    service.call
     
-    # Delete associations using Rails associations (bypasses callbacks)
-    orders.delete_all
-    addresses.delete_all
-    reviews.delete_all
-    
-    # Delete cart and wishlist with items
-    cart&.cart_items&.delete_all
-    cart&.delete
-    wishlist&.wishlist_items&.delete_all
-    wishlist&.delete
-    
-    # Delete return requests if model exists
-    delete_return_requests
-    
-    # Delete supplier profile and products
-    if supplier_profile.present?
-      supplier_profile.products&.delete_all
-      supplier_profile.delete
+    unless service.success?
+      Rails.logger.error "Error in handle_dependent_deletions for user #{id}: #{service.errors.join(', ')}"
     end
     
-    true
+    true # Continue with deletion even if cleanup fails
   rescue StandardError => e
     Rails.logger.error "Error in handle_dependent_deletions for user #{id}: #{e.message}"
     Rails.logger.error e.backtrace.join("\n") if Rails.logger.level <= Logger::ERROR
     true # Continue with deletion even if cleanup fails
-  end
-  
-  def delete_return_requests
-    return unless model_exists?('ReturnRequest')
-    
-    ReturnRequest.where(user_id: id).find_each(&:destroy)
-  rescue StandardError => e
-    Rails.logger.error "Error deleting return requests for user #{id}: #{e.message}"
-  end
-  
-  def model_exists?(model_name)
-    model_name.constantize.table_exists?
-  rescue NameError, NoMethodError
-    false
   end
 end

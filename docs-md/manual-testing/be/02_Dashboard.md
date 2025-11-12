@@ -10,7 +10,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.1: Dashboard - Super Admin Access
+## Test Case 2.1: Dashboard - Super Admin Access => Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -29,7 +29,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.2: Dashboard - Metrics Cards Display
+## Test Case 2.2: Dashboard - Metrics Cards Display => Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -69,7 +69,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.4: Dashboard - Recent Orders List
+## Test Case 2.4: Dashboard - Recent Orders List => Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -108,7 +108,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.6: Dashboard - Recent Products List
+## Test Case 2.6: Dashboard - Recent Products List => Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -167,7 +167,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.9: Dashboard - Product Admin View
+## Test Case 2.9: Dashboard - Product Admin View =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Product Admin
@@ -185,7 +185,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.10: Dashboard - Order Admin View
+## Test Case 2.10: Dashboard - Order Admin View =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Order Admin
@@ -203,7 +203,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.11: Dashboard - User Admin View
+## Test Case 2.11: Dashboard - User Admin View =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as User Admin
@@ -221,7 +221,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.12: Dashboard - Supplier Admin View
+## Test Case 2.12: Dashboard - Supplier Admin View =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Supplier Admin
@@ -239,7 +239,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.13: Dashboard - Empty State (No Data)
+## Test Case 2.13: Dashboard - Empty State (No Data) =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -259,7 +259,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.14: Dashboard - Real-time Updates
+## Test Case 2.14: Dashboard - Real-time Updates =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -278,7 +278,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.15: Dashboard - Navigation Menu
+## Test Case 2.15: Dashboard - Navigation Menu =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -295,8 +295,8 @@ Test from the **Backend (BE)** perspective.
 
 
 ---
-
-## Test Case 2.16: Dashboard - Quick Actions
+ 
+## Test Case 2.16: Dashboard - Quick Actions =>Tested by pawan 
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -353,7 +353,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.19: Dashboard - Mobile Responsive
+## Test Case 2.19: Dashboard - Mobile Responsive => tested by pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -370,7 +370,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.20: Dashboard - Export Data
+## Test Case 2.20: Dashboard - Export Data=> tested by pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -390,7 +390,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.21: Dashboard - Activity Log
+## Test Case 2.21: Dashboard - Activity Log=> tested by pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -448,7 +448,7 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.24: Dashboard - Refresh Data
+## Test Case 2.24: Dashboard - Refresh Data => Tested by pawan
 
 **Prerequisites**: 
 - Logged in as Super Admin
@@ -467,7 +467,8 @@ Test from the **Backend (BE)** perspective.
 
 ---
 
-## Test Case 2.25: Dashboard - Logout from Dashboard
+## Test Case 2.25: Dashboard - Logout from Dashboard => Tested by pawan
+
 
 **Prerequisites**: 
 - Logged in as Super Admin

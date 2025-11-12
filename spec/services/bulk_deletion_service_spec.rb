@@ -36,3 +36,7 @@ RSpec.describe BulkDeletionService, type: :service do
   end
 end
 
+
+
+
+

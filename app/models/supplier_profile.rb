@@ -64,31 +64,22 @@ class SupplierProfile < ApplicationRecord
     )
   end
 
-  # Parse JSON fields
-  def warehouse_addresses_array
-    return [] if warehouse_addresses.blank?
-    JSON.parse(warehouse_addresses) rescue []
-  end
+  # Include JSON parsing concern
+  include JsonParseable
+  
+  # Parse JSON fields using concern
+  json_array_parser :warehouse_addresses, :verification_documents
+  json_hash_parser :shipping_zones
 
-  def verification_documents_array
-    return [] if verification_documents.blank?
-    JSON.parse(verification_documents) rescue []
-  end
-
-  def shipping_zones_hash
-    return {} if shipping_zones.blank?
-    JSON.parse(shipping_zones) rescue {}
-  end
-
-  # Update JSON fields
+  # Update JSON fields using concern methods
   def update_warehouse_addresses(addresses)
-    update_column(:warehouse_addresses, addresses.to_json)
+    update_json_array(:warehouse_addresses, addresses)
   end
 
   def add_verification_document(document_url)
-    docs = verification_documents_array
+    docs = parse_json_array(:verification_documents)
     docs << { url: document_url, uploaded_at: Time.current.iso8601 }
-    update_column(:verification_documents, docs.to_json)
+    update_json_array(:verification_documents, docs)
   end
 
   def suspend!(reason)
@@ -99,13 +90,7 @@ class SupplierProfile < ApplicationRecord
     )
   end
 
-  def activate!
-    update!(
-      is_suspended: false,
-      suspended_reason: nil,
-      suspended_at: nil
-    )
-  end
+  # Note: activate! method removed - use Suppliers::StatusUpdateService instead
   
   private
   
@@ -116,11 +101,10 @@ class SupplierProfile < ApplicationRecord
     end
   end
 
+  # Include token generation concern
+  include TokenGeneratable
+  
   def generate_invite_code
-    code = SecureRandom.alphanumeric(10).upcase
-    while SupplierProfile.exists?(invite_code: code)
-      code = SecureRandom.alphanumeric(10).upcase
-    end
-    self.invite_code = code
+    self.invite_code = generate_unique_token_for(:invite_code, length: 10, method: :alphanumeric).upcase
   end
 end

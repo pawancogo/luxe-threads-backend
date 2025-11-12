@@ -9,35 +9,56 @@ module Api::V1::Admin
     
     # GET /api/v1/admin/email_templates
     def index
-      @templates = EmailTemplate.order(:template_type)
+      service = EmailTemplateListingService.new(EmailTemplate.all, params)
+      service.call
       
-      render_success(format_templates_data(@templates), 'Email templates retrieved successfully')
+      if service.success?
+        render_success(
+          EmailTemplateSerializer.collection(service.templates),
+          'Email templates retrieved successfully'
+        )
+      else
+        render_validation_errors(service.errors, 'Failed to retrieve email templates')
+      end
     end
     
     # GET /api/v1/admin/email_templates/:id
     def show
-      render_success(format_template_detail_data(@email_template), 'Email template retrieved successfully')
+      render_success(
+        EmailTemplateSerializer.new(@email_template).as_json,
+        'Email template retrieved successfully'
+      )
     end
     
     # POST /api/v1/admin/email_templates
     def create
-      @email_template = EmailTemplate.new(email_template_params)
+      service = EmailTemplates::CreationService.new(email_template_params)
+      service.call
       
-      if @email_template.save
-        log_admin_activity('create', 'EmailTemplate', @email_template.id, @email_template.previous_changes)
-        render_created(format_template_detail_data(@email_template), 'Email template created successfully')
+      if service.success?
+        log_admin_activity('create', 'EmailTemplate', service.email_template.id, service.email_template.previous_changes)
+        render_created(
+          EmailTemplateSerializer.new(service.email_template).as_json,
+          'Email template created successfully'
+        )
       else
-        render_validation_errors(@email_template.errors.full_messages, 'Email template creation failed')
+        render_validation_errors(service.errors, 'Email template creation failed')
       end
     end
     
     # PATCH /api/v1/admin/email_templates/:id
     def update
-      if @email_template.update(email_template_params)
+      service = EmailTemplates::UpdateService.new(@email_template, email_template_params)
+      service.call
+      
+      if service.success?
         log_admin_activity('update', 'EmailTemplate', @email_template.id, @email_template.previous_changes)
-        render_success(format_template_detail_data(@email_template), 'Email template updated successfully')
+        render_success(
+          EmailTemplateSerializer.new(@email_template.reload).as_json,
+          'Email template updated successfully'
+        )
       else
-        render_validation_errors(@email_template.errors.full_messages, 'Email template update failed')
+        render_validation_errors(service.errors, 'Email template update failed')
       end
     end
     
@@ -46,29 +67,27 @@ module Api::V1::Admin
       template_id = @email_template.id
       template_type = @email_template.template_type
       
-      if @email_template.destroy
+      service = EmailTemplates::DeletionService.new(@email_template)
+      service.call
+      
+      if service.success?
         log_admin_activity('destroy', 'EmailTemplate', template_id, { template_type: template_type })
         render_no_content('Email template deleted successfully')
       else
-        render_validation_errors(@email_template.errors.full_messages, 'Email template deletion failed')
+        render_validation_errors(service.errors, 'Email template deletion failed')
       end
     end
     
     # POST /api/v1/admin/email_templates/:id/preview
     def preview
-      preview_variables = params[:variables] || {}
+      service = EmailTemplatePreviewService.new(@email_template, params[:variables])
+      service.call
       
-      subject = @email_template.interpolate(@email_template.subject, preview_variables)
-      body_html = @email_template.body_html ? @email_template.interpolate(@email_template.body_html, preview_variables) : nil
-      body_text = @email_template.body_text ? @email_template.interpolate(@email_template.body_text, preview_variables) : nil
-      
-      render_success({
-        subject: subject,
-        body_html: body_html,
-        body_text: body_text,
-        from_email: @email_template.from_email,
-        from_name: @email_template.from_name
-      }, 'Email preview generated successfully')
+      if service.success?
+        render_success(service.preview_data, 'Email preview generated successfully')
+      else
+        render_error(service.errors.first || 'Failed to generate preview', :internal_server_error)
+      end
     end
     
     private
@@ -93,27 +112,6 @@ module Api::V1::Admin
     
     def require_super_admin!
       require_role!(['super_admin'])
-    end
-    
-    def format_templates_data(templates)
-      templates.map { |t| format_template_detail_data(t) }
-    end
-    
-    def format_template_detail_data(template)
-      {
-        id: template.id,
-        template_type: template.template_type,
-        subject: template.subject,
-        body_html: template.body_html,
-        body_text: template.body_text,
-        from_email: template.from_email,
-        from_name: template.from_name,
-        is_active: template.is_active,
-        variables: template.variables || {},
-        description: template.description,
-        created_at: template.created_at,
-        updated_at: template.updated_at
-      }
     end
   end
 end

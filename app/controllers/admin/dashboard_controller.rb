@@ -1,32 +1,30 @@
 class Admin::DashboardController < Admin::BaseController
-    def index
-      # Dashboard statistics
-      @stats = {
-        total_users:            User.where.not(role: 'supplier').count,
-        total_suppliers:        User.where(role: 'supplier').count,
-        total_products:         Product.count,
-        pending_products:       Product.where(status: 'pending').count,
-        active_products:        Product.where(status: 'active').count,
-        total_orders:           Order.count,
-        pending_orders:         Order.where(status: 'pending').count,
-        shipped_orders:         Order.where(status: 'shipped').count,
-        featured_products:      Product.where(is_featured: true).count,
-        low_stock_variants:     ProductVariant.where(is_low_stock: true).count,
-        out_of_stock_variants:  ProductVariant.where(out_of_stock: true).count,
-        categories_count:       Category.count,
-        recent_orders:           Order.includes(:user)
-                                    .order(created_at: :desc)
-                                    .limit(10),
-        recent_products:         Product.includes(:supplier_profile, :category, :brand)
-                                    .order(created_at: :desc)
-                                    .limit(10)
-      }
+  def index
+    start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : nil
+    end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : nil
+    
+    service = Admins::DashboardService.new(start_date: start_date, end_date: end_date)
+    service.call
+    
+    if service.success?
+      result = service.result
+      @stats = result[:stats]
+      @revenue_metrics = result[:revenue_metrics]
+      @daily_revenue = result[:daily_revenue]
+      @revenue_by_category = result[:revenue_by_category]
+      @recent_orders = result[:recent_orders]
+      @recent_products = result[:recent_products]
+      @recent_users = result[:recent_users]
       
       # All orders for the orders table
       @orders = Order.includes(:user)
                      .order(created_at: :desc)
                      .page(params[:page])
+    else
+      flash[:alert] = service.errors.join(', ')
+      redirect_to admin_root_path
     end
   end
+end
 
 

@@ -34,3 +34,7 @@ RSpec.describe LoyaltyPoint, type: :model do
   end
 end
 
+
+
+
+
